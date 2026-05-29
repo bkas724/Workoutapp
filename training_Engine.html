@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght::300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .6; transform: scale(0.95); }
+        }
+        .pulse-slow {
+            animation: pulse-soft 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <header class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 p-8 md:p-12 mb-8 border border-slate-800 shadow-2xl">
+            <div class="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -mb-12 -ml-12 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="inline-flex items-center gap-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase">
+                            <i class="fa-solid fa-fire"></i> Target: Thanksgiving 2026
+                        </span>
+                        <span id="sync-badge" class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 pulse-slow"></span> Offline / Saving Locally
+                        </span>
+                    </div>
+                    <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">
+                        Training Portal
+                    </h1>
+                    <p class="mt-3 text-slate-400 max-w-xl text-sm md:text-base leading-relaxed">
+                        A non-linear, adaptive checklist designed for busy schedules. Progress on your own time, sync across all devices, and conquer your fitness goals when youre ready.
+                    </p>
+                </div>
+                
+                <div class="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl p-6 min-w-[260px] flex flex-col justify-between shadow-xl">
+                    <span class="text-slate-400 text-xs font-medium uppercase tracking-wider">Overall Plan Completion</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <span id="overall-completion-text" class="text-3xl font-black text-emerald-400">0%</span>
+                        <span class="text-slate-500 text-xs">completed</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full mt-4 overflow-hidden">
+                        <div id="overall-completion-bar" class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="next-activity-focus" class="mb-8 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/40 rounded-3xl p-6 md:p-8 shadow-2xl transition-all duration-500">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
+            <div class="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
+                <div id="focus-content" class="w-full">
+                    <div class="animate-pulse flex gap-4">
+                        <div class="w-12 h-12 bg-slate-800 rounded-xl"></div>
+                        <div class="flex-1 space-y-3">
+                            <div class="h-4 bg-slate-800 rounded w-1/4"></div>
+                            <div class="h-6 bg-slate-800 rounded w-1/2"></div>
+                            <div class="h-4 bg-slate-800 rounded w-3/4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-4 space-y-8">
+                
+                <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                            <i class="fa-solid fa-calculator text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-100">Dynamic Pace Blueprint</h2>
+                            <p class="text-xs text-slate-400">Pace targets adapt as your fitness rises</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-6 bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
+                        <label class="block text-slate-400 text-xs font-semibold mb-2 uppercase tracking-wider">Your Medium/Hard Pace (7/10 effort)</label>
+                        <div class="flex items-center gap-2">
+                            <input id="input-min" type="number" min="5" max="15" value="8" class="bg-slate-900 border border-slate-800 text-slate-100 px-3 py-2 rounded-xl text-center w-20 font-bold focus:outline-none focus:border-indigo-500 transition-colors">
+                            <span class="text-slate-500 font-black">:</span>
+                            <input id="input-sec" type="number" min="0" max="59" value="10" class="bg-slate-900 border border-slate-800 text-slate-100 px-3 py-2 rounded-xl text-center w-20 font-bold focus:outline-none focus:border-indigo-500 transition-colors">
+                            <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider ml-2">/ Mile</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-2">Adjust this as your 7/10 run speed increases over the months.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-semibold text-sky-400 uppercase tracking-wide">Easy / Recovery Runs</span>
+                                <span id="pace-easy" class="text-sm font-extrabold text-slate-100">9:15 - 9:45 /mi</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Keep easy days highly restorative. Restores system glycogen.</p>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Long Aerobic Base</span>
+                                <span id="pace-long" class="text-sm font-extrabold text-slate-100">8:50 - 9:20 /mi</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Supports cardiovascular system. Builds foundational endurance.</p>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-semibold text-amber-400 uppercase tracking-wide">Tempo / Threshold</span>
+                                <span id="pace-tempo" class="text-sm font-extrabold text-slate-100">7:10 - 7:25 /mi</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Comfortably hard. Improves lactic acid clearance threshold.</p>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wide">5K Goal Speed</span>
+                                <span class="text-sm font-black text-indigo-300">6:26 /mi (1:36 /400m)</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Your target race intensity. Aim for extreme muscle familiarity at this speed.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
+                            <i class="fa-solid fa-route text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-100">GPX Stride Baseline</h2>
+                            <p class="text-xs text-slate-400">May 2, 2026 &bull; Historic Starting Point</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div class="flex justify-between text-xs border-b border-slate-900 pb-2">
+                            <span class="text-slate-500">Starting Cadence</span>
+                            <span class="font-mono font-bold text-slate-200">158 - 161 spm</span>
+                        </div>
+                        <div class="flex justify-between text-xs border-b border-slate-900 pb-2">
+                            <span class="text-slate-500">Max Heart Rate Reach</span>
+                            <span class="font-mono font-bold text-slate-200">163 bpm</span>
+                        </div>
+                        <div class="flex justify-between text-xs border-b border-slate-900 pb-2">
+                            <span class="text-slate-500">Avg Gradient Load</span>
+                            <span class="font-mono font-bold text-slate-200">4.43%</span>
+                        </div>
+                        <div class="flex justify-between text-xs pb-1">
+                            <span class="text-slate-500">Historic Distance</span>
+                            <span class="font-mono font-bold text-indigo-300">1.66 Miles (2.67 km)</span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                        To break 20m, we are going to keep this same run workload distance initially but significantly elevate your foot strike cadence (targeting 170-180 spm).
+                    </p>
+                </section>
+
+                <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2.5 bg-violet-500/10 text-violet-400 rounded-xl border border-violet-500/20">
+                            <i class="fa-solid fa-stopwatch text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-100">30-Min Session Timer</h2>
+                            <p class="text-xs text-slate-400">Pace your accessory sets at home</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 text-center space-y-3">
+                        <div id="timer-display-time" class="text-3xl font-black text-white font-mono">30:00</div>
+                        <div class="flex gap-2">
+                            <button id="btn-timer-primary" onclick="toggleTimer()" class="flex-1 py-2 text-xs font-bold rounded-xl bg-violet-600 hover:bg-violet-500 text-white transition-all">
+                                <i class="fa-solid fa-play"></i> Start
+                            </button>
+                            <button onclick="resetTimer()" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+            </div>
+
+            <div class="lg:col-span-8 space-y-8">
+                
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                                <i class="fa-solid fa-timeline text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-extrabold text-xl text-slate-100">Training Subphases</h2>
+                                <p class="text-xs text-slate-400">Complete each sequence step-by-step</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-center">
+                            <button onclick="switchPhase(1)" id="tab-p1" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white transition-all">Phase 1</button>
+                            <button onclick="switchPhase(2)" id="tab-p2" class="px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">Phase 2</button>
+                            <button onclick="switchPhase(3)" id="tab-p3" class="px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">Phase 3</button>
+                        </div>
+                    </div>
+
+                    <div id="phase-content-1" class="space-y-4">
+                        <div class="bg-indigo-950/20 border border-indigo-500/10 p-5 rounded-2xl mb-2">
+                            <h3 class="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-1">Phase 1: Speed Induction (Subphases 1 - 10)</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Neuromuscular conditioning. We alternate short, explosive 400m efforts with targeted glute/heel stability to safely establish a fast turnover.
+                            </p>
+                        </div>
+                        <div class="space-y-3" id="p1-weeks-container"></div>
+                    </div>
+
+                    <div id="phase-content-2" class="space-y-4 hidden">
+                        <div class="bg-amber-950/20 border border-amber-500/10 p-5 rounded-2xl mb-2">
+                            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-1">Phase 2: Speed Endurance (Subphases 11 - 20)</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Aerobic threshold development. We extend speed efforts to 1000m blocks and integrate posterior muscle loading (deadlifts) to safeguard joints.
+                            </p>
+                        </div>
+                        <div class="space-y-3" id="p2-weeks-container"></div>
+                    </div>
+
+                    <div id="phase-content-3" class="space-y-4 hidden">
+                        <div class="bg-emerald-950/20 border border-emerald-500/10 p-5 rounded-2xl mb-2">
+                            <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-1">Phase 3: Peak & Taper (Subphases 21 - 27)</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Maximum capacity and recovery. We test with 1-mile repetitions before backing off volume so your muscles supercompensate for Thanksgiving.
+                            </p>
+                        </div>
+                        <div class="space-y-3" id="p3-weeks-container"></div>
+                    </div>
+
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-violet-500/10 text-violet-400 rounded-xl border border-violet-500/20">
+                                <i class="fa-solid fa-book-open text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-lg text-slate-100">Strength Accessory Guides</h2>
+                                <p class="text-xs text-slate-400">At-home dumbbell & band reference library</p>
+                            </div>
+                        </div>
+                        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-center">
+                            <button onclick="switchStrength('A')" id="btn-sa" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-violet-600 text-white transition-all">A</button>
+                            <button onclick="switchStrength('B')" id="btn-sb" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">B</button>
+                            <button onclick="switchStrength('C')" id="btn-sc" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">C</button>
+                        </div>
+                    </div>
+
+                    <div id="r-details-A" class="space-y-4">
+                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout A: Hip Stability & Single-Leg Ground Force</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">1. DB Reverse Lunges</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 10/leg. Load front heel dynamically. Builds specific push power.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">2. Banded Monster Walks</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 40s. Band around shins. Step wide laterally to strengthen hips.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">3. DB Goblet Squats</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Heavy DB at chest. Focus on deep glute and core control.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">4. Banded Clamshells</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15/side. Strengthens Gluteus Medius to keep knee track aligned.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="r-details-B" class="space-y-4 hidden">
+                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout B: Posterior Propulsion & Rotational Core</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">1. DB Romanian Deadlifts</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Keep spine neutral. Focuses heavily on hamstrings & glutes.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">2. Banded Pallof Press</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12/side. Resisting rotation builds powerful torso stiffness.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">3. Single-Leg DB RDL</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 8/leg. Imparts great single-leg balance and hamstring depth.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">4. Banded Glute Bridges</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Band above knees. Drive hips up, pushing knees apart.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="r-details-C" class="space-y-4 hidden">
+                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout C: Stride Elasticity & Ankle/Foot Rigidity</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">1. Single-Leg Calf Raises</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Hold DB on active side. Toughens Achilles for high bounce.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">2. Banded Toe Hip-Pull</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Band around toes. Raise knee up to build hip-flexor snap.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">3. DB Bulgarian Split Squats</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 8/leg. Quad power and deep knee flex reinforcement.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">4. Banded Pull-Aparts</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Strengthens posterior shoulders for deep arm drive.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Custom SVG Icons definition matching user specs
+        const icons = {
+            easy: `<svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5h3.5a1.5 1.5 0 011.5 1.5v1a1.5 1.5 0 001.5 1.5h6a1.5 1.5 0 001.5-1.5v-1a1.5 1.5 0 011.5-1.5H21M6 13.5v-3.2a1.5 1.5 0 01.3-.9l2-2.5A1.5 1.5 0 019.5 6.4H14.5a1.5 1.5 0 011.2.6l2 2.5a1.5 1.5 0 01.3.9v3.2"/></svg>`,
+            fast: `<img src="Icons/fasticon.svg" class="w-5 h-5" alt="Fast Run" />`,
+            strength: `<svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm0 0v6M7.5 17h9"/></svg>`,
+            rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`
+        };
+
+        // Firebase Sync Infrastructure Setup
+        let db = null;
+        let auth = null;
+        let appId = typeof __app_id !== 'undefined' ? __app_id : 'sub20-5k-training';
+        let userId = null;
+
+        if (typeof __firebase_config !== 'undefined') {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth(app);
+                db = firebase.firestore(app);
+            } catch (err) {
+                console.error("Firebase config parsing error: ", err);
+            }
+        }
+
+        // Subphase Steps Plan Structure (1 to 27)
+        const subphases = [
+            { id: "sub-1", phase: 1, title: "Subphase 1: Initial Cadence & Turn", steps: [
+                { type: "easy", name: "Easy Recovery Run", desc: "3 Miles highly relaxed base building. Keep your breathing perfectly controlled.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Focus: Hip stability and front heel lunge force. 30 Minutes." },
+                { type: "rest", name: "Rest / Active Recovery Day", desc: "Recommended rest to allow muscle fibers to adapt and rebuild." },
+                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals on Track (90s rest). Strive for a steady cadence of ~170 spm.", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout C", desc: "Focus: Stride elasticity and Achilles tendon rigidity. 30 Minutes." },
+                { type: "easy", name: "Aerobic Easy Run", desc: "3 Miles smooth and steady. Focus on keeping contact time on ground minimal.", paceKey: "easy" }
+            ]},
+            { id: "sub-2", phase: 1, title: "Subphase 2: Neuromuscular Load", steps: [
+                { type: "easy", name: "Easy Recovery Run", desc: "3 Miles steady recovery run. Keep efforts strictly down.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Focus: Heavy goblet squats and clamshells. 30 Minutes." },
+                { type: "rest", name: "Rest / Light Walking Day", desc: "Let the posterior chain recuperate before speed work." },
+                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals on Track (90s rest) at exactly goal speed. High cadence focus.", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout C", desc: "Focus: Single leg stability, calf raises." },
+                { type: "fast", name: "Threshold Tempo Run", desc: "2 Miles at threshold tempo. Comfortably hard effort.", paceKey: "tempo" }
+            ]},
+            { id: "sub-3", phase: 1, title: "Subphase 3: Power Induction", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "3.5 Miles easy conversational run.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Posterior engine focus. Dumbbell RDLs." },
+                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals (90s rest) on Watch target.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "No run. Hydrate and stretch." },
+                { type: "strength", name: "Strength Workout C", desc: "Focus: Heel tendon stiffness." },
+                { type: "fast", name: "Threshold Tempo Run", desc: "2.25 Miles threshold tempo.", paceKey: "tempo" }
+            ]},
+            { id: "sub-4", phase: 1, title: "Subphase 4: Recovery Mini-Taper", steps: [
+                { type: "easy", name: "Restorative Run", desc: "3 Miles very easy jog. Do not push.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Knee stability and mobility focus." },
+                { type: "fast", name: "Neuromuscular Speed: 6 x 400m", desc: "Reduced volume (6 reps) at goal speed to freshen legs.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Complete recovery. Let the body supercompensate." }
+            ]},
+            { id: "sub-5", phase: 1, title: "Subphase 5: Increasing Volumetric Load", steps: [
+                { type: "easy", name: "Easy Recovery Run", desc: "3.5 Miles comfortable aerobic base.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Load leg unilateral power." },
+                { type: "rest", name: "Rest / Stretch Day", desc: "Light banded active recovery." },
+                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Volume increases. 10 repetitions on 90s recovery.", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout C", desc: "Calf raises and stride snap prep." },
+                { type: "fast", name: "Threshold Tempo Run", desc: "2.5 Miles steady tempo.", paceKey: "tempo" }
+            ]},
+            { id: "sub-6", phase: 1, title: "Subphase 6: Cadence Overdrive", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "4 Miles easy run.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Hamstring and posterior chain protection." },
+                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Focus on exact 1:36 lap pace. Keep shoulders relaxed.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Full systemic recovery." },
+                { type: "strength", name: "Strength Workout C", desc: "Foot arch stability focus." },
+                { type: "fast", name: "Threshold Tempo Run", desc: "2.75 Miles dynamic threshold.", paceKey: "tempo" }
+            ]},
+            { id: "sub-7", phase: 1, title: "Subphase 7: Threshold Target Surge", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "4 Miles easy recovery jog.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Single leg force drive." },
+                { type: "rest", name: "Rest Day", desc: "Recover completely." },
+                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Maintain ~175 spm on your Samsung watch telemetry.", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout C", desc: "Ankle stiffness conditioning." },
+                { type: "fast", name: "Threshold Tempo Run", desc: "3 Miles sustained tempo.", paceKey: "tempo" }
+            ]},
+            { id: "sub-8", phase: 1, title: "Subphase 8: Recovery Microcycle", steps: [
+                { type: "easy", name: "Restorative Run", desc: "3 Miles highly relaxed recovery.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Unloaded mobility & stretch." },
+                { type: "fast", name: "Neuromuscular Speed: 6 x 400m", desc: "6 reps to maintain fast motor patterns.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Rebuild muscle glycogen." }
+            ]},
+            { id: "sub-9", phase: 1, title: "Subphase 9: Phase Peak Volume", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "4 Miles easy run.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Single leg load & push power." },
+                { type: "rest", name: "Rest Day", desc: "Rest before peak speed session." },
+                { type: "fast", name: "Speed Session: 12 x 400m", desc: "12 reps at goal pace. Testing cardiovascular volume limit.", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout C", desc: "Toe and soleus loading." },
+                { type: "fast", name: "Threshold Tempo Run", desc: "3 Miles sustained tempo.", paceKey: "tempo" }
+            ]},
+            { id: "sub-10", phase: 1, title: "Subphase 10: Transition Phase", steps: [
+                { type: "easy", name: "Easy Recovery Run", desc: "3 Miles relaxed jog.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Posterior spine and core stabilization." },
+                { type: "rest", name: "Rest / Buffer Day", desc: "Ready your legs to transition into Phase 2." }
+            ]},
+
+            // Phase 2 (11 to 20)
+            { id: "sub-11", phase: 2, title: "Subphase 11: Introduction to 1Ks", steps: [
+                { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy run with 4 x 100m fast strides at the end.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "RDLs and hip posterior activation." },
+                { type: "rest", name: "Rest Day", desc: "Recover before 1000m repetitions." },
+                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 x 1000m at goal 5K pace (2min jog rest).", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout A", desc: "Focus: Goblet squats." },
+                { type: "easy", name: "Long Aerobic Run", desc: "5 Miles comfortable and steady.", paceKey: "long" }
+            ]},
+            { id: "sub-12", phase: 2, title: "Subphase 12: Stride Volume Push", steps: [
+                { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy run with 4 fast strides.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Glute and lower back support." },
+                { type: "fast", name: "Intervals: 4 x 1000m", desc: "4 reps on 2min rest.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "System recovery." },
+                { type: "easy", name: "Long Aerobic Run", desc: "5 Miles comfortable long run.", paceKey: "long" }
+            ]},
+            { id: "sub-13", phase: 2, title: "Subphase 13: Endurance Building", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "4 Miles comfortable jog.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Single leg reverse lunges." },
+                { type: "fast", name: "Intervals: 4 x 1000m", desc: "Focus on maintaining pace with minimal posture wobble.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Rest." },
+                { type: "easy", name: "Long Aerobic Run", desc: "6 Miles relaxed baseline.", paceKey: "long" }
+            ]},
+            { id: "sub-14", phase: 2, title: "Subphase 14: Rest & Recharge", steps: [
+                { type: "easy", name: "Restorative Run", desc: "3 Miles light recovery.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Banded stability." },
+                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 reps with longer 3min rests to restore energy.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Complete rest." }
+            ]},
+            { id: "sub-15", phase: 2, title: "Subphase 15: Maximum Volume Block", steps: [
+                { type: "easy", name: "Easy Run + Strides", desc: "4.5 Miles easy.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Heavy hamstring loading." },
+                { type: "rest", name: "Rest Day", desc: "Prepare." },
+                { type: "fast", name: "Intervals: 5 x 1000m", desc: "5 reps at goal pace. Testing full race volume.", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout A", desc: "Single leg balance." },
+                { type: "easy", name: "Long Aerobic Run", desc: "6 Miles relaxed long run.", paceKey: "long" }
+            ]},
+            { id: "sub-16", phase: 2, title: "Subphase 16: Speed Capacity Check", steps: [
+                { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Rotational core focus." },
+                { type: "fast", name: "Intervals: 5 x 1000m", desc: "Focus on flat footstrike and high cadence.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Recover." },
+                { type: "easy", name: "Long Aerobic Run", desc: "6 Miles comfortable base.", paceKey: "long" }
+            ]},
+            { id: "sub-17", phase: 2, title: "Subphase 17: Peak Threshold Intensity", steps: [
+                { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Unilateral strength." },
+                { type: "fast", name: "Intervals: 5 x 1000m", desc: "5 reps on reduced 90s recovery. Elite difficulty.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Focus on recovery." },
+                { type: "easy", name: "Long Aerobic Run", desc: "7 Miles very comfortable long base.", paceKey: "long" }
+            ]},
+            { id: "sub-18", phase: 2, title: "Subphase 18: Adaptive Recuperation", steps: [
+                { type: "easy", name: "Restorative Run", desc: "3 Miles light jog.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Heel mobility." },
+                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 easy reps.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Rebuild." }
+            ]},
+            { id: "sub-19", phase: 2, title: "Subphase 19: Phase 2 Final Benchmark", steps: [
+                { type: "easy", name: "Easy Run + Strides", desc: "5 Miles comfortable base.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout B", desc: "Posterior propulsion." },
+                { type: "rest", name: "Rest Day", desc: "Pre-benchmark rest." },
+                { type: "fast", name: "Intervals: 6 x 1000m", desc: "6 reps at goal pace. Highly challenging.", paceKey: "goal" },
+                { type: "strength", name: "Strength Workout A", desc: "Hip mobility." },
+                { type: "easy", name: "Long Aerobic Run", desc: "7 Miles long base.", paceKey: "long" }
+            ]},
+            { id: "sub-20", phase: 2, title: "Subphase 20: Taper Preparation", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "4 Miles comfortable base.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Ankle stability focus." },
+                { type: "rest", name: "Rest Day", desc: "Prepare legs for peak Phase 3." }
+            ]},
+
+            // Phase 3 (21 to 27)
+            { id: "sub-21", phase: 3, title: "Subphase 21: Peak Launch Setup", steps: [
+                { type: "easy", name: "Easy Recovery Run", desc: "4 Miles comfortable jog.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Stride elasticity & calf loading." },
+                { type: "fast", name: "Speed Test: 2 x 1.5 Miles", desc: "2 x 1.5 Miles at goal pace with 3min rest. Simulating race density.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Full restorative rest." },
+                { type: "easy", name: "Long Aerobic Run", desc: "6 Miles comfortable pace.", paceKey: "long" }
+            ]},
+            { id: "sub-22", phase: 3, title: "Subphase 22: High-Velocity Peaks", steps: [
+                { type: "easy", name: "Easy Recovery Run", desc: "4 Miles easy base.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Stride elasticity." },
+                { type: "fast", name: "Speed Test: 3 x 1.5 Miles", desc: "3 x 1.5 Miles at goal pace (3min rest).", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Recover completely." },
+                { type: "easy", name: "Long Aerobic Run", desc: "6 Miles relaxed long run.", paceKey: "long" }
+            ]},
+            { id: "sub-23", phase: 3, title: "Subphase 23: The Core Benchmark", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "3.5 Miles easy run.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Light mobility." },
+                { type: "fast", name: "Goal Benchmark: 3 x 1 Mile", desc: "3 x 1 Mile at 6:20 pace (3min rest). If you can do this, you are sub-20 ready.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Total rest." },
+                { type: "easy", name: "Long Aerobic Run", desc: "5 Miles relaxed base.", paceKey: "long" }
+            ]},
+            { id: "sub-24", phase: 3, title: "Subphase 24: Consolidation Block", steps: [
+                { type: "easy", name: "Easy Base Run", desc: "4 Miles easy base.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout A", desc: "Unilateral stability. Keep weight moderate." },
+                { type: "fast", name: "Goal Prep: 3 x 1.5 Miles", desc: "3 x 1.5 Miles at goal pace.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Absolute rest." }
+            ]},
+            { id: "sub-25", phase: 3, title: "Subphase 25: Taper Down Tier 1", steps: [
+                { type: "easy", name: "Easy Recovery Run", desc: "3.5 Miles very light jog.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Keep weights light, focus on mobility." },
+                { type: "fast", name: "Taper Track: 4 x 800m", desc: "4 x 800m at goal pace (2min rest). Fresh legs focus.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Taper recovery." }
+            ]},
+            { id: "sub-26", phase: 3, title: "Subphase 26: Pre-Race Peak Sharp", steps: [
+                { type: "easy", name: "Restorative Jog", desc: "3 Miles very slow recovery.", paceKey: "easy" },
+                { type: "strength", name: "Strength Workout C", desc: "Light band stretching only." },
+                { type: "fast", name: "Sharpening: 3 x 800m", desc: "3 x 800m at goal pace (2min rest) to keep nerves snappy.", paceKey: "goal" },
+                { type: "rest", name: "Rest Day", desc: "Total rest." }
+            ]},
+            { id: "sub-27", phase: 3, title: "Subphase 27: Thanksgiving Race Week", steps: [
+                { type: "easy", name: "Easy Jog + Strides", desc: "2.5 Miles easy recovery with 2 strides.", paceKey: "easy" },
+                { type: "easy", name: "Active Recovery", desc: "2 Miles relaxed with 3 x 200m light strides.", paceKey: "easy" },
+                { type: "rest", name: "Rest / Prep Day", desc: "Rest up. Hydrate and eat well." },
+                { type: "fast", name: "GOAL DAY: THANKSGIVING 5K", desc: "GOAL: BREAK 20 MINUTES (Pace: 6:25/mi or faster!)", paceKey: "race" }
+            ]}
+        ];
+
+        let appState = {};
+
+        function formatPace(totalMinutes) {
+            const mins = Math.floor(totalMinutes);
+            const secs = Math.round((totalMinutes - mins) * 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function calculateTargetPaces() {
+            const currentMins = parseFloat(document.getElementById('input-min').value) || 8;
+            const currentSecs = parseFloat(document.getElementById('input-sec').value) || 10;
+            const decimalPace = currentMins + (currentSecs / 60);
+
+            const easyMin = decimalPace + (65 / 60); 
+            const easyMax = decimalPace + (95 / 60); 
+            const longMin = decimalPace + (40 / 60);
+            const longMax = decimalPace + (70 / 60);
+            const tempoMin = decimalPace - (70 / 60);
+            const tempoMax = decimalPace - (45 / 60);
+
+            document.getElementById('pace-easy').innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+            document.getElementById('pace-long').innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+            document.getElementById('pace-tempo').innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+
+            appState.inputMin = currentMins;
+            appState.inputSec = currentSecs;
+            saveStateToCloud();
+
+            updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax);
+        }
+
+        function updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax) {
+            const allPaceLabels = document.querySelectorAll('.dynamic-pace-hint');
+            allPaceLabels.forEach(label => {
+                const type = label.dataset.type;
+                if (type === 'easy') {
+                    label.innerText = `Target Pace: ${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+                } else if (type === 'long') {
+                    label.innerText = `Target Pace: ${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+                } else if (type === 'tempo') {
+                    label.innerText = `Target Pace: ${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+                } else if (type === 'goal') {
+                    label.innerText = `Goal Pace: 6:26 /mi (1:36 /400m)`;
+                } else if (type === 'race') {
+                    label.innerText = `LFG: Target Sub-20 (6:25/mi or faster)`;
+                }
+            });
+        }
+
+        function renderNextActivityCard() {
+            const container = document.getElementById('focus-content');
+            let nextStep = null;
+            let parentSub = null;
+            let nextStepId = null;
+
+            for (let sub of subphases) {
+                for (let i = 0; i < sub.steps.length; i++) {
+                    const uniqueStepId = `${sub.id}-step-${i}`;
+                    if (!appState[uniqueStepId]) {
+                        nextStep = sub.steps[i];
+                        parentSub = sub;
+                        nextStepId = uniqueStepId;
+                        break;
+                    }
+                }
+                if (nextStep) break;
+            }
+
+            if (!nextStep) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-4 text-emerald-400 p-4">
+                        <i class="fa-solid fa-trophy text-4xl"></i>
+                        <div>
+                            <h2 class="text-2xl font-black uppercase tracking-wider">All Training Complete!</h2>
+                            <p class="text-slate-300 mt-1">You are ready for your sub-20 minute Thanksgiving 5K.</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const iconSVG = icons[nextStep.type] || icons.easy;
+            const paceHtml = nextStep.paceKey ? 
+                `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Pace</span>
+                <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${nextStep.paceKey}">Computing...</span></div>` 
+                : 
+                `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Time Investment</span>
+                <span class="font-mono text-xl md:text-2xl font-black text-white">${nextStep.type === 'rest' ? 'As Needed' : '30 Minutes'}</span></div>`;
+
+            container.innerHTML = `
+                <div class="flex items-start gap-2 mb-3">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-950/50 px-3 py-1 rounded-full border border-indigo-500/30">Up Next</span>
+                </div>
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 w-full">
+                    <div class="flex items-center gap-5 w-full md:w-auto">
+                        <label class="relative flex items-center justify-center cursor-pointer shrink-0 group">
+                            <input type="checkbox" onchange="focusCardCheck('${nextStepId}', '${parentSub.id}')" class="peer sr-only">
+                            <div class="w-12 h-12 md:w-16 md:h-16 border-2 border-slate-600 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 transition-all shadow-inner">
+                                <svg class="w-6 h-6 md:w-8 md:h-8 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        </label>
+                        
+                        <div class="flex-1">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight">${nextStep.name}</h2>
+                            <p class="text-indigo-200 text-sm font-semibold mt-1">${parentSub.title}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full h-px md:w-px md:h-20 bg-indigo-500/20"></div>
+
+                    <div class="flex-1 w-full bg-black/20 p-4 md:p-6 rounded-2xl border border-indigo-500/20 shadow-inner">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div class="flex items-start gap-3">
+                                <div class="mt-1 opacity-80 shrink-0">${iconSVG}</div>
+                                <div>
+                                    <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Instructions</span>
+                                    <p class="text-xs text-slate-200 leading-relaxed">${nextStep.desc}</p>
+                                </div>
+                            </div>
+                            ${paceHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function focusCardCheck(stepId, subId) {
+            appState[stepId] = true;
+            const mainCb = document.getElementById(stepId);
+            if (mainCb) mainCb.checked = true;
+
+            updateSubphaseProgressBadge(subId);
+            updateOverallProgressMeter();
+            saveStateToCloud();
+            
+            renderNextActivityCard();
+            calculateTargetPaces();
+        }
+
+        function switchPhase(phaseId) {
+            document.getElementById('phase-content-1').classList.add('hidden');
+            document.getElementById('phase-content-2').classList.add('hidden');
+            document.getElementById('phase-content-3').classList.add('hidden');
+            
+            const tabs = ['tab-p1', 'tab-p2', 'tab-p3'];
+            tabs.forEach(tab => {
+                document.getElementById(tab).className = "px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+            });
+
+            document.getElementById(`phase-content-${phaseId}`).classList.remove('hidden');
+            const colorClass = phaseId === 1 ? 'bg-indigo-600 text-white' : (phaseId === 2 ? 'bg-amber-600 text-white' : 'bg-emerald-600 text-white');
+            document.getElementById(`tab-p${phaseId}`).className = `px-3 py-1.5 text-xs font-bold rounded-lg ${colorClass} transition-all`;
+        }
+
+        function switchStrength(routineId) {
+            document.getElementById('r-details-A').classList.add('hidden');
+            document.getElementById('r-details-B').classList.add('hidden');
+            document.getElementById('r-details-C').classList.add('hidden');
+
+            const tabs = ['btn-sa', 'btn-sb', 'btn-sc'];
+            tabs.forEach(tab => {
+                document.getElementById(tab).className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+            });
+
+            document.getElementById(`r-details-${routineId}`).classList.remove('hidden');
+            document.getElementById(`btn-s${routineId.toLowerCase()}`).className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-violet-600 text-white transition-all";
+        }
+
+        function buildSubphasesHTML() {
+            const containers = {
+                1: document.getElementById('p1-weeks-container'),
+                2: document.getElementById('p2-weeks-container'),
+                3: document.getElementById('p3-weeks-container')
+            };
+
+            containers[1].innerHTML = "";
+            containers[2].innerHTML = "";
+            containers[3].innerHTML = "";
+
+            subphases.forEach((sub) => {
+                const accentColor = sub.phase === 1 ? "bg-indigo-500" : (sub.phase === 2 ? "bg-amber-500" : "bg-emerald-500");
+                
+                let cardHTML = `
+                    <div class="bg-slate-950/40 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300">
+                        <button onclick="toggleSubphaseCollapse('${sub.id}')" class="w-full flex items-center justify-between p-4 bg-slate-950/80 hover:bg-slate-900/50 transition-colors text-left">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2.5 h-2.5 rounded-full ${accentColor}"></span>
+                                <h4 class="font-bold text-sm text-slate-200">${sub.title}</h4>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span id="badge-${sub.id}" class="text-[11px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full">0% Done</span>
+                                <i id="chevron-${sub.id}" class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-300"></i>
+                            </div>
+                        </button>
+                        
+                        <div id="content-${sub.id}" class="hidden p-5 border-t border-slate-900 bg-slate-950/20">
+                            <div class="space-y-4">
+                `;
+
+                sub.steps.forEach((step, index) => {
+                    const uniqueStepId = `${sub.id}-step-${index}`;
+                    const iconSVG = icons[step.type] || icons.easy;
+                    const paceHintAttr = step.paceKey ? `data-type="${step.paceKey}"` : '';
+
+                    cardHTML += `
+                        <div class="flex items-start gap-4 p-3.5 rounded-xl bg-slate-900/30 border border-slate-800/55 hover:border-slate-800 transition-all">
+                            <label class="relative flex items-center justify-center cursor-pointer mt-0.5 shrink-0 group">
+                                <input type="checkbox" id="${uniqueStepId}" onchange="toggleStepCheck('${uniqueStepId}', '${sub.id}')" class="peer sr-only">
+                                <div class="w-5.5 h-5.5 border-2 border-slate-700 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-lg flex items-center justify-center text-slate-950 transition-all">
+                                    <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                            </label>
+
+                            <div class="p-2 bg-slate-950 rounded-lg border border-slate-800/80 shrink-0">
+                                ${iconSVG}
+                            </div>
+
+                            <div class="flex-1">
+                                <div class="flex items-baseline justify-between flex-wrap gap-2">
+                                    <span class="text-xs font-bold text-slate-200">${step.name}</span>
+                                    ${step.paceKey ? `<span class="dynamic-pace-hint text-[10px] font-extrabold text-indigo-400 font-mono" ${paceHintAttr}>Computing...</span>` : ''}
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">${step.desc}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                cardHTML += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                containers[sub.phase].innerHTML += cardHTML;
+            });
+        }
+
+        // Toggle Expand/Collapse for single Subphase card
+        function toggleSubphaseCollapse(subId) {
+            const content = document.getElementById(`content-${subId}`);
+            const chevron = document.getElementById(`chevron-${subId}`);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleStepCheck(stepId, subId) {
+            const checkbox = document.getElementById(stepId);
+            appState[stepId] = checkbox.checked;
+            
+            updateSubphaseProgressBadge(subId);
+            updateOverallProgressMeter();
+            saveStateToCloud();
+
+            renderNextActivityCard();
+            calculateTargetPaces();
+        }
+
+        function updateSubphaseProgressBadge(subId) {
+            const checkboxes = document.querySelectorAll(`[id^="${subId}-step-"]`);
+            let checkedCount = 0;
+            checkboxes.forEach(cb => {
+                if (cb.checked) checkedCount++;
+            });
+
+            const percent = checkboxes.length ? Math.round((checkedCount / checkboxes.length) * 100) : 0;
+            const badge = document.getElementById(`badge-${subId}`);
+            if (percent === 100) {
+                badge.className = "text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full";
+                badge.innerText = "Completed";
+            } else if (percent > 0) {
+                badge.className = "text-[11px] font-bold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-2.5 py-0.5 rounded-full";
+                badge.innerText = `${percent}% Done`;
+            } else {
+                badge.className = "text-[11px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full";
+                badge.innerText = "0% Done";
+            }
+        }
+
+        function updateOverallProgressMeter() {
+            const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+            let checkedCount = 0;
+            let timelineCheckboxes = Array.from(allCheckboxes).filter(cb => cb.id && cb.id.includes('sub-'));
+            
+            timelineCheckboxes.forEach(cb => {
+                if (cb.checked) checkedCount++;
+            });
+
+            const percent = timelineCheckboxes.length ? Math.round((checkedCount / timelineCheckboxes.length) * 100) : 0;
+            
+            document.getElementById('overall-completion-text').innerText = `${percent}%`;
+            document.getElementById('overall-completion-bar').style.width = `${percent}%`;
+        }
+
+        function saveStateToCloud() {
+            localStorage.setItem('sub20_v3_state', JSON.stringify(appState));
+
+            if (db && userId) {
+                const userDocRef = db.doc(`artifacts/${appId}/users/${userId}/training_data/state`);
+                userDocRef.set(appState, { merge: true })
+                    .then(() => {
+                        const syncBadge = document.getElementById('sync-badge');
+                        syncBadge.className = "inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase";
+                        syncBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Synced to Cloud`;
+                    })
+                    .catch(err => console.error("Firestore sync fail: ", err));
+            }
+        }
+
+        function loadState() {
+            const localSaved = localStorage.getItem('sub20_v3_state');
+            if (localSaved) {
+                appState = JSON.parse(localSaved);
+                applyStateToUI();
+            }
+
+            if (db && userId) {
+                const userDocRef = db.doc(`artifacts/${appId}/users/${userId}/training_data/state`);
+                userDocRef.get().then((docSnapshot) => {
+                    if (docSnapshot.exists) {
+                        appState = docSnapshot.data();
+                        applyStateToUI();
+                        localStorage.setItem('sub20_v3_state', JSON.stringify(appState));
+                    }
+                }).catch(err => console.error("Firestore read error: ", err));
+            }
+        }
+
+        function applyStateToUI() {
+            if (appState.inputMin) document.getElementById('input-min').value = appState.inputMin;
+            if (appState.inputSec) document.getElementById('input-sec').value = appState.inputSec;
+            
+            Object.keys(appState).forEach(key => {
+                const cb = document.getElementById(key);
+                if (cb && typeof appState[key] === 'boolean') {
+                    cb.checked = appState[key];
+                }
+            });
+
+            subphases.forEach(sub => updateSubphaseProgressBadge(sub.id));
+            updateOverallProgressMeter();
+            
+            renderNextActivityCard();
+            calculateTargetPaces();
+        }
+
+        async function setupCloudSync() {
+            if (!auth) return;
+
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await auth.signInWithCustomToken(__initial_auth_token);
+                } else {
+                    await auth.signInAnonymously();
+                }
+            };
+
+            try {
+                await initAuth();
+                userId = auth.currentUser?.uid;
+                
+                if (userId) {
+                    const syncBadge = document.getElementById('sync-badge');
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-indigo-500 pulse-slow"></span> Account Connected`;
+                    loadState();
+                }
+            } catch (err) {
+                console.error("Authentication setup failed: ", err);
+            }
+        }
+
+        let mainTimerInterval = null;
+        let isTimerRunning = false;
+        let totalTimeRemaining = 30 * 60;
+
+        function toggleTimer() {
+            if (isTimerRunning) {
+                clearInterval(mainTimerInterval);
+                isTimerRunning = false;
+                document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+            } else {
+                isTimerRunning = true;
+                document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-pause"></i> Pause`;
+                
+                mainTimerInterval = setInterval(() => {
+                    if (totalTimeRemaining > 0) {
+                        totalTimeRemaining--;
+                        const minutes = Math.floor(totalTimeRemaining / 60);
+                        const seconds = totalTimeRemaining % 60;
+                        document.getElementById('timer-display-time').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                    } else {
+                        clearInterval(mainTimerInterval);
+                        isTimerRunning = false;
+                        document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+                        document.getElementById('timer-display-time').innerText = "Done!";
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(mainTimerInterval);
+            isTimerRunning = false;
+            totalTimeRemaining = 30 * 60;
+            document.getElementById('timer-display-time').innerText = "30:00";
+            document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+        }
+
+        window.onload = function() {
+            buildSubphasesHTML();
+            document.getElementById('input-min').addEventListener('input', calculateTargetPaces);
+            document.getElementById('input-sec').addEventListener('input', calculateTargetPaces);
+            applyStateToUI();
+            setupCloudSync();
+        }
+    </script>
+</body>
+</html>
