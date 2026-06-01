@@ -6,6 +6,56 @@
     <title>Fitness Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        function submitSpeedWorkout(stepId, subId, isBenchmark) {
+            const minInput = document.getElementById('logged-min');
+            const secInput = document.getElementById('logged-sec');
+            const warning = document.getElementById('gatekeeper-warn');
+
+            const mins = parseFloat(minInput.value);
+            const secs = parseFloat(secInput.value);
+
+            // Enforce data governance limits (Gating validation)
+            if (isNaN(mins) || isNaN(secs) || minInput.value === "" || secInput.value === "") {
+                warning.classList.remove('hidden');
+                return;
+            }
+            warning.classList.add('hidden');
+
+            // Process step completion status
+            appState[stepId] = true;
+            const timelineCb = document.getElementById(stepId);
+            if (timelineCb) timelineCb.checked = true;
+
+            // Handle Adaptive Physiological Recalculation if it is a benchmark day
+            if (isBenchmark) {
+                const actualWorkoutPaceDecimal = mins + (secs / 60);
+                
+                // Grab old baseline parameters
+                const prevMins = parseFloat(document.getElementById('input-min').value) || 8;
+                const prevSecs = parseFloat(document.getElementById('input-sec').value) || 10;
+                const previousTargetBaselineDecimal = prevMins + (prevSecs / 60);
+
+                // Execute the 70/30 EMA Formula
+                const newBaselinePaceDecimal = (previousTargetBaselineDecimal * 0.70) + (actualWorkoutPaceDecimal * 0.30);
+
+                // Convert the final updated decimal blueprint back to clean integers
+                const finalMin = Math.floor(newBaselinePaceDecimal);
+                const finalSec = Math.round((newBaselinePaceDecimal - finalMin) * 60);
+
+                // Inject the updated baseline straight back to user data configuration views
+                document.getElementById('input-min').value = finalMin;
+                document.getElementById('input-sec').value = finalSec;
+
+                console.log(`EMA recalibration triggered! Previous: ${prevMins}:${prevSecs}, Logged: ${mins}:${secs}, New Engine Base Calibration: ${finalMin}:${finalSec}`);
+            }
+
+            // Refresh UI components across layout streams
+            updateSubphaseProgressBadge(subId);
+            updateOverallProgressMeter();
+            calculateTargetPaces(); // This will recalculate threshold slots and save values to cloud storage
+            renderNextActivityCard();
+            updateStageProgress();
+        }
         tailwind.config = {
             theme: {
                 extend: {
@@ -459,7 +509,7 @@
                 { type: "easy", name: "Easy Recovery Run", desc: "3 Miles highly relaxed base building. Keep your breathing perfectly controlled.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Focus: Hip stability and front heel lunge force. 30 Minutes." },
                 { type: "rest", name: "Rest / Active Recovery Day", desc: "Recommended rest to allow muscle fibers to adapt and rebuild." },
-                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals on Track (90s rest). Strive for a steady cadence of ~170 spm.", paceKey: "goal" },
+                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals on Track (90s rest). Strive for a steady cadence of ~170 spm.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "strength", name: "Strength Workout C", desc: "Focus: Stride elasticity and Achilles tendon rigidity. 30 Minutes." },
                 { type: "easy", name: "Aerobic Easy Run", desc: "3 Miles smooth and steady. Focus on keeping contact time on ground minimal.", paceKey: "easy" }
             ]},
@@ -467,61 +517,61 @@
                 { type: "easy", name: "Easy Recovery Run", desc: "3 Miles steady recovery run. Keep efforts strictly down.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Focus: Heavy goblet squats and clamshells. 30 Minutes." },
                 { type: "rest", name: "Rest / Light Walking Day", desc: "Let the posterior chain recuperate before speed work." },
-                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals on Track (90s rest) at exactly goal speed. High cadence focus.", paceKey: "goal" },
+                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals on Track (90s rest) at exactly goal speed. High cadence focus.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true  },
                 { type: "strength", name: "Strength Workout C", desc: "Focus: Single leg stability, calf raises." },
-                { type: "fast", name: "Threshold Tempo Run", desc: "2 Miles at threshold tempo. Comfortably hard effort.", paceKey: "tempo" }
+                { type: "fast", name: "Threshold Tempo Run", desc: "2 Miles at threshold tempo. Comfortably hard effort.", paceKey: "tempo", isSpeedWorkout: true, isBenchmark: true  }
             ]},
             { id: "sub-3", phase: 1, title: "Subphase 3: Power Induction", steps: [
                 { type: "easy", name: "Easy Base Run", desc: "3.5 Miles easy conversational run.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "Posterior engine focus. Dumbbell RDLs." },
-                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals (90s rest) on Watch target.", paceKey: "goal" },
+                { type: "fast", name: "Speed Session: 8 x 400m", desc: "8x400m intervals (90s rest) on Watch target.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "No run. Hydrate and stretch." },
                 { type: "strength", name: "Strength Workout C", desc: "Focus: Heel tendon stiffness." },
-                { type: "fast", name: "Threshold Tempo Run", desc: "2.25 Miles threshold tempo.", paceKey: "tempo" }
+                { type: "fast", name: "Threshold Tempo Run", desc: "2.25 Miles threshold tempo.", paceKey: "tempo", isSpeedWorkout: true, isBenchmark: true }
             ]},
             { id: "sub-4", phase: 1, title: "Subphase 4: Recovery Mini-Taper", steps: [
                 { type: "easy", name: "Restorative Run", desc: "3 Miles very easy jog. Do not push.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Knee stability and mobility focus." },
-                { type: "fast", name: "Neuromuscular Speed: 6 x 400m", desc: "Reduced volume (6 reps) at goal speed to freshen legs.", paceKey: "goal" },
+                { type: "fast", name: "Neuromuscular Speed: 6 x 400m", desc: "Reduced volume (6 reps) at goal speed to freshen legs.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Complete recovery. Let the body supercompensate." }
             ]},
             { id: "sub-5", phase: 1, title: "Subphase 5: Increasing Volumetric Load", steps: [
                 { type: "easy", name: "Easy Recovery Run", desc: "3.5 Miles comfortable aerobic base.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Load leg unilateral power." },
                 { type: "rest", name: "Rest / Stretch Day", desc: "Light banded active recovery." },
-                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Volume increases. 10 repetitions on 90s recovery.", paceKey: "goal" },
+                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Volume increases. 10 repetitions on 90s recovery.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "strength", name: "Strength Workout C", desc: "Calf raises and stride snap prep." },
-                { type: "fast", name: "Threshold Tempo Run", desc: "2.5 Miles steady tempo.", paceKey: "tempo" }
+                { type: "fast", name: "Threshold Tempo Run", desc: "2.5 Miles steady tempo.", paceKey: "tempo", isSpeedWorkout: true, isBenchmark: true}
             ]},
             { id: "sub-6", phase: 1, title: "Subphase 6: Cadence Overdrive", steps: [
                 { type: "easy", name: "Easy Base Run", desc: "4 Miles easy run.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "Hamstring and posterior chain protection." },
-                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Focus on exact 1:36 lap pace. Keep shoulders relaxed.", paceKey: "goal" },
+                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Focus on exact 1:36 lap pace. Keep shoulders relaxed.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Full systemic recovery." },
                 { type: "strength", name: "Strength Workout C", desc: "Foot arch stability focus." },
-                { type: "fast", name: "Threshold Tempo Run", desc: "2.75 Miles dynamic threshold.", paceKey: "tempo" }
+                { type: "fast", name: "Threshold Tempo Run", desc: "2.75 Miles dynamic threshold.", paceKey: "tempo", isSpeedWorkout: true, isBenchmark: true }
             ]},
             { id: "sub-7", phase: 1, title: "Subphase 7: Threshold Target Surge", steps: [
                 { type: "easy", name: "Easy Base Run", desc: "4 Miles easy recovery jog.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Single leg force drive." },
                 { type: "rest", name: "Rest Day", desc: "Recover completely." },
-                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Maintain ~175 spm on your Samsung watch telemetry.", paceKey: "goal" },
+                { type: "fast", name: "Speed Session: 10 x 400m", desc: "Maintain ~175 spm on your Samsung watch telemetry.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "strength", name: "Strength Workout C", desc: "Ankle stiffness conditioning." },
-                { type: "fast", name: "Threshold Tempo Run", desc: "3 Miles sustained tempo.", paceKey: "tempo" }
+                { type: "fast", name: "Threshold Tempo Run", desc: "3 Miles sustained tempo.", paceKey: "tempo", isSpeedWorkout: true, isBenchmark: true }
             ]},
             { id: "sub-8", phase: 1, title: "Subphase 8: Recovery Microcycle", steps: [
                 { type: "easy", name: "Restorative Run", desc: "3 Miles highly relaxed recovery.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "Unloaded mobility & stretch." },
-                { type: "fast", name: "Neuromuscular Speed: 6 x 400m", desc: "6 reps to maintain fast motor patterns.", paceKey: "goal" },
+                { type: "fast", name: "Neuromuscular Speed: 6 x 400m", desc: "6 reps to maintain fast motor patterns.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Rebuild muscle glycogen." }
             ]},
             { id: "sub-9", phase: 1, title: "Subphase 9: Phase Peak Volume", steps: [
                 { type: "easy", name: "Easy Base Run", desc: "4 Miles easy run.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Single leg load & push power." },
                 { type: "rest", name: "Rest Day", desc: "Rest before peak speed session." },
-                { type: "fast", name: "Speed Session: 12 x 400m", desc: "12 reps at goal pace. Testing cardiovascular volume limit.", paceKey: "goal" },
+                { type: "fast", name: "Speed Session: 12 x 400m", desc: "12 reps at goal pace. Testing cardiovascular volume limit.", paceKey: "goal", isSpeedWorkout: true, isBenchmark: true },
                 { type: "strength", name: "Strength Workout C", desc: "Toe and soleus loading." },
-                { type: "fast", name: "Threshold Tempo Run", desc: "3 Miles sustained tempo.", paceKey: "tempo" }
+                { type: "fast", name: "Threshold Tempo Run", desc: "3 Miles sustained tempo.", paceKey: "tempo", isSpeedWorkout: true, isBenchmark: true }
             ]},
             { id: "sub-10", phase: 1, title: "Subphase 10: Transition Phase", steps: [
                 { type: "easy", name: "Easy Recovery Run", desc: "3 Miles relaxed jog.", paceKey: "easy" },
@@ -534,63 +584,63 @@
                 { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy run with 4 x 100m fast strides at the end.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "RDLs and hip posterior activation." },
                 { type: "rest", name: "Rest Day", desc: "Recover before 1000m repetitions." },
-                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 x 1000m at goal 5K pace (2min jog rest).", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 x 1000m at goal 5K pace (2min jog rest).", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "strength", name: "Strength Workout A", desc: "Focus: Goblet squats." },
                 { type: "easy", name: "Long Aerobic Run", desc: "5 Miles comfortable and steady.", paceKey: "long" }
             ]},
             { id: "sub-12", phase: 2, title: "Subphase 12: Stride Volume Push", steps: [
                 { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy run with 4 fast strides.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "Glute and lower back support." },
-                { type: "fast", name: "Intervals: 4 x 1000m", desc: "4 reps on 2min rest.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 4 x 1000m", desc: "4 reps on 2min rest.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "System recovery." },
                 { type: "easy", name: "Long Aerobic Run", desc: "5 Miles comfortable long run.", paceKey: "long" }
             ]},
             { id: "sub-13", phase: 2, title: "Subphase 13: Endurance Building", steps: [
                 { type: "easy", name: "Easy Base Run", desc: "4 Miles comfortable jog.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Single leg reverse lunges." },
-                { type: "fast", name: "Intervals: 4 x 1000m", desc: "Focus on maintaining pace with minimal posture wobble.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 4 x 1000m", desc: "Focus on maintaining pace with minimal posture wobble.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Rest." },
                 { type: "easy", name: "Long Aerobic Run", desc: "6 Miles relaxed baseline.", paceKey: "long" }
             ]},
             { id: "sub-14", phase: 2, title: "Subphase 14: Rest & Recharge", steps: [
                 { type: "easy", name: "Restorative Run", desc: "3 Miles light recovery.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout C", desc: "Banded stability." },
-                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 reps with longer 3min rests to restore energy.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 reps with longer 3min rests to restore energy.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Complete rest." }
             ]},
             { id: "sub-15", phase: 2, title: "Subphase 15: Maximum Volume Block", steps: [
                 { type: "easy", name: "Easy Run + Strides", desc: "4.5 Miles easy.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "Heavy hamstring loading." },
                 { type: "rest", name: "Rest Day", desc: "Prepare." },
-                { type: "fast", name: "Intervals: 5 x 1000m", desc: "5 reps at goal pace. Testing full race volume.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 5 x 1000m", desc: "5 reps at goal pace. Testing full race volume.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "strength", name: "Strength Workout A", desc: "Single leg balance." },
                 { type: "easy", name: "Long Aerobic Run", desc: "6 Miles relaxed long run.", paceKey: "long" }
             ]},
             { id: "sub-16", phase: 2, title: "Subphase 16: Speed Capacity Check", steps: [
                 { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "Rotational core focus." },
-                { type: "fast", name: "Intervals: 5 x 1000m", desc: "Focus on flat footstrike and high cadence.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 5 x 1000m", desc: "Focus on flat footstrike and high cadence.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Recover." },
                 { type: "easy", name: "Long Aerobic Run", desc: "6 Miles comfortable base.", paceKey: "long" }
             ]},
             { id: "sub-17", phase: 2, title: "Subphase 17: Peak Threshold Intensity", steps: [
                 { type: "easy", name: "Easy Run + Strides", desc: "4 Miles easy.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Unilateral strength." },
-                { type: "fast", name: "Intervals: 5 x 1000m", desc: "5 reps on reduced 90s recovery. Elite difficulty.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 5 x 1000m", desc: "5 reps on reduced 90s recovery. Elite difficulty.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Focus on recovery." },
                 { type: "easy", name: "Long Aerobic Run", desc: "7 Miles very comfortable long base.", paceKey: "long" }
             ]},
             { id: "sub-18", phase: 2, title: "Subphase 18: Adaptive Recuperation", steps: [
                 { type: "easy", name: "Restorative Run", desc: "3 Miles light jog.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout C", desc: "Heel mobility." },
-                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 easy reps.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 3 x 1000m", desc: "3 easy reps.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Rebuild." }
             ]},
             { id: "sub-19", phase: 2, title: "Subphase 19: Phase 2 Final Benchmark", steps: [
                 { type: "easy", name: "Easy Run + Strides", desc: "5 Miles comfortable base.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout B", desc: "Posterior propulsion." },
                 { type: "rest", name: "Rest Day", desc: "Pre-benchmark rest." },
-                { type: "fast", name: "Intervals: 6 x 1000m", desc: "6 reps at goal pace. Highly challenging.", paceKey: "goal" },
+                { type: "fast", name: "Intervals: 6 x 1000m", desc: "6 reps at goal pace. Highly challenging.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "strength", name: "Strength Workout A", desc: "Hip mobility." },
                 { type: "easy", name: "Long Aerobic Run", desc: "7 Miles long base.", paceKey: "long" }
             ]},
@@ -604,47 +654,47 @@
             { id: "sub-21", phase: 3, title: "Subphase 21: Peak Launch Setup", steps: [
                 { type: "easy", name: "Easy Recovery Run", desc: "4 Miles comfortable jog.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout C", desc: "Stride elasticity & calf loading." },
-                { type: "fast", name: "Speed Test: 2 x 1.5 Miles", desc: "2 x 1.5 Miles at goal pace with 3min rest. Simulating race density.", paceKey: "goal" },
+                { type: "fast", name: "Speed Test: 2 x 1.5 Miles", desc: "2 x 1.5 Miles at goal pace with 3min rest. Simulating race density.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Full restorative rest." },
                 { type: "easy", name: "Long Aerobic Run", desc: "6 Miles comfortable pace.", paceKey: "long" }
             ]},
             { id: "sub-22", phase: 3, title: "Subphase 22: High-Velocity Peaks", steps: [
                 { type: "easy", name: "Easy Recovery Run", desc: "4 Miles easy base.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout C", desc: "Stride elasticity." },
-                { type: "fast", name: "Speed Test: 3 x 1.5 Miles", desc: "3 x 1.5 Miles at goal pace (3min rest).", paceKey: "goal" },
+                { type: "fast", name: "Speed Test: 3 x 1.5 Miles", desc: "3 x 1.5 Miles at goal pace (3min rest).", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Recover completely." },
                 { type: "easy", name: "Long Aerobic Run", desc: "6 Miles relaxed long run.", paceKey: "long" }
             ]},
             { id: "sub-23", phase: 3, title: "Subphase 23: The Core Benchmark", steps: [
                 { type: "easy", name: "Easy Base Run", desc: "3.5 Miles easy run.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout C", desc: "Light mobility." },
-                { type: "fast", name: "Goal Benchmark: 3 x 1 Mile", desc: "3 x 1 Mile at 6:20 pace (3min rest). If you can do this, you are sub-20 ready.", paceKey: "goal" },
+                { type: "fast", name: "Goal Benchmark: 3 x 1 Mile", desc: "3 x 1 Mile at 6:20 pace (3min rest). If you can do this, you are sub-20 ready.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Total rest." },
                 { type: "easy", name: "Long Aerobic Run", desc: "5 Miles relaxed base.", paceKey: "long" }
             ]},
             { id: "sub-24", phase: 3, title: "Subphase 24: Consolidation Block", steps: [
                 { type: "easy", name: "Easy Base Run", desc: "4 Miles easy base.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout A", desc: "Unilateral stability. Keep weight moderate." },
-                { type: "fast", name: "Goal Prep: 3 x 1.5 Miles", desc: "3 x 1.5 Miles at goal pace.", paceKey: "goal" },
+                { type: "fast", name: "Goal Prep: 3 x 1.5 Miles", desc: "3 x 1.5 Miles at goal pace.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Absolute rest." }
             ]},
             { id: "sub-25", phase: 3, title: "Subphase 25: Taper Down Tier 1", steps: [
                 { type: "easy", name: "Easy Recovery Run", desc: "3.5 Miles very light jog.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout C", desc: "Keep weights light, focus on mobility." },
-                { type: "fast", name: "Taper Track: 4 x 800m", desc: "4 x 800m at goal pace (2min rest). Fresh legs focus.", paceKey: "goal" },
+                { type: "fast", name: "Taper Track: 4 x 800m", desc: "4 x 800m at goal pace (2min rest). Fresh legs focus.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Taper recovery." }
             ]},
             { id: "sub-26", phase: 3, title: "Subphase 26: Pre-Race Peak Sharp", steps: [
                 { type: "easy", name: "Restorative Jog", desc: "3 Miles very slow recovery.", paceKey: "easy" },
                 { type: "strength", name: "Strength Workout C", desc: "Light band stretching only." },
-                { type: "fast", name: "Sharpening: 3 x 800m", desc: "3 x 800m at goal pace (2min rest) to keep nerves snappy.", paceKey: "goal" },
+                { type: "fast", name: "Sharpening: 3 x 800m", desc: "3 x 800m at goal pace (2min rest) to keep nerves snappy.", paceKey: "goal" , isSpeedWorkout: true, isBenchmark: true },
                 { type: "rest", name: "Rest Day", desc: "Total rest." }
             ]},
             { id: "sub-27", phase: 3, title: "Subphase 27: Thanksgiving Race Week", steps: [
                 { type: "easy", name: "Easy Jog + Strides", desc: "2.5 Miles easy recovery with 2 strides.", paceKey: "easy" },
                 { type: "easy", name: "Active Recovery", desc: "2 Miles relaxed with 3 x 200m light strides.", paceKey: "easy" },
                 { type: "rest", name: "Rest / Prep Day", desc: "Rest up. Hydrate and eat well." },
-                { type: "fast", name: "GOAL DAY: THANKSGIVING 5K", desc: "GOAL: BREAK 20 MINUTES (Pace: 6:25/mi or faster!)", paceKey: "race" }
+                { type: "fast", name: "GOAL DAY: THANKSGIVING 5K", desc: "GOAL: BREAK 20 MINUTES (Pace: 6:25/mi or faster!)", paceKey: "race"  , isSpeedWorkout: true, isBenchmark: true }
             ]}
         ];
 
@@ -709,6 +759,7 @@
             let nextStep = null;
             let parentSub = null;
             let nextStepId = null;
+            let stepIndex = -1;
 
             for (let sub of subphases) {
                 for (let i = 0; i < sub.steps.length; i++) {
@@ -717,6 +768,7 @@
                         nextStep = sub.steps[i];
                         parentSub = sub;
                         nextStepId = uniqueStepId;
+                        stepIndex = i;
                         break;
                     }
                 }
@@ -735,6 +787,10 @@
                 return;
             }
 
+            const isSpeed = nextStep.type === "fast";
+            // Check if it's explicitly a milestone/benchmark step based on name/context matching spec criteria
+            const isBenchmark = isSpeed && (nextStep.name.toLowerCase().includes("benchmark") || nextStep.name.toLowerCase().includes("test"));
+
             const iconSVG = icons[nextStep.type] || icons.easy;
             const paceHtml = nextStep.paceKey ? 
                 `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Pace</span>
@@ -744,13 +800,14 @@
                 <span class="font-mono text-xl md:text-2xl font-black text-white">${nextStep.type === 'rest' ? 'As Needed' : '30 Minutes'}</span></div>`;
 
             container.innerHTML = `
-                <div class="flex items-start gap-2 mb-3">
+                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-950/50 px-3 py-1 rounded-full border border-indigo-500/30">Up Next</span>
+                    ${isBenchmark ? `<span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-3 py-1 rounded-full border border-amber-500/30 pulse-slow">Fitness Milestone Benchmark</span>` : ''}
                 </div>
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-6 w-full">
                     <div class="flex items-center gap-5 w-full md:w-auto">
-                        <label class="relative flex items-center justify-center cursor-pointer shrink-0 group">
-                            <input type="checkbox" onchange="focusCardCheck('${nextStepId}', '${parentSub.id}')" class="peer sr-only">
+                        <label class="relative flex items-center justify-center ${isSpeed ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} shrink-0 group">
+                            <input type="checkbox" ${isSpeed ? 'disabled' : `onchange="focusCardCheck('${nextStepId}', '${parentSub.id}')"`} class="peer sr-only">
                             <div class="w-12 h-12 md:w-16 md:h-16 border-2 border-slate-600 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 transition-all shadow-inner">
                                 <svg class="w-6 h-6 md:w-8 md:h-8 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             </div>
@@ -765,7 +822,7 @@
                     <div class="w-full h-px md:w-px md:h-20 bg-indigo-500/20"></div>
 
                     <div class="flex-1 w-full bg-black/20 p-4 md:p-6 rounded-2xl border border-indigo-500/20 shadow-inner">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center mb-4">
                             <div class="flex items-start gap-3">
                                 <div class="mt-1 opacity-80 shrink-0">${iconSVG}</div>
                                 <div>
@@ -775,6 +832,23 @@
                             </div>
                             ${paceHtml}
                         </div>
+
+                        ${isSpeed ? `
+                        <div id="gatekeeper-form" class="border-t border-indigo-500/10 pt-4 mt-2">
+                            <span class="block text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-2">🔒 The Gatekeeper Validation: Log Average Workout Pace per Mile</span>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
+                                    <input id="logged-min" type="number" min="4" max="15" placeholder="Min" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none">
+                                    <span class="text-slate-600 font-bold">:</span>
+                                    <input id="logged-sec" type="number" min="0" max="59" placeholder="Sec" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none">
+                                </div>
+                                <button onclick="submitSpeedWorkout('${nextStepId}', '${parentSub.id}', ${isBenchmark})" class="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center gap-1.5">
+                                    <i class="fa-solid fa-square-check"></i> Validate & Complete Run
+                                </button>
+                            </div>
+                            <p id="gatekeeper-warn" class="text-[11px] text-rose-400 mt-2 font-medium hidden">⚠️ Please fill out both the minute and second pace parameters before submitting.</p>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -909,6 +983,19 @@
 
         function toggleStepCheck(stepId, subId) {
             const checkbox = document.getElementById(stepId);
+            
+            // Find the step object properties to determine if it is a protected velocity step
+            const subNum = subId.replace('sub-', '');
+            const stepNum = stepId.substring(stepId.lastIndexOf('-') + 1);
+            const stepObj = subphases.find(s => s.id === subId)?.steps[parseInt(stepNum)];
+
+            if (stepObj && stepObj.type === 'fast' && checkbox.checked) {
+                // Force the user back to the Up Next card area to preserve data logging compliance
+                checkbox.checked = false;
+                alert("🔒 Speed workouts require explicit pace metrics validation. Please execute and log this session within the primary 'Up Next' container card.");
+                return;
+            }
+
             appState[stepId] = checkbox.checked;
             
             updateSubphaseProgressBadge(subId);
