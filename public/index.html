@@ -46,6 +46,11 @@
                 document.getElementById('input-min').value = finalMin;
                 document.getElementById('input-sec').value = finalSec;
 
+                if (document.getElementById('input-min-display')) {
+                    document.getElementById('input-min-display').innerText = finalMin;
+                    document.getElementById('input-sec-display').innerText = finalSec < 10 ? '0' + finalSec : finalSec;
+                }
+
                 console.log(`EMA recalibration triggered! Previous: ${prevMins}:${prevSecs}, Logged: ${mins}:${secs}, New Engine Base Calibration: ${finalMin}:${finalSec}`);
             }
 
@@ -204,66 +209,65 @@
             </div>
         </div>
 
+        <section class="mb-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20">
+                        <i class="fa-solid fa-calculator text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-extrabold text-xl text-slate-100">Dynamic Pace Blueprint</h2>
+                        <p class="text-sm text-slate-400 mt-1">Pace targets adapt as your fitness rises</p>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-950/80 border border-slate-800 px-5 py-3 rounded-2xl flex flex-wrap md:flex-nowrap items-center gap-4">
+                    <div class="text-left md:text-right">
+                        <label class="block text-slate-400 text-[10px] font-bold uppercase tracking-widest">Medium/Hard Pace (7/10)</label>
+                        <span class="text-[10px] text-slate-500">Adaptive baseline</span>
+                    </div>
+                    <div class="hidden md:block w-px h-8 bg-slate-800"></div>
+                    <div class="flex items-center gap-2">
+                        <span id="input-min-display" class="text-slate-100 font-mono text-xl font-black">8</span>
+                        <span class="text-slate-500 font-black">:</span>
+                        <span id="input-sec-display" class="text-slate-100 font-mono text-xl font-black">10</span>
+                        <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider ml-1">/ mi</span>
+                        <input type="hidden" id="input-min" value="8">
+                        <input type="hidden" id="input-sec" value="10">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="p-5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
+                    <span class="text-[11px] font-bold text-sky-400 uppercase tracking-wider block mb-1">Easy / Recovery Runs</span>
+                    <span id="pace-easy" class="text-xl font-black text-slate-100 block mb-2 font-mono">9:15 - 9:45 /mi</span>
+                    <p class="text-xs text-slate-400 leading-relaxed">Keep easy days highly restorative. Restores system glycogen.</p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
+                    <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">Long Aerobic Base</span>
+                    <span id="pace-long" class="text-xl font-black text-slate-100 block mb-2 font-mono">8:50 - 9:20 /mi</span>
+                    <p class="text-xs text-slate-400 leading-relaxed">Supports cardiovascular system. Builds foundational endurance.</p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
+                    <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider block mb-1">Tempo / Threshold</span>
+                    <span id="pace-tempo" class="text-xl font-black text-slate-100 block mb-2 font-mono">7:10 - 7:25 /mi</span>
+                    <p class="text-xs text-slate-400 leading-relaxed">Comfortably hard. Improves lactic acid clearance threshold.</p>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
+                    <span class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">5K Goal Speed</span>
+                    <span class="text-xl font-black text-indigo-300 block mb-2 font-mono">6:26 /mi <span class="text-sm font-bold text-indigo-400/70">(1:36 /400m)</span></span>
+                    <p class="text-xs text-slate-400 leading-relaxed">Your target race intensity. Aim for extreme muscle familiarity at this speed.</p>
+                </div>
+            </div>
+        </section>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
             <div class="lg:col-span-4 space-y-8">
-                
-                <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
-                            <i class="fa-solid fa-calculator text-lg"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-bold text-lg text-slate-100">Dynamic Pace Blueprint</h2>
-                            <p class="text-xs text-slate-400">Pace targets adapt as your fitness rises</p>
-                        </div>
-                    </div>
-
-                    <div class="mb-6 bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
-                        <label class="block text-slate-400 text-xs font-semibold mb-2 uppercase tracking-wider">Your Medium/Hard Pace (7/10 effort)</label>
-                        <div class="flex items-center gap-2">
-                            <input id="input-min" type="number" min="5" max="15" value="8" class="bg-slate-900 border border-slate-800 text-slate-100 px-3 py-2 rounded-xl text-center w-20 font-bold focus:outline-none focus:border-indigo-500 transition-colors">
-                            <span class="text-slate-500 font-black">:</span>
-                            <input id="input-sec" type="number" min="0" max="59" value="10" class="bg-slate-900 border border-slate-800 text-slate-100 px-3 py-2 rounded-xl text-center w-20 font-bold focus:outline-none focus:border-indigo-500 transition-colors">
-                            <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider ml-2">/ Mile</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 mt-2">Adjust this as your 7/10 run speed increases over the months.</p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-xs font-semibold text-sky-400 uppercase tracking-wide">Easy / Recovery Runs</span>
-                                <span id="pace-easy" class="text-sm font-extrabold text-slate-100">9:15 - 9:45 /mi</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Keep easy days highly restorative. Restores system glycogen.</p>
-                        </div>
-
-                        <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Long Aerobic Base</span>
-                                <span id="pace-long" class="text-sm font-extrabold text-slate-100">8:50 - 9:20 /mi</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Supports cardiovascular system. Builds foundational endurance.</p>
-                        </div>
-
-                        <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-800 transition-colors">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-xs font-semibold text-amber-400 uppercase tracking-wide">Tempo / Threshold</span>
-                                <span id="pace-tempo" class="text-sm font-extrabold text-slate-100">7:10 - 7:25 /mi</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Comfortably hard. Improves lactic acid clearance threshold.</p>
-                        </div>
-
-                        <div class="p-3.5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wide">5K Goal Speed</span>
-                                <span class="text-sm font-black text-indigo-300">6:26 /mi (1:36 /400m)</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Your target race intensity. Aim for extreme muscle familiarity at this speed.</p>
-                        </div>
-                    </div>
-                </section>
 
                 <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
                     <div class="flex items-center gap-3 mb-4">
@@ -325,10 +329,9 @@
                 
             </div>
 
-            <div class="lg:col-span-8 space-y-8">
-                
+            <div class="lg:col-span-8 space-y-8">             
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                    
+                
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-800">
                         <div class="flex items-center gap-3">
                             <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
@@ -1131,8 +1134,14 @@
         }
 
         function applyStateToUI() {
-            if (appState.inputMin) document.getElementById('input-min').value = appState.inputMin;
-            if (appState.inputSec) document.getElementById('input-sec').value = appState.inputSec;
+            if (appState.inputMin) {
+                document.getElementById('input-min').value = appState.inputMin;
+                if (document.getElementById('input-min-display')) document.getElementById('input-min-display').innerText = appState.inputMin;
+            }
+            if (appState.inputSec) {
+                document.getElementById('input-sec').value = appState.inputSec;
+                if (document.getElementById('input-sec-display')) document.getElementById('input-sec-display').innerText = appState.inputSec < 10 ? '0' + appState.inputSec : appState.inputSec;
+            }
             if (appState.planTitle) document.getElementById('plan-title').innerText = appState.planTitle;
             if (appState.planDesc) document.getElementById('plan-desc').innerText = appState.planDesc;
             
@@ -1216,8 +1225,6 @@
 
         window.onload = function() {
             buildSubphasesHTML();
-            document.getElementById('input-min').addEventListener('input', calculateTargetPaces);
-            document.getElementById('input-sec').addEventListener('input', calculateTargetPaces);
 
             document.getElementById('plan-title').addEventListener('blur', function() {
                 appState.planTitle = this.innerText;
