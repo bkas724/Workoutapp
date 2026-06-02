@@ -84,6 +84,24 @@
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
 
+    <script>
+    // Your web app's Firebase configuration 
+    // (Copy this exact block from your Firebase Project Settings Web App page)
+    const firebaseConfig = {
+    apiKey: "AIzaSyCedoObrQQHkJ9B_ycYsWla5q8aIIts9nE",
+    authDomain: "yourflow-b8645.firebaseapp.com",
+    projectId: "yourflow-b8645",
+    storageBucket: "yourflow-b8645.firebasestorage.app",
+    messagingSenderId: "886635521341",
+    appId: "1:886635521341:web:f1162e315632e67a2cd154"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    let db = firebase.firestore();
+
+    </script>
+
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -112,8 +130,8 @@
         }
         /* Icon Mask Helpers */
         .icon-turtle {
-            -webkit-mask-image: url('../Icons/turtle.svg');
-            mask-image: url('../Icons/turtle.svg');
+            -webkit-mask-image: url('Icons/turtle.svg');
+            mask-image: url('Icons/turtle.svg');
             -webkit-mask-size: contain;
             mask-size: contain;
             -webkit-mask-repeat: no-repeat;
@@ -122,8 +140,8 @@
             mask-position: center;
         }
         .icon-fast {
-            -webkit-mask-image: url('../Icons/fasticon.svg');
-            mask-image: url('../Icons/fasticon.svg');
+            -webkit-mask-image: url('Icons/fasticon.svg');
+            mask-image: url('Icons/fasticon.svg');
             -webkit-mask-size: contain;
             mask-size: contain;
             -webkit-mask-repeat: no-repeat;
@@ -132,8 +150,8 @@
             mask-position: center;
         }
         .icon-shield {
-            -webkit-mask-image: url('../Icons/shield.svg');
-            mask-image: url('../Icons/shield.svg');
+            -webkit-mask-image: url('Icons/shield.svg');
+            mask-image: url('Icons/shield.svg');
             -webkit-mask-size: contain;
             mask-size: contain;
             -webkit-mask-repeat: no-repeat;
@@ -269,6 +287,91 @@
             
             <div class="lg:col-span-4 space-y-8">
 
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-violet-500/10 text-violet-400 rounded-xl border border-violet-500/20">
+                                <i class="fa-solid fa-book-open text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-lg text-slate-100">Strength Guides</h2>
+                                <p class="text-xs text-slate-400">At-home dumbbell & band reference library</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-center">
+                            <button onclick="switchStrength('A')" id="btn-sa" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-violet-600 text-white transition-all">A</button>
+                            <button onclick="switchStrength('B')" id="btn-sb" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">B</button>
+                            <button onclick="switchStrength('C')" id="btn-sc" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">C</button>
+                        </div>
+                    </div>
+
+                    <div id="r-details-A" class="space-y-4">
+                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout A: Hip Stability & Single-Leg Ground Force</h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">1. DB Reverse Lunges</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 10/leg. Load front heel dynamically. Builds specific push power.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">2. Banded Monster Walks</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 40s. Band around shins. Step wide laterally to strengthen hips.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">3. DB Goblet Squats</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Heavy DB at chest. Focus on deep glute and core control.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">4. Banded Clamshells</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15/side. Strengthens Gluteus Medius to keep knee track aligned.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="r-details-B" class="space-y-4 hidden">
+                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout B: Posterior Propulsion & Rotational Core</h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">1. DB Romanian Deadlifts</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Keep spine neutral. Focuses heavily on hamstrings & glutes.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">2. Banded Pallof Press</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12/side. Resisting rotation builds powerful torso stiffness.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">3. Single-Leg DB RDL</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 8/leg. Imparts great single-leg balance and hamstring depth.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">4. Banded Glute Bridges</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Band above knees. Drive hips up, pushing knees apart.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="r-details-C" class="space-y-4 hidden">
+                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout C: Stride Elasticity & Ankle/Foot Rigidity</h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">1. Single-Leg Calf Raises</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Hold DB on active side. Toughens Achilles for high bounce.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">2. Banded Toe Hip-Pull</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Band around toes. Raise knee up to build hip-flexor snap.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">3. DB Bulgarian Split Squats</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 8/leg. Quad power and deep knee flex reinforcement.</p>
+                            </div>
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold text-slate-300">4. Banded Pull-Aparts</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Strengthens posterior shoulders for deep arm drive.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
@@ -382,91 +485,6 @@
 
                 </div>
 
-                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
-                        <div class="flex items-center gap-3">
-                            <div class="p-2.5 bg-violet-500/10 text-violet-400 rounded-xl border border-violet-500/20">
-                                <i class="fa-solid fa-book-open text-lg"></i>
-                            </div>
-                            <div>
-                                <h2 class="font-bold text-lg text-slate-100">Strength Accessory Guides</h2>
-                                <p class="text-xs text-slate-400">At-home dumbbell & band reference library</p>
-                            </div>
-                        </div>
-                        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-center">
-                            <button onclick="switchStrength('A')" id="btn-sa" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-violet-600 text-white transition-all">A</button>
-                            <button onclick="switchStrength('B')" id="btn-sb" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">B</button>
-                            <button onclick="switchStrength('C')" id="btn-sc" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">C</button>
-                        </div>
-                    </div>
-
-                    <div id="r-details-A" class="space-y-4">
-                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout A: Hip Stability & Single-Leg Ground Force</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">1. DB Reverse Lunges</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 10/leg. Load front heel dynamically. Builds specific push power.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">2. Banded Monster Walks</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 40s. Band around shins. Step wide laterally to strengthen hips.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">3. DB Goblet Squats</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Heavy DB at chest. Focus on deep glute and core control.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">4. Banded Clamshells</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15/side. Strengthens Gluteus Medius to keep knee track aligned.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="r-details-B" class="space-y-4 hidden">
-                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout B: Posterior Propulsion & Rotational Core</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">1. DB Romanian Deadlifts</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Keep spine neutral. Focuses heavily on hamstrings & glutes.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">2. Banded Pallof Press</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12/side. Resisting rotation builds powerful torso stiffness.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">3. Single-Leg DB RDL</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 8/leg. Imparts great single-leg balance and hamstring depth.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">4. Banded Glute Bridges</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Band above knees. Drive hips up, pushing knees apart.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="r-details-C" class="space-y-4 hidden">
-                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Workout C: Stride Elasticity & Ankle/Foot Rigidity</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">1. Single-Leg Calf Raises</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Hold DB on active side. Toughens Achilles for high bounce.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">2. Banded Toe Hip-Pull</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 12. Band around toes. Raise knee up to build hip-flexor snap.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">3. DB Bulgarian Split Squats</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 8/leg. Quad power and deep knee flex reinforcement.</p>
-                            </div>
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                                <h4 class="text-xs font-bold text-slate-300">4. Banded Pull-Aparts</h4>
-                                <p class="text-[11px] text-slate-500 mt-1">3 Sets x 15. Strengthens posterior shoulders for deep arm drive.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
         <footer class="mt-auto p-6 text-center text-gray-500 text-xs border-t">
@@ -489,9 +507,8 @@
             rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`
         };
 
-        // Firebase Sync Infrastructure Setup
-        let db = null;
-        let auth = null;
+        // Firebase Sync Infrastructure Setup (Configured in Head)
+        let auth = firebase.auth();
         let appId = typeof __app_id !== 'undefined' ? __app_id : 'sub20-5k-training';
         let userId = null;
 
@@ -505,6 +522,27 @@
                 console.error("Firebase config parsing error: ", err);
             }
         }
+        async function seedTemporaryData() {
+            if (!db) {
+                console.error("Database not initialized yet.");
+                return;
+            }
+            try {
+                const workoutRef = db.collection("sandbox_workouts").doc("current_plan");
+                
+                // Replace 'myCurrentNestedArray' with whatever your actual local variable name is 
+                // for your 27-subphase data structure (e.g., 'subphases', 'trainingPlan', etc.)
+                await workoutRef.set({
+                    subphases: myCurrentNestedArray 
+                });
+                console.log("Staging data dumped cleanly to Firestore!");
+            } catch (error) {
+                console.error("Error seeding database: ", error);
+            }
+        }
+
+        // UNCOMMENT THIS LINE, save your file, and refresh your VS Code Live Server browser tab!
+
 
         // Subphase Steps Plan Structure (1 to 27)
         const subphases = [
@@ -1240,6 +1278,7 @@
             updateStageProgress(); // Initial call to display stage info
             setupCloudSync();
         }
+        seedTemporaryData();
     </script>
 </body>
 </html>
