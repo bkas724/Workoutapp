@@ -26,6 +26,14 @@
             const timelineCb = document.getElementById(stepId);
             if (timelineCb) timelineCb.checked = true;
 
+            // Capture the metrics directly to the subphases array
+            const stepNum = stepId.substring(stepId.lastIndexOf('-') + 1);
+            const stepObj = subphases.find(s => s.id === subId)?.steps[parseInt(stepNum)];
+            if (stepObj) {
+                stepObj.completed = true;
+                stepObj.actualLoggedPace = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+            }
+
             // Handle Adaptive Physiological Recalculation if it is a benchmark day
             if (isBenchmark) {
                 const actualWorkoutPaceDecimal = mins + (secs / 60);
@@ -57,7 +65,8 @@
             // Refresh UI components across layout streams
             updateSubphaseProgressBadge(subId);
             updateOverallProgressMeter();
-            calculateTargetPaces(); // This will recalculate threshold slots and save values to cloud storage
+            calculateTargetPaces(); // This will recalculate threshold slots
+            saveStateToCloud(); // Explicitly push the speed workout metrics to Firestore
             renderNextActivityCard();
             updateStageProgress();
         }
@@ -508,39 +517,139 @@
         };
 
         // Firebase Sync Infrastructure Setup (Configured in Head)
-        let auth = firebase.auth();
-        let appId = typeof __app_id !== 'undefined' ? __app_id : 'sub20-5k-training';
-        let userId = null;
+        let auth = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth() : null;
+        let userId = "dev-test-athlete"; // Bypasses browser isolation to link phone and desktop
 
+        // 1. Initialize Firebase Core Web Services Connection
         if (typeof __firebase_config !== 'undefined') {
             try {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                const app = firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth(app);
-                db = firebase.firestore(app);
+                const configBlock = JSON.parse(__firebase_config);
+                const firebaseInstanceApp = firebase.initializeApp(configBlock);
+                db = firebase.firestore(firebaseInstanceApp);
+                auth = firebase.auth(firebaseInstanceApp);
+                console.log("Firebase storage layer securely linked into active session.");
             } catch (err) {
-                console.error("Firebase config parsing error: ", err);
-            }
-        }
-        async function seedTemporaryData() {
-            if (!db) {
-                console.error("Database not initialized yet.");
-                return;
-            }
-            try {
-                const workoutRef = db.collection("sandbox_workouts").doc("current_plan");
-                
-                // Replace 'myCurrentNestedArray' with whatever your actual local variable name is 
-                // for your 27-subphase data structure (e.g., 'subphases', 'trainingPlan', etc.)
-                await workoutRef.set({
-                    subphases: myCurrentNestedArray 
-                });
-                console.log("Staging data dumped cleanly to Firestore!");
-            } catch (error) {
-                console.error("Error seeding database: ", error);
+                console.error("Firebase initialization mismatch error: ", err);
             }
         }
 
+        // 2. Real-Time Bidirectional Event Synchronization Listener
+        async function setupCloudSync() {
+            if (!db) {
+                console.warn("Sync Offline: Firestore unreachable. Falling back onto local variable tracking arrays.");
+                buildSubphasesHTML();
+                return;
+            }
+
+            // --- Authentication Integration ---
+            if (auth) {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await auth.signInWithCustomToken(__initial_auth_token);
+                        userId = auth.currentUser?.uid || userId;
+                    } else {
+                        console.log("Bypassing anonymous auth to preserve 'dev-test-athlete' handle.");
+                    }
+                } catch (err) {
+                    console.error("Authentication setup failed: ", err);
+                }
+            }
+
+            console.log("Mapping real-time cloud data pipeline hook to user handle: ", userId);
+            const masterDocRef = db.collection("users").doc(userId).collection("plans").doc("current_plan");
+
+            // Open data pipeline collection socket listener stream
+            masterDocRef.onSnapshot((documentSnapshot) => {
+                if (documentSnapshot.exists) {
+                    console.log("☁️ Change Detected inside YourFlow Cloud Database: Syncing State Variables.");
+                    const backendPayload = documentSnapshot.data();
+
+                    // Remap simple application header text statuses back cleanly
+                    if (backendPayload.appState) {
+                        appState = backendPayload.appState;
+                        
+                        // Force layout strings back onto editable document title objects dynamically
+                        if (appState.planTitle) document.getElementById('plan-title').innerText = appState.planTitle;
+                        if (appState.planDesc) document.getElementById('plan-desc').innerText = appState.planDesc;
+                    }
+
+                    // Dynamically remap completion flags inside your exact subphases memory block
+                    if (backendPayload.subphasesDataDump) {
+                        const cloudArray = backendPayload.subphasesDataDump;
+                        
+                        // Loops safely down through your exact structural paths matching subphases array indices
+                        for (let pIdx = 0; pIdx < cloudArray.length; pIdx++) {
+                            if (subphases[pIdx] && cloudArray[pIdx].steps) {
+                                for (let sIdx = 0; sIdx < cloudArray[pIdx].steps.length; sIdx++) {
+                                    if (subphases[pIdx].steps[sIdx] && cloudArray[pIdx].steps[sIdx]) {
+                                        // Update activity completion checkmark memory bounds natively
+                                        subphases[pIdx].steps[sIdx].completed = cloudArray[pIdx].steps[sIdx].completed || false;
+                                        subphases[pIdx].steps[sIdx].actualLoggedPace = cloudArray[pIdx].steps[sIdx].actualLoggedPace || null;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Run your native visual rendering routines to draw updated states on screen
+                    buildSubphasesHTML();
+                    applyStateToUI();
+                    updateStageProgress();
+                } else {
+                    console.log("Path empty. Initializing Firebase collection with your exact variable structure...");
+                    provisionBaselineCloudContainer(masterDocRef);
+                }
+            }, (error) => {
+                console.error("Cloud snapshot channel encountered friction: ", error);
+            });
+        }
+
+        // 3. Automated Initial Baseline Seeding Engine (Preserves Variables Exactly As Written)
+        async function provisionBaselineCloudContainer(docReference) {
+            try {
+                // Pre-seed unique id strings dynamically onto steps to guarantee row isolation
+                subphases.forEach((phase, phaseIdx) => {
+                    phase.steps.forEach((step, stepIdx) => {
+                        if (!step.id) {
+                            step.id = `sub-${phaseIdx + 1}-step-${stepIdx}`;
+                        }
+                        if (step.completed === undefined) step.completed = false;
+                        if (step.actualLoggedPace === undefined) step.actualLoggedPace = null;
+                    });
+                });
+
+                // Write your unchanged subphases array block straight into your console database project
+                await docReference.set({
+                    subphasesDataDump: subphases,
+                    appState: appState,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("🚀 Success: Your exact subphases data model is now hosted live in Firebase.");
+            } catch (err) {
+                console.error("Failed to execute data provisioning stream setup: ", err);
+            }
+        }
+
+        // 4. Centralized Save State Broadcast Wrapper
+        function saveStateToCloud() {
+            if (!db || !userId) return;
+
+            localStorage.setItem('sub20_v3_state', JSON.stringify(appState));
+
+
+            console.log("Broadcasting modification tokens straight to cloud store...");
+            db.collection("users").doc(userId).collection("plans").doc("current_plan").update({
+                subphasesDataDump: subphases,
+                appState: appState
+            })
+            .then(() => {
+                console.log("Cloud update complete.");
+                const syncBadge = document.getElementById('sync-badge');
+                syncBadge.className = "absolute top-4 right-4 inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase";
+                syncBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Synced to Cloud`;
+            })
+            .catch(err => console.error("Database tracking write error: ", err));
+        }
         // UNCOMMENT THIS LINE, save your file, and refresh your VS Code Live Server browser tab!
 
 
@@ -739,6 +848,16 @@
             ]}
         ];
 
+    // Globally hydrate the array so all UI logic has guaranteed ID mappings
+    // on script load, preventing 'undefined' checkbox rendering bugs.
+    subphases.forEach((sub) => {
+        sub.steps.forEach((step, stepIdx) => {
+            step.id = `${sub.id}-step-${stepIdx}`;
+            if (step.completed === undefined) step.completed = false;
+            if (step.actualLoggedPace === undefined) step.actualLoggedPace = null;
+        });
+    });
+
                 // Constants for plan dates and calculations
         const PLAN_START_DATE = new Date('2026-05-31T00:00:00Z'); // Assuming plan starts today
         const PLAN_END_DATE = new Date('2026-11-26T00:00:00Z'); // Thanksgiving 2026 (November 26, 2026)
@@ -772,7 +891,6 @@
 
             appState.inputMin = currentMins;
             appState.inputSec = currentSecs;
-            saveStateToCloud();
 
             updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax);
         }
@@ -900,6 +1018,13 @@
             const mainCb = document.getElementById(stepId);
             if (mainCb) mainCb.checked = true;
 
+        // Sync completion flag deep into the subphases object so it travels to Firebase
+        const stepNum = stepId.substring(stepId.lastIndexOf('-') + 1);
+        const stepObj = subphases.find(s => s.id === subId)?.steps[parseInt(stepNum)];
+        if (stepObj) {
+            stepObj.completed = true;
+        }
+
             updateSubphaseProgressBadge(subId);
             updateOverallProgressMeter();
             saveStateToCloud();
@@ -969,15 +1094,18 @@
                             <div class="space-y-4">
                 `;
 
-                sub.steps.forEach((step, index) => {
-                    const uniqueStepId = `${sub.id}-step-${index}`;
+                sub.steps.forEach((step) => {
+                    const uniqueStepId = step.id;
                     const iconSVG = icons[step.type] || icons.easy;
                     const paceHintAttr = step.paceKey ? `data-type="${step.paceKey}"` : '';
+
+                    // 2. CHECK BACKEND STATE: If the database says it's done, mark it checked!
+                    const isCheckedAttr = step.completed ? "checked" : "";
 
                     cardHTML += `
                         <div class="flex items-start gap-4 p-3.5 rounded-xl bg-slate-900/30 border border-slate-800/55 hover:border-slate-800 transition-all">
                             <label class="relative flex items-center justify-center cursor-pointer mt-0.5 shrink-0 group">
-                                <input type="checkbox" id="${uniqueStepId}" onchange="toggleStepCheck('${uniqueStepId}', '${sub.id}')" class="peer sr-only">
+                                <input type="checkbox" id="${uniqueStepId}" onchange="toggleStepCheck('${uniqueStepId}', '${sub.id}')" class="peer sr-only" ${isCheckedAttr}>
                                 <div class="w-5.5 h-5.5 border-2 border-slate-700 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-lg flex items-center justify-center text-slate-950 transition-all">
                                     <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                 </div>
@@ -990,7 +1118,10 @@
                             <div class="flex-1">
                                 <div class="flex items-baseline justify-between flex-wrap gap-2">
                                     <span class="text-xs font-bold text-slate-200">${step.name}</span>
-                                    ${step.paceKey ? `<span class="dynamic-pace-hint text-[10px] font-extrabold text-indigo-400 font-mono" ${paceHintAttr}>Computing...</span>` : ''}
+                                    <div class="flex items-center gap-2">
+                                        ${step.paceKey ? `<span class="dynamic-pace-hint text-[10px] font-extrabold text-indigo-400 font-mono" ${paceHintAttr}>Computing...</span>` : ''}
+                                        ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Logged: ${step.actualLoggedPace}</span>` : ''}
+                                    </div>
                                 </div>
                                 <p class="text-xs text-slate-400 mt-1 leading-relaxed">${step.desc}</p>
                             </div>
@@ -1038,6 +1169,9 @@
             }
 
             appState[stepId] = checkbox.checked;
+            if (stepObj) {
+                stepObj.completed = checkbox.checked;
+            }
             
             updateSubphaseProgressBadge(subId);
             updateOverallProgressMeter();
@@ -1045,6 +1179,7 @@
 
             renderNextActivityCard();
             calculateTargetPaces();
+            updateStageProgress();
         }
 
         function updateSubphaseProgressBadge(subId) {
@@ -1058,13 +1193,14 @@
             const badge = document.getElementById(`badge-${subId}`);
             if (percent === 100) {
                 badge.className = "text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full";
-                badge.innerText = "Completed";
+                // badge.innerText = "100%";
+                badge.innerHTML = '<i class="fa-solid fa-check"></i>';
             } else if (percent > 0) {
                 badge.className = "text-[11px] font-bold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-2.5 py-0.5 rounded-full";
-                badge.innerText = `${percent}% Done`;
+                badge.innerText = `${percent}%`;
             } else {
                 badge.className = "text-[11px] font-semibold bg-slate-900 border border-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full";
-                badge.innerText = "0% Done";
+                badge.innerText = "0%";
             }
         }
 
@@ -1137,40 +1273,6 @@
             daysRemainingDisplay.innerText = `${Math.ceil(remainingSubphasesInPhase * DAYS_PER_SUBPHASE_ESTIMATE)} days`;
         }
 
-        function saveStateToCloud() {
-            localStorage.setItem('sub20_v3_state', JSON.stringify(appState));
-
-            if (db && userId) {
-                const userDocRef = db.doc(`artifacts/${appId}/users/${userId}/training_data/state`);
-                userDocRef.set(appState, { merge: true })
-                    .then(() => {
-                        const syncBadge = document.getElementById('sync-badge');
-                        syncBadge.className = "absolute top-4 right-4 inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase";
-                        syncBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Synced to Cloud`;
-                    })
-                    .catch(err => console.error("Firestore sync fail: ", err));
-            }
-        }
-
-        function loadState() {
-            const localSaved = localStorage.getItem('sub20_v3_state');
-            if (localSaved) {
-                appState = JSON.parse(localSaved);
-                applyStateToUI();
-            }
-
-            if (db && userId) {
-                const userDocRef = db.doc(`artifacts/${appId}/users/${userId}/training_data/state`);
-                userDocRef.get().then((docSnapshot) => {
-                    if (docSnapshot.exists) {
-                        appState = docSnapshot.data();
-                        applyStateToUI();
-                        localStorage.setItem('sub20_v3_state', JSON.stringify(appState));
-                    }
-                }).catch(err => console.error("Firestore read error: ", err));
-            }
-        }
-
         function applyStateToUI() {
             if (appState.inputMin) {
                 document.getElementById('input-min').value = appState.inputMin;
@@ -1196,32 +1298,6 @@
             renderNextActivityCard();
             calculateTargetPaces();
             updateStageProgress(); // Update stage progress after applying state
-        }
-
-        async function setupCloudSync() {
-            if (!auth) return;
-
-            const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
-                } else {
-                    await auth.signInAnonymously();
-                }
-            };
-
-            try {
-                await initAuth();
-                userId = auth.currentUser?.uid;
-                
-                if (userId) {
-                    const syncBadge = document.getElementById('sync-badge');
-                    syncBadge.className = "absolute top-4 right-4 inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase";
-                    syncBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-indigo-500 pulse-slow"></span> Account Connected`;
-                    loadState();
-                }
-            } catch (err) {
-                console.error("Authentication setup failed: ", err);
-            }
         }
 
         let mainTimerInterval = null;
@@ -1274,11 +1350,17 @@
                 saveStateToCloud();
             });
 
+            const localSaved = localStorage.getItem('sub20_v3_state');
+            if (localSaved) {
+                appState = JSON.parse(localSaved);
+            }
+
             applyStateToUI();
             updateStageProgress(); // Initial call to display stage info
-            setupCloudSync();
+            
+            // Initialize the Firebase connection and trigger the first DB push
+            setupCloudSync(); 
         }
-        seedTemporaryData();
     </script>
 </body>
 </html>
