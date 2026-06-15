@@ -179,7 +179,7 @@
             
             <div class="absolute top-4 right-4 md:top-6 md:right-6 z-20">
                 <span id="sync-badge" class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Offline / Saving Locally
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Offline
                 </span>
             </div>
 
@@ -646,7 +646,7 @@
                 console.log("Cloud update complete.");
                 const syncBadge = document.getElementById('sync-badge');
                 syncBadge.className = "absolute top-4 right-4 inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase";
-                syncBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Synced to Cloud`;
+                syncBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Synced`;
             })
             .catch(err => console.error("Database tracking write error: ", err));
         }
