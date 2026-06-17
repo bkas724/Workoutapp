@@ -1,0 +1,2518 @@
+
+        // Custom SVG Icons definition matching user specs
+        const icons = {
+            easy: `<div class="w-5 h-5 bg-primary-easy icon-turtle" title="Easy Run"></div>`,
+            fast: `<div class="w-5 h-5 bg-primary-speed icon-fast" title="Fast Run"></div>`,
+            strength: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Strength"></div>`,
+            rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`
+        };
+
+        // ------------------ WORKOUT FILE PARSER ENGINE ------------------
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth radius in meters
+            const phi1 = lat1 * Math.PI / 180;
+            const phi2 = lat2 * Math.PI / 180;
+            const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+            const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                Math.cos(phi1) * Math.cos(phi2) *
+                Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // in meters
+        }
+
+        function parseGPX(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const trkpts = xmlDoc.getElementsByTagName("trkpt");
+
+            if (trkpts.length === 0) {
+                throw new Error("No trackpoints found in GPX file.");
+            }
+
+            let totalDistanceMeters = 0;
+            let totalDurationSeconds = 0;
+            let heartRates = [];
+            let cadences = [];
+            let elevations = [];
+
+            let prevLat = null;
+            let prevLon = null;
+            let prevTime = null;
+
+            for (let i = 0; i < trkpts.length; i++) {
+                const trkpt = trkpts[i];
+                const lat = parseFloat(trkpt.getAttribute("lat"));
+                const lon = parseFloat(trkpt.getAttribute("lon"));
+
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    if (prevLat !== null && prevLon !== null) {
+                        totalDistanceMeters += haversineDistance(prevLat, prevLon, lat, lon);
+                    }
+                    prevLat = lat;
+                    prevLon = lon;
+                }
+
+                const timeEl = trkpt.getElementsByTagName("time")[0];
+                if (timeEl) {
+                    const currentTime = new Date(timeEl.textContent);
+                    if (prevTime !== null) {
+                        const diff = (currentTime - prevTime) / 1000;
+                        if (diff > 0 && diff < 300) {
+                            totalDurationSeconds += diff;
+                        }
+                    }
+                    prevTime = currentTime;
+                }
+
+                const eleEl = trkpt.getElementsByTagName("ele")[0];
+                if (eleEl) {
+                    const eleVal = parseFloat(eleEl.textContent);
+                    if (!isNaN(eleVal)) elevations.push(eleVal);
+                }
+
+                let hr = null;
+                let cad = null;
+
+                const hrEl = trkpt.getElementsByTagName("hr")[0] || trkpt.getElementsByTagName("gpxtpx:hr")[0];
+                if (hrEl) hr = parseFloat(hrEl.textContent);
+
+                const cadEl = trkpt.getElementsByTagName("cad")[0] || trkpt.getElementsByTagName("gpxtpx:cad")[0];
+                if (cadEl) cad = parseFloat(cadEl.textContent);
+
+                if (isNaN(hr) || hr === null || isNaN(cad) || cad === null) {
+                    const extensions = trkpt.getElementsByTagName("extensions")[0];
+                    if (extensions) {
+                        const allChildren = extensions.getElementsByTagName("*");
+                        for (let j = 0; j < allChildren.length; j++) {
+                            const child = allChildren[j];
+                            if (child.localName === 'hr' && (isNaN(hr) || hr === null)) {
+                                hr = parseFloat(child.textContent);
+                            }
+                            if (child.localName === 'cad' && (isNaN(cad) || cad === null)) {
+                                cad = parseFloat(child.textContent);
+                            }
+                        }
+                    }
+                }
+
+                if (hr && !isNaN(hr)) heartRates.push(hr);
+                if (cad && !isNaN(cad)) cadences.push(cad);
+            }
+
+            if (totalDurationSeconds === 0 && trkpts.length > 1) {
+                const startTimeEl = trkpts[0].getElementsByTagName("time")[0];
+                const endTimeEl = trkpts[trkpts.length - 1].getElementsByTagName("time")[0];
+                if (startTimeEl && endTimeEl) {
+                    const start = new Date(startTimeEl.textContent);
+                    const end = new Date(endTimeEl.textContent);
+                    totalDurationSeconds = (end - start) / 1000;
+                }
+            }
+
+            const distanceMiles = totalDistanceMeters / 1609.344;
+            let paceDecimal = 0;
+            let paceStr = "0:00";
+            if (distanceMiles > 0 && totalDurationSeconds > 0) {
+                paceDecimal = (totalDurationSeconds / 60) / distanceMiles;
+                const paceMins = Math.floor(paceDecimal);
+                const paceSecs = Math.round((paceDecimal - paceMins) * 60);
+                paceStr = `${paceMins}:${paceSecs < 10 ? '0' + paceSecs : paceSecs}`;
+            }
+
+            let avgCadence = 0;
+            if (cadences.length > 0) {
+                avgCadence = Math.round(cadences.reduce((a, b) => a + b, 0) / cadences.length);
+            }
+
+            let avgHeartRate = 0;
+            let maxHeartRate = 0;
+            if (heartRates.length > 0) {
+                avgHeartRate = Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length);
+                maxHeartRate = Math.max(...heartRates);
+            }
+
+            let elevationGainMeters = 0;
+            if (elevations.length > 1) {
+                for (let i = 1; i < elevations.length; i++) {
+                    const diff = elevations[i] - elevations[i - 1];
+                    if (diff > 0) elevationGainMeters += diff;
+                }
+            }
+            const elevationGainFeet = elevationGainMeters * 3.28084;
+
+            let avgGradient = 0;
+            if (totalDistanceMeters > 0 && elevationGainMeters > 0) {
+                avgGradient = (elevationGainMeters / totalDistanceMeters) * 100;
+            }
+
+            return {
+                distance: parseFloat(distanceMiles.toFixed(2)),
+                duration: Math.round(totalDurationSeconds),
+                pace: paceStr,
+                paceDecimal: paceDecimal,
+                avgCadence: avgCadence || null,
+                avgHeartRate: avgHeartRate || null,
+                maxHeartRate: maxHeartRate || null,
+                elevationGain: parseFloat(elevationGainFeet.toFixed(1)),
+                avgGradient: parseFloat(avgGradient.toFixed(2))
+            };
+        }
+
+        function parseTCX(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const trackpoints = xmlDoc.getElementsByTagName("Trackpoint");
+
+            if (trackpoints.length === 0) {
+                throw new Error("No trackpoints found in TCX file.");
+            }
+
+            let totalDistanceMeters = 0;
+            let totalDurationSeconds = 0;
+            let heartRates = [];
+            let cadences = [];
+            let elevations = [];
+
+            let prevTime = null;
+            let startDistance = null;
+            let endDistance = null;
+
+            for (let i = 0; i < trackpoints.length; i++) {
+                const tp = trackpoints[i];
+
+                const distEl = tp.getElementsByTagName("DistanceMeters")[0];
+                if (distEl) {
+                    const dist = parseFloat(distEl.textContent);
+                    if (startDistance === null) startDistance = dist;
+                    endDistance = dist;
+                }
+
+                const timeEl = tp.getElementsByTagName("Time")[0];
+                if (timeEl) {
+                    const currentTime = new Date(timeEl.textContent);
+                    if (prevTime !== null) {
+                        const diff = (currentTime - prevTime) / 1000;
+                        if (diff > 0 && diff < 300) {
+                            totalDurationSeconds += diff;
+                        }
+                    }
+                    prevTime = currentTime;
+                }
+
+                const altEl = tp.getElementsByTagName("AltitudeMeters")[0];
+                if (altEl) {
+                    const altVal = parseFloat(altEl.textContent);
+                    if (!isNaN(altVal)) elevations.push(altVal);
+                }
+
+                const hrEl = tp.getElementsByTagName("HeartRateBpm")[0];
+                if (hrEl) {
+                    const valEl = hrEl.getElementsByTagName("Value")[0];
+                    if (valEl) {
+                        const hr = parseFloat(valEl.textContent);
+                        if (!isNaN(hr)) heartRates.push(hr);
+                    }
+                }
+
+                const cadEl = tp.getElementsByTagName("Cadence")[0];
+                if (cadEl) {
+                    const cad = parseFloat(cadEl.textContent);
+                    if (!isNaN(cad)) cadences.push(cad);
+                }
+            }
+
+            if (startDistance !== null && endDistance !== null) {
+                totalDistanceMeters = endDistance - startDistance;
+            }
+
+            if (totalDurationSeconds === 0 && trackpoints.length > 1) {
+                const startTimeEl = trackpoints[0].getElementsByTagName("Time")[0];
+                const endTimeEl = trackpoints[trackpoints.length - 1].getElementsByTagName("Time")[0];
+                if (startTimeEl && endTimeEl) {
+                    const start = new Date(startTimeEl.textContent);
+                    const end = new Date(endTimeEl.textContent);
+                    totalDurationSeconds = (end - start) / 1000;
+                }
+            }
+
+            const distanceMiles = totalDistanceMeters / 1609.344;
+            let paceDecimal = 0;
+            let paceStr = "0:00";
+            if (distanceMiles > 0 && totalDurationSeconds > 0) {
+                paceDecimal = (totalDurationSeconds / 60) / distanceMiles;
+                const paceMins = Math.floor(paceDecimal);
+                const paceSecs = Math.round((paceDecimal - paceMins) * 60);
+                paceStr = `${paceMins}:${paceSecs < 10 ? '0' + paceSecs : paceSecs}`;
+            }
+
+            let avgCadence = 0;
+            if (cadences.length > 0) {
+                avgCadence = Math.round(cadences.reduce((a, b) => a + b, 0) / cadences.length);
+            }
+
+            let avgHeartRate = 0;
+            let maxHeartRate = 0;
+            if (heartRates.length > 0) {
+                avgHeartRate = Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length);
+                maxHeartRate = Math.max(...heartRates);
+            }
+
+            let elevationGainMeters = 0;
+            if (elevations.length > 1) {
+                for (let i = 1; i < elevations.length; i++) {
+                    const diff = elevations[i] - elevations[i - 1];
+                    if (diff > 0) elevationGainMeters += diff;
+                }
+            }
+            const elevationGainFeet = elevationGainMeters * 3.28084;
+
+            let avgGradient = 0;
+            if (totalDistanceMeters > 0 && elevationGainMeters > 0) {
+                avgGradient = (elevationGainMeters / totalDistanceMeters) * 100;
+            }
+
+            return {
+                distance: parseFloat(distanceMiles.toFixed(2)),
+                duration: Math.round(totalDurationSeconds),
+                pace: paceStr,
+                paceDecimal: paceDecimal,
+                avgCadence: avgCadence || null,
+                avgHeartRate: avgHeartRate || null,
+                maxHeartRate: maxHeartRate || null,
+                elevationGain: parseFloat(elevationGainFeet.toFixed(1)),
+                avgGradient: parseFloat(avgGradient.toFixed(2))
+            };
+        }
+
+        function parseGenericWorkout(text) {
+            const lines = text.split('\n');
+            let distance = null;
+            let duration = null;
+            let pace = null;
+            let avgCadence = null;
+            let avgHeartRate = null;
+
+            for (let line of lines) {
+                const parts = line.split(':');
+                if (parts.length >= 2) {
+                    const key = parts[0].trim().toLowerCase();
+                    const val = parts.slice(1).join(':').trim();
+                    if (key.includes('distance') || key.includes('dist')) {
+                        distance = parseFloat(val);
+                    } else if (key.includes('duration') || key.includes('time')) {
+                        if (val.includes(':')) {
+                            const tParts = val.split(':');
+                            if (tParts.length === 2) duration = parseInt(tParts[0]) * 60 + parseInt(tParts[1]);
+                            else if (tParts.length === 3) duration = parseInt(tParts[0]) * 3600 + parseInt(tParts[1]) * 60 + parseInt(tParts[2]);
+                        } else {
+                            duration = parseFloat(val);
+                        }
+                    } else if (key.includes('pace') || key.includes('speed')) {
+                        pace = val;
+                    } else if (key.includes('cadence') || key.includes('cad')) {
+                        avgCadence = parseInt(val);
+                    } else if (key.includes('heart') || key.includes('hr')) {
+                        avgHeartRate = parseInt(val);
+                    }
+                }
+            }
+
+            if (distance === null || isNaN(distance)) {
+                throw new Error("Could not parse generic file: missing distance.");
+            }
+
+            return {
+                distance: distance,
+                duration: duration || 0,
+                pace: pace || "8:10",
+                avgCadence: avgCadence,
+                avgHeartRate: avgHeartRate,
+                elevationGain: 0,
+                avgGradient: 0
+            };
+        }
+
+        function parseWorkoutFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const content = e.target.result;
+                    const fileName = file.name;
+                    const fileExtension = fileName.split('.').pop().toLowerCase();
+
+                    try {
+                        if (fileExtension === 'gpx') {
+                            const parsedData = parseGPX(content);
+                            resolve({ fileName, format: 'GPX', ...parsedData });
+                        } else if (fileExtension === 'tcx') {
+                            const parsedData = parseTCX(content);
+                            resolve({ fileName, format: 'TCX', ...parsedData });
+                        } else if (fileExtension === 'json') {
+                            const parsedData = JSON.parse(content);
+                            resolve({ fileName, format: 'JSON', ...parsedData });
+                        } else {
+                            const parsedData = parseGenericWorkout(content);
+                            resolve({ fileName, format: 'TXT', ...parsedData });
+                        }
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = () => reject(new Error("File reading error"));
+                reader.readAsText(file);
+            });
+        }
+
+        // Firebase Sync Infrastructure Setup
+        let auth = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth() : null;
+        let db = typeof window.db !== 'undefined' ? window.db : null;
+        let userId = ""; // Athlete ID tracker
+        let userProfileData = null;
+        let activePhaseWorkouts = [];
+        let activeUserListener = null;
+        let activeWorkoutsListener = null;
+        let syncTimeoutHandle = null;
+        let paceChartInstance = null;
+
+        // Initialize Firebase
+        if (typeof __firebase_config !== 'undefined') {
+            try {
+                const configBlock = JSON.parse(__firebase_config);
+                const firebaseInstanceApp = firebase.initializeApp(configBlock);
+                db = firebase.firestore(firebaseInstanceApp);
+                auth = firebase.auth(firebaseInstanceApp);
+                console.log("Firebase linked securely.");
+            } catch (err) {
+                console.error("Firebase initialization mismatch error: ", err);
+            }
+        }
+
+        // 1. Profile Switcher & Real-Time Sync Handshake
+        async function setupProfileSync(profileId) {
+            const syncBadge = document.getElementById('sync-badge');
+            if (!db) {
+                console.warn("Sync Offline: Firestore unreachable.");
+                if (syncBadge) {
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Offline`;
+                }
+                return;
+            }
+
+            // Show loading feedback
+            showAutopilotLoader();
+
+            // Show immediate syncing state feedback on the badge
+            if (syncBadge) {
+                syncBadge.className = "inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Syncing...`;
+            }
+
+            // Unsubscribe existing snapshot streams
+            if (activeUserListener) {
+                activeUserListener();
+                activeUserListener = null;
+            }
+            if (activeWorkoutsListener) {
+                activeWorkoutsListener();
+                activeWorkoutsListener = null;
+            }
+
+            userId = profileId.trim();
+            localStorage.setItem('yf_active_profile', userId);
+
+            const profileInput = document.getElementById('profile-switcher');
+            if (profileInput) profileInput.value = userId;
+
+            console.log("Syncing database channel: users/", userId);
+            const userDocRef = db.collection("users").doc(userId);
+
+            // Start connection timeout (8 seconds)
+            const connectionTimeout = setTimeout(() => {
+                console.warn("Sync Timeout: Connection delayed for profile:", userId);
+                if (syncBadge) {
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Timeout`;
+                }
+                document.getElementById('timeout-error-modal').classList.remove('hidden');
+                hideAutopilotLoader();
+            }, 8000);
+
+            // Bind real-time listener to user profile
+            activeUserListener = userDocRef.onSnapshot((docSnapshot) => {
+                clearTimeout(connectionTimeout);
+                hideAutopilotLoader();
+                if (docSnapshot.exists) {
+                    console.log("☁️ User profile change detected.");
+                    const data = docSnapshot.data();
+                    userProfileData = data;
+
+                    // Update UI text views if they aren't currently being edited
+                    const titleEl = document.getElementById('plan-title');
+                    const descEl = document.getElementById('plan-desc');
+                    if (titleEl && document.activeElement !== titleEl) {
+                        titleEl.innerText = data.journeyTitle || "Your Journey";
+                    }
+                    if (descEl && document.activeElement !== descEl) {
+                        descEl.innerText = data.journeyDescription || "";
+                    }
+
+                    // Set remaining weeks display
+                    if (data.journeyStartDate && data.targetDate) {
+                        const target = new Date(data.targetDate);
+                        const today = new Date();
+                        const diffTime = target - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const displayEl = document.getElementById('days-remaining-display');
+                        if (displayEl) {
+                            displayEl.innerText = `${Math.max(0, diffDays)} Days Remaining`;
+                        }
+                    }
+
+                    // Set modal profile stats and coach comments
+                    const modalBaselineEl = document.getElementById('modal-baseline-pace');
+                    if (modalBaselineEl) modalBaselineEl.innerText = data.baseline5k || "-";
+
+                    const modalGoalEl = document.getElementById('modal-goal-pace');
+                    if (modalGoalEl) modalGoalEl.innerText = data.activeAdjustedGoal || "-";
+
+                    const modalTierEl = document.getElementById('modal-tier');
+                    if (modalTierEl) modalTierEl.innerText = data.challengeTier || "-";
+
+                    const coachCommentsEl = document.getElementById('drawer-coach-comments');
+                    if (coachCommentsEl) coachCommentsEl.innerText = data.journeyComments || "-";
+
+                    // Auto-sync pace constraints
+                    const baselinePace = data.currentEstimated5k || data.baseline5k;
+                    if (baselinePace) {
+                        const minSec = baselinePace.split(':');
+                        if (minSec.length === 2) {
+                            const inMin = document.getElementById('input-min');
+                            const inSec = document.getElementById('input-sec');
+                            if (inMin) inMin.value = parseInt(minSec[0]);
+                            if (inSec) inSec.value = parseInt(minSec[1]);
+
+                            const minDisp = document.getElementById('input-min-display');
+                            const secDisp = document.getElementById('input-sec-display');
+                            if (minDisp) minDisp.innerText = parseInt(minSec[0]);
+                            if (secDisp) secDisp.innerText = minSec[1];
+                        }
+                    }
+
+                    if (typeof updatePaceChart === 'function') {
+                        updatePaceChart(data);
+                    }
+
+                    // Render GPX Baseline card dynamically
+                    renderGPXBaselineCard(data);
+
+                    // Hide onboarding modal
+                    hideOnboardingModal();
+                    calculateTargetPaces();
+                    updateTimelineView(data.currentPhaseIndex || 1);
+
+                    if (syncBadge) {
+                        syncBadge.className = "inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Synced`;
+                    }
+                } else {
+                    console.log("Profile empty. Displaying lookup panel.");
+                    if (syncBadge) {
+                        syncBadge.className = "inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Onboarding`;
+                    }
+                    showProfileLookupPanel(userId);
+                    const errorEl = document.getElementById('lookup-error');
+                    if (errorEl && userId) {
+                        errorEl.innerText = `Athlete ID "${userId}" not found.`;
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            }, (error) => {
+                clearTimeout(connectionTimeout);
+                hideAutopilotLoader();
+                console.error("Profile channel sync error: ", error);
+                if (syncBadge) {
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Error`;
+                }
+            });
+
+            // Bind real-time listener to active phase workouts
+            activeWorkoutsListener = userDocRef.collection("active_phase").orderBy("sequenceOrder").onSnapshot((querySnapshot) => {
+                activePhaseWorkouts = [];
+                querySnapshot.forEach((doc) => {
+                    activePhaseWorkouts.push(doc.data());
+                });
+
+                console.log("☁️ Workout snapshot updated: ", activePhaseWorkouts.length);
+                if (activePhaseWorkouts.length > 0) {
+                    buildActivePhaseHTML();
+                    renderNextActivityCard();
+                    updateOverallProgressMeter();
+                    checkPhaseCompletion();
+                } else {
+                    document.getElementById('jit-checklist-container').innerHTML = `
+                        <div class="text-center py-8 text-slate-500 text-xs">
+                            <i class="fa-solid fa-cloud-arrow-up text-lg mb-2 block text-indigo-500 animate-pulse"></i>
+                            Initializing active phase workouts...
+                        </div>`;
+                }
+            }, (error) => {
+                console.error("Workouts channel sync error: ", error);
+            });
+        }
+
+        function getActivePhaseTheme(phaseIndex) {
+            if (phaseIndex === 2) return "Speed Endurance";
+            if (phaseIndex === 3) return "Peak & Taper";
+            return "Speed Induction";
+        }
+
+        // 2. Medical Shield & Onboarding Modal Toggles
+        function showProfileLookupPanel(prefilledId) {
+            document.getElementById('onboarding-modal').classList.remove('hidden');
+            document.getElementById('profile-lookup-panel').classList.remove('hidden');
+            document.getElementById('medical-disclaimer-panel').classList.add('hidden');
+            document.getElementById('onboarding-form-panel').classList.add('hidden');
+            const errorEl = document.getElementById('lookup-error');
+            if (errorEl) errorEl.classList.add('hidden');
+            const inputEl = document.getElementById('lookup-athlete-id');
+            if (inputEl) inputEl.value = prefilledId || "";
+        }
+
+        function startNewProfileOnboarding() {
+            document.getElementById('profile-lookup-panel').classList.add('hidden');
+            document.getElementById('medical-disclaimer-panel').classList.remove('hidden');
+            document.getElementById('medical-ack').checked = false;
+            toggleDisclaimerNextBtn();
+
+            // Prefill the onboarding form's athlete ID field with whatever was in the lookup field
+            const lookupVal = document.getElementById('lookup-athlete-id').value.trim();
+            const intakeAthleteId = document.getElementById('intake-athlete-id');
+            if (intakeAthleteId) {
+                intakeAthleteId.value = lookupVal;
+            }
+        }
+
+        async function submitProfileLookup() {
+            const input = document.getElementById('lookup-athlete-id');
+            const errorEl = document.getElementById('lookup-error');
+            const val = input.value.trim();
+            if (!val) {
+                if (errorEl) {
+                    errorEl.innerText = "Please enter an Athlete ID.";
+                    errorEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (errorEl) errorEl.classList.add('hidden');
+            showAutopilotLoader();
+
+            try {
+                const doc = await db.collection("users").doc(val).get();
+                if (doc.exists) {
+                    hideAutopilotLoader();
+                    hideOnboardingModal();
+                    setupProfileSync(val);
+                } else {
+                    hideAutopilotLoader();
+                    if (errorEl) {
+                        errorEl.innerText = `Athlete ID "${val}" not found. Please check spelling or create a new profile.`;
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.error("Lookup failure: ", err);
+                hideAutopilotLoader();
+                if (errorEl) {
+                    errorEl.innerText = "Connection error. Please try again.";
+                    errorEl.classList.remove('hidden');
+                }
+            }
+        }
+
+        function showOnboardingModal(profileId) {
+            showProfileLookupPanel(profileId);
+        }
+
+        function hideOnboardingModal() {
+            document.getElementById('onboarding-modal').classList.add('hidden');
+        }
+
+        function toggleDisclaimerNextBtn() {
+            const checked = document.getElementById('medical-ack').checked;
+            const btn = document.getElementById('btn-disclaimer-next');
+            if (checked) {
+                btn.disabled = false;
+                btn.className = "w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg cursor-pointer text-xs";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full bg-slate-850 text-slate-500 py-3 rounded-xl font-bold transition-all cursor-not-allowed text-xs";
+            }
+        }
+
+        function acceptMedicalDisclaimer() {
+            document.getElementById('medical-disclaimer-panel').classList.add('hidden');
+            document.getElementById('onboarding-form-panel').classList.remove('hidden');
+        }
+
+        function calculateOnboardingGoalPace(baselineMin, baselineSec, targetDateStr, tier) {
+            const baselineSeconds = (baselineMin * 60) + baselineSec;
+            const targetDate = new Date(targetDateStr);
+            const currentDate = new Date();
+            const diffTime = targetDate - currentDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const W = Math.max(1, Math.ceil(diffDays / 7));
+
+            let pScale = 0;
+            if (tier === 'recreational') {
+                pScale = Math.min(0.50 * W, 10);
+            } else if (tier === 'progressive') {
+                pScale = Math.min(1.00 * W, 15);
+            } else if (tier === 'ambitious') {
+                pScale = Math.min(1.25 * W, 22.5);
+            } else if (tier === 'elite') {
+                pScale = Math.min(1.50 * W, 30);
+            }
+
+            const targetSeconds = Math.floor(baselineSeconds * (1 - (pScale / 100)));
+            const targetMin = Math.floor(targetSeconds / 60);
+            const targetSec = targetSeconds % 60;
+            return `${targetMin}:${targetSec < 10 ? '0' : ''}${targetSec}`;
+        }
+        let parsedIntakeWorkout = null;
+
+        async function handleIntakeFileUpload(input) {
+            const statusEl = document.getElementById('intake-file-status');
+            const previewEl = document.getElementById('intake-file-preview');
+
+            if (!input.files || input.files.length === 0) {
+                parsedIntakeWorkout = null;
+                if (statusEl) {
+                    statusEl.innerText = "";
+                    statusEl.classList.add('hidden');
+                }
+                if (previewEl) previewEl.classList.add('hidden');
+                return;
+            }
+
+            const file = input.files[0];
+            if (statusEl) {
+                statusEl.innerText = "Parsing workout file...";
+                statusEl.classList.remove('hidden');
+            }
+
+            try {
+                const parsed = await parseWorkoutFile(file);
+                parsedIntakeWorkout = {
+                    fileName: parsed.fileName,
+                    format: parsed.format,
+                    distance: parsed.distance,
+                    duration: parsed.duration,
+                    pace: parsed.pace,
+                    avgCadence: parsed.avgCadence,
+                    avgHeartRate: parsed.avgHeartRate,
+                    maxHeartRate: parsed.maxHeartRate,
+                    elevationGain: parsed.elevationGain,
+                    avgGradient: parsed.avgGradient,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-emerald-450 font-bold mt-2";
+                    statusEl.innerText = `Successfully parsed: ${parsed.fileName}`;
+                }
+
+                // Auto-populate manual entry fields
+                const minInput = document.getElementById('intake-pace-min');
+                const secInput = document.getElementById('intake-pace-sec');
+                const distanceInput = document.getElementById('intake-distance');
+
+                if (parsed.pace) {
+                    const parts = parsed.pace.split(':');
+                    if (parts.length === 2) {
+                        if (minInput) minInput.value = parseInt(parts[0]);
+                        if (secInput) secInput.value = parseInt(parts[1]);
+                    }
+                }
+
+                if (parsed.distance && distanceInput) {
+                    distanceInput.value = parsed.distance;
+                }
+
+                // Show dynamic workout preview
+                if (previewEl) {
+                    previewEl.innerHTML = `
+                        <div class="font-bold text-indigo-400 uppercase tracking-widest text-[9px] mb-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-square-poll-vertical text-[10px]"></i> Coach Insights: Parsed Workout Baseline
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-slate-350">
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Distance:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.distance} mi</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Avg Pace:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.pace} /mi</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Cadence:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.avgCadence ? parsed.avgCadence + ' spm' : 'N/A'}</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Avg / Max HR:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.avgHeartRate ? parsed.avgHeartRate + ' / ' + parsed.maxHeartRate + ' bpm' : 'N/A'}</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Elevation Gain:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.elevationGain ? parsed.elevationGain + ' ft' : 'N/A'}</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Avg Gradient:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.avgGradient ? parsed.avgGradient + '%' : 'N/A'}</strong></div>
+                        </div>
+                    `;
+                    previewEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Intake GPX parsing error: ", err);
+                parsedIntakeWorkout = null;
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-rose-450 font-bold mt-2";
+                    statusEl.innerText = `Error parsing file: ${err.message}`;
+                }
+                if (previewEl) previewEl.classList.add('hidden');
+            }
+        }
+
+        async function submitOnboardingForm() {
+            const intakeAthleteId = document.getElementById('intake-athlete-id').value.trim();
+            const title = document.getElementById('intake-title').value.trim();
+            const desc = document.getElementById('intake-desc').value.trim();
+            const notes = document.getElementById('intake-notes').value.trim();
+            const paceMin = parseInt(document.getElementById('intake-pace-min').value);
+            const paceSec = parseInt(document.getElementById('intake-pace-sec').value);
+            const dateStr = document.getElementById('intake-date').value;
+            const lengthVal = parseInt(document.getElementById('intake-workout-length').value) || 45;
+            const tier = document.getElementById('intake-tier').value;
+
+            const checkboxes = document.querySelectorAll('input[name="hardware"]:checked');
+            const equipmentList = Array.from(checkboxes).map(cb => cb.value);
+
+            if (!intakeAthleteId) {
+                alert("Please specify a unique Athlete ID.");
+                return;
+            }
+
+            // Clean/validate Athlete ID format (e.g. alphanumeric/underscores)
+            const cleanId = intakeAthleteId.replace(/[^a-zA-Z0-9_]/g, '').trim();
+            if (!cleanId) {
+                alert("Athlete ID must contain alphanumeric characters or underscores.");
+                return;
+            }
+
+            if (!title || !dateStr || isNaN(paceMin) || isNaN(paceSec)) {
+                alert("Please fill out all required fields.");
+                return;
+            }
+
+            showAutopilotLoader();
+
+            const userDocRef = db.collection("users").doc(cleanId);
+            try {
+                // Ensure ID is not already taken
+                const existingDoc = await userDocRef.get();
+                if (existingDoc.exists) {
+                    hideAutopilotLoader();
+                    alert(`The Athlete ID "${cleanId}" already exists. Please choose a different Athlete ID.`);
+                    return;
+                }
+            } catch (err) {
+                console.error("Failed to check if ID exists:", err);
+                hideAutopilotLoader();
+                alert("Connection error checking Athlete ID availability. Please try again.");
+                return;
+            }
+
+            userId = cleanId;
+            localStorage.setItem('yf_active_profile', userId);
+
+            const baseline5k = `${paceMin}:${paceSec < 10 ? '0' + paceSec : paceSec}`;
+            const activeAdjustedGoal = calculateOnboardingGoalPace(paceMin, paceSec, dateStr, tier);
+
+            showAutopilotLoader();
+
+            const userDocRefVerify = db.collection("users").doc(userId);
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            let coachJourneyComments = `Welcome to your training plan. We calculated your goal pace to be ${activeAdjustedGoal} / mile based on your baseline. Keep effort consistent!`;
+            let p1Description = "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability.";
+
+            if (parsedIntakeWorkout) {
+                coachJourneyComments = `Coach Autopilot has analyzed your baseline workout file (${parsedIntakeWorkout.fileName}). We detected a distance of ${parsedIntakeWorkout.distance} miles at a pace of ${parsedIntakeWorkout.pace}/mile, with an average cadence of ${parsedIntakeWorkout.avgCadence || 'N/A'} spm. We've factored these pacing and cadence signatures into your dynamic Phase 1 training progression.`;
+                p1Description = `Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted stability, starting from your parsed file baseline cadence of ${parsedIntakeWorkout.avgCadence || 160} spm.`;
+            }
+
+            const profilePayload = {
+                journeyTitle: title,
+                journeyDescription: desc,
+                userBaselineNotes: notes,
+                journeyStartDate: todayStr,
+                targetDate: dateStr,
+                baseline5k: baseline5k,
+                currentEstimated5k: baseline5k,
+                activeAdjustedGoal: activeAdjustedGoal,
+                paceHistory: [
+                    { phase: 1, pace: baseline5k, date: todayStr, label: "Start", index: 0 }
+                ],
+                desiredWorkoutLength: lengthVal,
+                challengeTier: tier,
+                equipmentList: equipmentList,
+                medicalAcknowledge: true,
+                journeyComments: coachJourneyComments,
+                currentPhaseIndex: 1,
+                strengthLibrary: [
+                    {
+                        name: "Workout A",
+                        focus: "Hip Stability & Single-Leg Ground Force",
+                        exercises: [
+                            { name: "DB Reverse Lunges", sets: 3, reps: "10 reps/leg" },
+                            { name: "Banded Monster Walks", sets: 3, reps: "40s" },
+                            { name: "DB Goblet Squats", sets: 3, reps: "12 reps" },
+                            { name: "Banded Clamshells", sets: 3, reps: "15 reps" }
+                        ]
+                    }
+                ],
+                macrocyclePlan: [
+                    { phase: 1, theme: "Speed Induction Foundations", description: p1Description },
+                    { phase: 2, theme: "Speed Endurance Thresholds", description: "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts." },
+                    { phase: 3, theme: "Peak Capacity & Taper", description: "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation." }
+                ]
+            };
+
+            if (parsedIntakeWorkout) {
+                profilePayload.parsedBaselineWorkout = parsedIntakeWorkout;
+            }
+
+            try {
+                await userDocRefVerify.set(profilePayload);
+                const p1Workouts = getPhase1DefaultWorkouts();
+                const batch = db.batch();
+                p1Workouts.forEach((w) => {
+                    batch.set(userDocRefVerify.collection("active_phase").doc(w.id), w);
+                });
+                await batch.commit();
+
+                setTimeout(() => {
+                    hideAutopilotLoader();
+                    setupProfileSync(userId);
+                }, 3000);
+            } catch (err) {
+                console.error("Onboarding setup failure: ", err);
+                hideAutopilotLoader();
+                alert("Firestore error seeding plan.");
+            }
+        }
+
+        // 3. Render checklist UI to Flat JIT Layout
+        function buildActivePhaseHTML() {
+            const container = document.getElementById('jit-checklist-container');
+            container.innerHTML = "";
+
+            activePhaseWorkouts.forEach((step) => {
+                const isCheckedAttr = step.completed ? "checked" : "";
+                const iconSVG = icons[step.type] || icons.easy;
+
+                let paceHintText = "";
+                if (step.targetPaceZone) {
+                    if (step.targetPaceZone === 'easy') paceHintText = "Easy/Recovery Target";
+                    else if (step.targetPaceZone === 'long') paceHintText = "Long Aerobic Target";
+                    else if (step.targetPaceZone === 'tempo') paceHintText = "Tempo Target";
+                    else if (step.targetPaceZone === 'goal') paceHintText = `Goal Target: ${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                    else paceHintText = step.targetPaceZone;
+                }
+
+                container.innerHTML += `
+                    <div class="flex items-start gap-4 p-3.5 rounded-xl bg-slate-900/30 border border-slate-800/55 hover:border-slate-800 transition-all">
+                        <label class="relative flex items-center justify-center cursor-pointer mt-0.5 shrink-0 group">
+                            <input type="checkbox" id="${step.id}" onchange="toggleStepCheckDirect('${step.id}')" class="peer sr-only" ${isCheckedAttr}>
+                            <div class="w-5.5 h-5.5 border-2 border-slate-700 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-lg flex items-center justify-center text-slate-950 transition-all">
+                                <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        </label>
+
+                        <div class="p-2 bg-slate-950 rounded-lg border border-slate-800/80 shrink-0">
+                            ${iconSVG}
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="flex items-baseline justify-between flex-wrap gap-2">
+                                <span class="text-xs font-bold text-slate-200">${step.workoutTitle} <span class="text-[10px] text-slate-500 font-normal">(${step.distanceDuration})</span></span>
+                                <div class="flex items-center gap-2">
+                                    ${step.targetPaceZone ? `<span class="text-[10px] font-extrabold text-indigo-400 font-mono">${paceHintText}</span>` : ''}
+                                    ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Logged: ${step.actualLoggedPace}</span>` : ''}
+                                    ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">RPE: ${step.rpeScore}</span>` : ''}
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1 leading-relaxed">${step.targetInstructions}</p>
+                            ${step.completed && step.dateExecuted ? `
+                            <div class="flex items-center gap-2 mt-1.5">
+                                <span class="text-[9px] text-slate-500 font-semibold">Completed on:</span>
+                                <input type="date" value="${step.dateExecuted}" onchange="updateWorkoutDate('${step.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-0.5 rounded-lg focus:outline-none focus:border-indigo-500 cursor-pointer font-mono select-none">
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleStepCheckDirect(stepId) {
+            const cb = document.getElementById(stepId);
+            const workout = activePhaseWorkouts.find(w => w.id === stepId);
+
+            if (workout && workout.isSpeedWorkout && cb.checked) {
+                cb.checked = false;
+                alert("🔒 Speed & Benchmark workouts require explicit pace metrics validation. Please execute and log this session within the primary 'Up Next' card.");
+                return;
+            }
+
+            toggleStepCheck(stepId, cb.checked);
+        }
+
+        function toggleStepCheck(activityId, completed) {
+            let selectedDate = null;
+            const updatePayload = {
+                completed: completed
+            };
+
+            if (completed) {
+                const dateEl = document.getElementById(`date-picker-${activityId}`) || document.getElementById('logged-date');
+                if (dateEl && dateEl.value) {
+                    selectedDate = dateEl.value;
+                } else {
+                    const d = new Date();
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    selectedDate = `${year}-${month}-${day}`;
+                }
+                updatePayload.dateExecuted = selectedDate;
+            } else {
+                updatePayload.dateExecuted = null;
+                updatePayload.actualLoggedPace = null;
+                updatePayload.rpeScore = null;
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    updatePayload.uploadedWorkoutFile = firebase.firestore.FieldValue.delete();
+                }
+            }
+
+            db.collection("users").doc(userId).collection("active_phase").doc(activityId).update(updatePayload).then(() => {
+                console.log("Workout checklist item updated successfully.");
+            }).catch(err => {
+                console.error("Error writing checkmark to cloud: ", err);
+            });
+        }
+
+        function updateWorkoutDate(activityId, newDate) {
+            if (!newDate) return;
+            db.collection("users").doc(userId).collection("active_phase").doc(activityId).update({
+                dateExecuted: newDate
+            }).then(() => {
+                console.log("Workout date updated successfully.");
+            }).catch(err => {
+                console.error("Error updating workout date: ", err);
+            });
+        }
+
+        // 4. Refactor Up Next Card with Gatekeeper Locks
+        let lastUploadedWorkoutFile = null;
+
+        async function handleWorkoutFileUpload(input) {
+            const statusEl = document.getElementById('workout-file-status');
+            if (!input.files || input.files.length === 0) {
+                lastUploadedWorkoutFile = null;
+                if (statusEl) statusEl.classList.add('hidden');
+                return;
+            }
+
+            const file = input.files[0];
+            if (statusEl) {
+                statusEl.className = "text-[10px] text-amber-400 font-semibold italic animate-pulse ml-1";
+                statusEl.innerText = "Parsing file...";
+                statusEl.classList.remove('hidden');
+            }
+
+            try {
+                const parsed = await parseWorkoutFile(file);
+                lastUploadedWorkoutFile = {
+                    fileName: parsed.fileName,
+                    format: parsed.format,
+                    distance: parsed.distance,
+                    duration: parsed.duration,
+                    pace: parsed.pace,
+                    avgCadence: parsed.avgCadence,
+                    avgHeartRate: parsed.avgHeartRate,
+                    maxHeartRate: parsed.maxHeartRate,
+                    elevationGain: parsed.elevationGain,
+                    avgGradient: parsed.avgGradient,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                // Auto-fill logged pace fields
+                const minInput = document.getElementById('logged-min');
+                const secInput = document.getElementById('logged-sec');
+                if (parsed.pace && minInput && secInput) {
+                    const parts = parsed.pace.split(':');
+                    if (parts.length === 2) {
+                        minInput.value = parseInt(parts[0]);
+                        secInput.value = parseInt(parts[1]);
+                    }
+                }
+
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-emerald-450 font-bold ml-1";
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check text-[9px]"></i> Parsed ${parsed.fileName} (${parsed.distance}mi at ${parsed.pace}/mi)`;
+                }
+            } catch (err) {
+                console.error("Workout file parsing error:", err);
+                lastUploadedWorkoutFile = null;
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-rose-450 font-bold ml-1";
+                    statusEl.innerText = "Error parsing file: " + err.message;
+                }
+            }
+        }
+
+        function renderNextActivityCard() {
+            lastUploadedWorkoutFile = null; // Reset uploaded workout file state for a fresh card
+            const container = document.getElementById('focus-content');
+            let nextStep = null;
+            let showCompletedToday = false;
+
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const todayLocalStr = `${year}-${month}-${day}`;
+
+            // Find the last completed workout in the active phase
+            let lastCompletedStep = null;
+            for (let i = activePhaseWorkouts.length - 1; i >= 0; i--) {
+                const w = activePhaseWorkouts[i];
+                if (w.completed) {
+                    lastCompletedStep = w;
+                    break;
+                }
+            }
+
+            if (lastCompletedStep && lastCompletedStep.dateExecuted === todayLocalStr) {
+                nextStep = lastCompletedStep;
+                showCompletedToday = true;
+            } else {
+                for (let w of activePhaseWorkouts) {
+                    if (!w.completed) {
+                        nextStep = w;
+                        break;
+                    }
+                }
+            }
+
+            if (!nextStep) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-4 text-emerald-400 p-4">
+                        <i class="fa-solid fa-trophy text-4xl"></i>
+                        <div>
+                            <h2 class="text-2xl font-black uppercase tracking-wider">All Phase Workouts Complete!</h2>
+                            <p class="text-slate-300 mt-1">Unlock your next autopilot block below.</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const isSpeed = nextStep.isSpeedWorkout;
+            const isBenchmark = nextStep.isBenchmark;
+            const iconSVG = icons[nextStep.type] || icons.easy;
+
+            let paceHtml = "";
+            if (nextStep.targetPaceZone) {
+                let pType = nextStep.targetPaceZone;
+                paceHtml = `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Pace</span>
+                <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${pType}">Computing...</span></div>`;
+            } else {
+                paceHtml = `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Time Investment</span>
+                <span class="font-mono text-xl md:text-2xl font-black text-white">${nextStep.distanceDuration}</span></div>`;
+            }
+
+            const isCheckedAttr = nextStep.completed ? "checked" : "";
+
+            container.innerHTML = `
+                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <span class="text-[10px] font-bold uppercase tracking-widest ${showCompletedToday ? 'text-emerald-450 bg-emerald-950/50 border-emerald-500/30' : 'text-indigo-400 bg-indigo-950/50 border-indigo-500/30'} px-3 py-1 rounded-full border">
+                        ${showCompletedToday ? 'Completed Today' : 'Up Next'}
+                    </span>
+                    ${isBenchmark ? `<span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-3 py-1 rounded-full border border-amber-500/30 pulse-slow">Fitness Milestone Benchmark</span>` : ''}
+                </div>
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 w-full pointer-events-auto">
+                    <div class="flex items-center gap-5 w-full md:w-auto">
+                        <label class="relative flex items-center justify-center ${isSpeed && !nextStep.completed ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} shrink-0 group">
+                            <input type="checkbox" ${isCheckedAttr} ${isSpeed && !nextStep.completed ? 'disabled' : `onchange="toggleStepCheck('${nextStep.id}', this.checked)"`} class="peer sr-only">
+                            <div class="w-12 h-12 md:w-16 md:h-16 border-2 border-slate-600 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 transition-all shadow-inner">
+                                <svg class="w-6 h-6 md:w-8 md:h-8 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        </label>
+                        
+                        <div class="flex-1">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight">${nextStep.workoutTitle}</h2>
+                            <p class="text-indigo-200 text-sm font-semibold mt-1">Sequence Position #${nextStep.sequenceOrder}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full h-px md:w-px md:h-20 bg-indigo-500/20"></div>
+ 
+                    <div class="flex-1 w-full bg-black/20 p-4 md:p-6 rounded-2xl border border-indigo-500/20 shadow-inner">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center mb-4">
+                            <div class="flex items-start gap-3">
+                                <div class="mt-1 opacity-80 shrink-0">${iconSVG}</div>
+                                <div>
+                                    <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Instructions</span>
+                                    <p class="text-xs text-slate-200 leading-relaxed">${nextStep.targetInstructions}</p>
+                                </div>
+                            </div>
+                            ${paceHtml}
+                        </div>
+ 
+                        ${isSpeed && !nextStep.completed ? `
+                        <div id="gatekeeper-form" class="border-t border-indigo-500/10 pt-4 mt-2">
+                            <span class="block text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-2">🔒 The Gatekeeper Validation: Log Run Metrics</span>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
+                                    <input id="logged-min" type="number" min="4" max="15" placeholder="Min" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none">
+                                    <span class="text-slate-650 font-bold">:</span>
+                                    <input id="logged-sec" type="number" min="0" max="59" placeholder="Sec" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none">
+                                    <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider ml-1 mr-1">Date</span>
+                                    <input id="logged-date" type="date" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <select id="logged-rpe" class="bg-slate-950/60 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                                        <option value="" disabled selected>Select RPE</option>
+                                        <option value="1">1 - Restful</option>
+                                        <option value="2">2 - Easy</option>
+                                        <option value="3">3 - Light</option>
+                                        <option value="4">4 - Comfortable</option>
+                                        <option value="5">5 - Moderate</option>
+                                        <option value="6">6 - Steady</option>
+                                        <option value="7">7 - Hard</option>
+                                        <option value="8">8 - Very Hard</option>
+                                        <option value="9">9 - Exhausting</option>
+                                        <option value="10">10 - Maximum</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="file" id="workout-file-upload" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleWorkoutFileUpload(this)">
+                                    <button type="button" onclick="document.getElementById('workout-file-upload').click()" class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                                        <i class="fa-solid fa-file-arrow-up"></i> Upload Run File (Optional)
+                                    </button>
+                                </div>
+                                <button onclick="submitSpeedWorkout('${nextStep.id}', ${isBenchmark})" class="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center gap-1.5 cursor-pointer">
+                                    <i class="fa-solid fa-square-check"></i> Validate & Complete Run
+                                </button>
+                            </div>
+                            <p id="workout-file-status" class="text-[10px] text-slate-500 font-semibold italic ml-1 mt-2 hidden"></p>
+                            <p id="gatekeeper-warn" class="text-[11px] text-rose-450 mt-2 font-medium hidden">⚠️ Please fill out pace parameters and select RPE before submitting.</p>
+                        </div>
+                        ` : ''}
+
+                        ${!isSpeed && !nextStep.completed ? `
+                        <div class="border-t border-indigo-500/10 pt-4 mt-2 flex items-center gap-2">
+                            <span class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Completion Date:</span>
+                            <input id="date-picker-${nextStep.id}" type="date" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer select-none">
+                        </div>
+                        ` : ''}
+
+                        ${nextStep.completed ? `
+                        <div class="border-t border-indigo-500/10 pt-4 mt-2 flex items-center gap-3 flex-wrap">
+                            <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <i class="fa-solid fa-circle-check"></i> Completed!
+                            </span>
+                            ${nextStep.actualLoggedPace ? `<span class="text-xs text-slate-350 font-bold font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">Logged Pace: ${nextStep.actualLoggedPace} /mi</span>` : ''}
+                            ${nextStep.rpeScore ? `<span class="text-xs text-slate-350 font-bold font-mono bg-violet-500/10 px-2.5 py-1 rounded border border-violet-500/20">RPE: ${nextStep.rpeScore}</span>` : ''}
+                            <div class="flex items-center gap-1.5 ml-auto">
+                                <span class="text-[10px] text-slate-500">Date:</span>
+                                <input type="date" value="${nextStep.dateExecuted}" onchange="updateWorkoutDate('${nextStep.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-1 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer select-none font-mono">
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Set default date values
+            const datePicker = document.getElementById(`date-picker-${nextStep.id}`);
+            if (datePicker) datePicker.value = todayLocalStr;
+
+            const loggedDate = document.getElementById('logged-date');
+            if (loggedDate) loggedDate.value = todayLocalStr;
+
+            calculateTargetPaces();
+        }
+
+        // 5. 70/30 EMA & Recalculation Engine
+        function submitSpeedWorkout(activityId, isBenchmark) {
+            const minInput = document.getElementById('logged-min');
+            const secInput = document.getElementById('logged-sec');
+            const rpeSelect = document.getElementById('logged-rpe');
+            const warning = document.getElementById('gatekeeper-warn');
+
+            const mins = parseFloat(minInput.value);
+            const secs = parseFloat(secInput.value);
+            const rpeVal = rpeSelect ? rpeSelect.value : null;
+
+            if (isNaN(mins) || isNaN(secs) || minInput.value === "" || secInput.value === "" || !rpeVal) {
+                if (warning) {
+                    warning.innerText = "⚠️ Please fill out pace parameters and select an RPE score before submitting.";
+                    warning.classList.remove('hidden');
+                }
+                return;
+            }
+            if (warning) warning.classList.add('hidden');
+
+            const actualWorkoutPaceDecimal = mins + (secs / 60);
+            const paceStr = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+            
+            const loggedDateEl = document.getElementById('logged-date');
+            const completionDate = (loggedDateEl && loggedDateEl.value) ? loggedDateEl.value : new Date().toISOString().split('T')[0];
+
+            const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activityId);
+
+            let emaPromise = Promise.resolve();
+            if (isBenchmark) {
+                const prevMins = parseFloat(document.getElementById('input-min').value) || 8;
+                const prevSecs = parseFloat(document.getElementById('input-sec').value) || 10;
+                const previousTargetBaselineDecimal = prevMins + (prevSecs / 60);
+
+                // Execute the 70/30 EMA formula
+                const newBaselinePaceDecimal = (previousTargetBaselineDecimal * 0.70) + (actualWorkoutPaceDecimal * 0.30);
+
+                const finalMin = Math.floor(newBaselinePaceDecimal);
+                const finalSec = Math.round((newBaselinePaceDecimal - finalMin) * 60);
+                const newEstimatedPace = `${finalMin}:${finalSec < 10 ? '0' + finalSec : finalSec}`;
+
+                console.log(`EMA Recalibration: Prev=${prevMins}:${prevSecs}, Logged=${mins}:${secs}, New=${newEstimatedPace}`);
+
+                const currentPhase = (userProfileData && userProfileData.currentPhaseIndex) || 1;
+                const checkpointIdx = getCheckpointIndex(currentPhase, activityId);
+                const checkpointLabel = getCheckpointLabel(checkpointIdx);
+
+                const updatePayload = {
+                    currentEstimated5k: newEstimatedPace
+                };
+                if (checkpointIdx >= 0) {
+                    updatePayload.paceHistory = firebase.firestore.FieldValue.arrayUnion({
+                        phase: currentPhase,
+                        activityId: activityId,
+                        pace: newEstimatedPace,
+                        date: completionDate,
+                        label: checkpointLabel,
+                        index: checkpointIdx
+                    });
+                }
+
+                // Update baseline in root profile document
+                emaPromise = db.collection("users").doc(userId).update(updatePayload).then(() => {
+                    flashPaceChart();
+                });
+            }
+
+            emaPromise.then(() => {
+                const updatePayload = {
+                    completed: true,
+                    actualLoggedPace: paceStr,
+                    rpeScore: parseInt(rpeVal),
+                    dateExecuted: completionDate
+                };
+                if (lastUploadedWorkoutFile) {
+                    updatePayload.uploadedWorkoutFile = lastUploadedWorkoutFile;
+                }
+                return workoutDocRef.update(updatePayload);
+            }).then(() => {
+                console.log("Speed workout metrics synced to cloud.");
+                lastUploadedWorkoutFile = null;
+            }).catch(err => {
+                console.error("Error writing speed metrics to cloud: ", err);
+                alert("Firestore sync failure.");
+            });
+        }
+
+            function flashPaceChart() {
+                const card = document.getElementById('pace-chart-card');
+                if (!card) return;
+                card.classList.add('border-emerald-500/80', 'bg-emerald-950/20', 'shadow-emerald-500/10');
+                setTimeout(() => {
+                    card.classList.remove('border-emerald-500/80', 'bg-emerald-950/20', 'shadow-emerald-500/10');
+                }, 1500);
+            }
+
+            function getCheckpointIndex(phase, activityId) {
+                const phaseNum = parseInt(phase) || 1;
+                if (phaseNum === 1) {
+                    if (activityId === 'act-4') return 1;
+                    if (activityId === 'act-7') return 2;
+                } else if (phaseNum === 2) {
+                    if (activityId === 'act-4') return 3;
+                    if (activityId === 'act-7') return 4;
+                } else if (phaseNum === 3) {
+                    if (activityId === 'act-3') return 5;
+                    if (activityId === 'act-5') return 6;
+                    if (activityId === 'act-7') return 7;
+                }
+                return -1;
+            }
+
+            function getCheckpointLabel(index) {
+                const labels = ["Start", "P1 Mid", "P1 End", "P2 Mid", "P2 End", "P3 Mid 1", "P3 Mid 2", "Goal"];
+                if (index >= 0 && index < labels.length) {
+                    return labels[index];
+                }
+                return "Checkpoint";
+            }
+
+            function generateTimelineDates(startDateStr, endDateStr) {
+                const start = startDateStr ? new Date(startDateStr) : new Date();
+                let end;
+                if (endDateStr) {
+                    end = new Date(endDateStr);
+                } else {
+                    end = new Date(start.getTime() + 12 * 7 * 24 * 60 * 60 * 1000); // 12 weeks later fallback
+                }
+
+                const totalMs = end.getTime() - start.getTime();
+                const intervalMs = totalMs / 7;
+
+                const dates = [];
+                for (let i = 0; i <= 7; i++) {
+                    const currentMs = start.getTime() + (i * intervalMs);
+                    const currentDate = new Date(currentMs);
+
+                    const opt = { month: 'short', day: 'numeric' };
+                    dates.push(currentDate.toLocaleDateString('en-US', opt));
+                }
+                return dates;
+            }
+
+            function paceStringToSeconds(paceStr) {
+                if (!paceStr) return 490; // Default 8:10
+                const parts = paceStr.split(':');
+                if (parts.length !== 2) return 490;
+                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            }
+
+            function updatePaceChart(data) {
+                if (!data) return;
+                const canvas = document.getElementById('pace-chart');
+                if (!canvas) return;
+
+                // Set Goal Target display text
+                const goalDisplay = document.getElementById('goal-pace-display');
+                if (goalDisplay) {
+                    goalDisplay.innerText = `${data.activeAdjustedGoal || "-"} / mi`;
+                }
+
+                const startSec = paceStringToSeconds(data.baseline5k || "8:10");
+                const goalSec = paceStringToSeconds(data.activeAdjustedGoal || "6:26");
+
+                // 1. Construct Projected Line (linear interpolation)
+                const projectedData = [];
+                for (let i = 0; i <= 7; i++) {
+                    const sec = startSec - (i * (startSec - goalSec) / 7);
+                    projectedData.push(sec / 60);
+                }
+
+                // 2. Construct Actual Line (mapped checkpoints)
+                const actualData = Array(8).fill(null);
+                actualData[0] = startSec / 60; // Start point
+
+                let maxPopulatedIdx = 0;
+                if (data.paceHistory && Array.isArray(data.paceHistory)) {
+                    data.paceHistory.forEach(item => {
+                        let idx = item.index;
+                        if (idx === undefined) {
+                            idx = getCheckpointIndex(item.phase, item.activityId || '');
+                        }
+                        if (idx >= 0 && idx <= 7) {
+                            actualData[idx] = paceStringToSeconds(item.pace) / 60;
+                            if (idx > maxPopulatedIdx) maxPopulatedIdx = idx;
+                        }
+                    });
+                }
+
+                // Trim actual data tail containing nulls so the line stops at the last logged point
+                const trimmedActualData = actualData.map((val, idx) => {
+                    return idx <= maxPopulatedIdx ? val : null;
+                });
+
+                const labels = generateTimelineDates(data.journeyStartDate, data.targetDate);
+
+                // Check if chart instance exists
+                if (paceChartInstance) {
+                    paceChartInstance.data.labels = labels;
+                    paceChartInstance.data.datasets[0].data = trimmedActualData;
+                    paceChartInstance.data.datasets[1].data = projectedData;
+                    paceChartInstance.update();
+                } else {
+                    const ctx = canvas.getContext('2d');
+                    paceChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Actual Baseline Pace',
+                                    data: trimmedActualData,
+                                    borderColor: '#6366f1', // Indigo-500
+                                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                    borderWidth: 3.5,
+                                    pointBackgroundColor: '#6366f1',
+                                    pointBorderColor: '#fff',
+                                    pointHoverRadius: 6,
+                                    tension: 0.15,
+                                    spanGaps: true
+                                },
+                                {
+                                    label: 'Projected Pace',
+                                    data: projectedData,
+                                    borderColor: '#94a3b8', // Slate-400
+                                    borderDash: [6, 6],
+                                    borderWidth: 1.5,
+                                    pointBackgroundColor: '#94a3b8',
+                                    pointHoverRadius: 4,
+                                    tension: 0.1,
+                                    fill: false
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    labels: {
+                                        color: '#94a3b8',
+                                        font: {
+                                            family: 'Plus Jakarta Sans',
+                                            weight: '600',
+                                            size: 11
+                                        },
+                                        boxWidth: 12,
+                                        boxHeight: 12,
+                                        padding: 15
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: '#0f172a',
+                                    borderColor: '#334155',
+                                    borderWidth: 1,
+                                    titleColor: '#fff',
+                                    titleFont: {
+                                        family: 'Plus Jakarta Sans',
+                                        weight: 'bold'
+                                    },
+                                    bodyColor: '#94a3b8',
+                                    bodyFont: {
+                                        family: 'Plus Jakarta Sans'
+                                    },
+                                    callbacks: {
+                                        label: function (context) {
+                                            const val = context.raw;
+                                            if (val === null || val === undefined) return '';
+                                            const mins = Math.floor(val);
+                                            const secs = Math.round((val - mins) * 60);
+                                            const label = context.dataset.label || '';
+                                            return `${label}: ${mins}:${secs < 10 ? '0' : ''}${secs} /mi`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        color: '#64748b',
+                                        font: {
+                                            family: 'Plus Jakarta Sans',
+                                            weight: '600',
+                                            size: 10
+                                        }
+                                    }
+                                },
+                                y: {
+                                    grid: {
+                                        color: 'rgba(51, 65, 85, 0.3)'
+                                    },
+                                    ticks: {
+                                        color: '#64748b',
+                                        font: {
+                                            family: 'Plus Jakarta Sans',
+                                            weight: '600',
+                                            size: 10
+                                        },
+                                        callback: function (value) {
+                                            const mins = Math.floor(value);
+                                            const secs = Math.round((value - mins) * 60);
+                                            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function formatPace(totalMinutes) {
+                const mins = Math.floor(totalMinutes);
+                const secs = Math.round((totalMinutes - mins) * 60);
+                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+
+            function calculateTargetPaces() {
+                const currentMins = parseFloat(document.getElementById('input-min').value) || 8;
+                const currentSecs = parseFloat(document.getElementById('input-sec').value) || 10;
+                const decimalPace = currentMins + (currentSecs / 60);
+
+                const easyMin = decimalPace + (65 / 60);
+                const easyMax = decimalPace + (95 / 60);
+                const longMin = decimalPace + (40 / 60);
+                const longMax = decimalPace + (70 / 60);
+                const tempoMin = decimalPace - (70 / 60);
+                const tempoMax = decimalPace - (45 / 60);
+
+                const easyEl = document.getElementById('pace-easy');
+                if (easyEl) easyEl.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+                const longEl = document.getElementById('pace-long');
+                if (longEl) longEl.innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+                const tempoEl = document.getElementById('pace-tempo');
+                if (tempoEl) tempoEl.innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+
+                updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax);
+            }
+
+            function updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax) {
+                const allPaceLabels = document.querySelectorAll('.dynamic-pace-hint');
+                allPaceLabels.forEach(label => {
+                    const type = label.dataset.type;
+                    if (type === 'easy') {
+                        label.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+                    } else if (type === 'long') {
+                        label.innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+                    } else if (type === 'tempo') {
+                        label.innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+                    } else if (type === 'goal') {
+                        label.innerText = `${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                    } else if (type === 'race') {
+                        label.innerText = `LFG: Target Sub-20 (6:25/mi or faster)`;
+                    }
+                });
+            }
+
+            function updateOverallProgressMeter() {
+                if (activePhaseWorkouts.length === 0) return;
+                const completedCount = activePhaseWorkouts.filter(w => w.completed).length;
+                const currentPhase = userProfileData ? (userProfileData.currentPhaseIndex || 1) : 1;
+                const totalCompleted = ((currentPhase - 1) * 7) + completedCount;
+                const totalWorkouts = 21; // 3 phases * 7 workouts
+
+                const percent = Math.min(100, Math.round((totalCompleted / totalWorkouts) * 100));
+                const completionText = document.getElementById('overall-completion-text');
+                const completionBar = document.getElementById('overall-completion-bar');
+                if (completionText) completionText.innerText = `${percent}%`;
+                if (completionBar) completionBar.style.width = `${percent}%`;
+            }
+
+            // 6. Phase Transition Gateway & E-Stop Buttons
+            function checkPhaseCompletion() {
+                if (activePhaseWorkouts.length === 0) return;
+                const allDone = activePhaseWorkouts.every(w => w.completed);
+                if (allDone) {
+                    document.getElementById('checkout-gateway-modal').classList.remove('hidden');
+                } else {
+                    document.getElementById('checkout-gateway-modal').classList.add('hidden');
+                }
+            }
+
+            function triggerEmergencyAdaptation() {
+                document.getElementById('emergency-adapt-modal').classList.remove('hidden');
+                document.getElementById('emergency-override-notes').value = "";
+            }
+
+            function closeEmergencyModal() {
+                document.getElementById('emergency-adapt-modal').classList.add('hidden');
+            }
+
+            async function submitEmergencyAdaptation() {
+                const notes = document.getElementById('emergency-override-notes').value.trim();
+                closeEmergencyModal();
+                showAutopilotLoader();
+
+                const userDocRef = db.collection("users").doc(userId);
+
+                try {
+                    // Delete current subphase workouts
+                    const batchDelete = db.batch();
+                    activePhaseWorkouts.forEach((w) => {
+                        batchDelete.delete(userDocRef.collection("active_phase").doc(w.id));
+                    });
+                    await batchDelete.commit();
+
+                    // Regenerate Phase 1 default workouts as reset
+                    const p1Workouts = getPhase1DefaultWorkouts();
+                    const batchWrite = db.batch();
+                    p1Workouts.forEach((w) => {
+                        batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
+                    });
+                    await batchWrite.commit();
+
+                    // Update root user profile document
+                    const baseline = (userProfileData && userProfileData.baseline5k) || "8:10";
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    await userDocRef.update({
+                        currentPhaseIndex: 1,
+                        emergencyOverrideNotes: notes,
+                        journeyComments: `Emergency adaptation: "${notes}". Your active phase workouts have been reset.`,
+                        paceHistory: [
+                            { phase: 1, pace: baseline, date: todayStr, label: "Start", index: 0 }
+                        ]
+                    });
+
+                    console.log("Emergency adaptation applied.");
+                    setTimeout(() => {
+                        hideAutopilotLoader();
+                    }, 3000);
+
+                } catch (err) {
+                    console.error("Emergency adaptation failure: ", err);
+                    hideAutopilotLoader();
+                    alert("Firestore sync error during adaptation.");
+                }
+            }
+
+            async function proceedToNextPhase() {
+                const notes = document.getElementById('gateway-override-notes').value.trim();
+                document.getElementById('checkout-gateway-modal').classList.add('hidden');
+                showAutopilotLoader();
+
+                const nextPhaseIndex = (userProfileData.currentPhaseIndex || 1) + 1;
+                const userDocRef = db.collection("users").doc(userId);
+
+                document.getElementById('jit-checklist-container').innerHTML = `
+                <div class="text-center py-8 text-slate-500 text-xs">
+                    <i class="fa-solid fa-circle-notch animate-spin text-lg mb-2 block text-indigo-500"></i>
+                    Generating next phase workouts...
+                </div>`;
+
+                try {
+                    // Compute average RPE score of this phase block to show token optimization
+                    const completedWithRPE = activePhaseWorkouts.filter(w => w.completed && w.rpeScore);
+                    const avgRpe = completedWithRPE.length ? (completedWithRPE.reduce((sum, w) => sum + w.rpeScore, 0) / completedWithRPE.length).toFixed(1) : null;
+
+                    // Prioritize the most recent GPX file from the latest completed speed workout in the active phase
+                    const workoutsWithFiles = activePhaseWorkouts
+                        .filter(w => w.completed && w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgCadence)
+                        .sort((a, b) => {
+                            if (a.dateExecuted && b.dateExecuted) {
+                                return new Date(b.dateExecuted) - new Date(a.dateExecuted);
+                            }
+                            return b.sequenceOrder - a.sequenceOrder;
+                        });
+
+                    let sourceLabel = "";
+                    let targetCadence = null;
+
+                    if (workoutsWithFiles.length > 0) {
+                        const latestWorkout = workoutsWithFiles[0];
+                        targetCadence = latestWorkout.uploadedWorkoutFile.avgCadence;
+                        sourceLabel = `your latest speed workout (${latestWorkout.uploadedWorkoutFile.fileName})`;
+                    } else if (userProfileData && userProfileData.parsedBaselineWorkout && userProfileData.parsedBaselineWorkout.avgCadence) {
+                        targetCadence = userProfileData.parsedBaselineWorkout.avgCadence;
+                        sourceLabel = `your baseline workout file (${userProfileData.parsedBaselineWorkout.fileName})`;
+                    }
+
+                    // Personalize journey comments based on cadence analysis
+                    let coachComments = notes ? `Next phase overrides: "${notes}". ` : "";
+                    if (targetCadence) {
+                        coachComments += `Coach Autopilot analyzed ${sourceLabel}. Your cadence was ${targetCadence} spm. We've customized your Phase ${nextPhaseIndex} workouts to build on this, helping you scale up cadence toward 170-180 spm for your sub-20 minute run.`;
+                    } else {
+                        coachComments += `Welcome to Phase ${nextPhaseIndex}. Keep executing your sequential workouts with steady pacing.`;
+                    }
+
+                    // Update profile details
+                    await userDocRef.update({
+                        currentPhaseIndex: nextPhaseIndex,
+                        lastPhaseComments: notes,
+                        lastPhaseAverageRPE: avgRpe ? parseFloat(avgRpe) : null,
+                        journeyComments: coachComments
+                    });
+
+                    // Clear previous active phase subcollection
+                    const batchDelete = db.batch();
+                    activePhaseWorkouts.forEach((w) => {
+                        batchDelete.delete(userDocRef.collection("active_phase").doc(w.id));
+                    });
+                    await batchDelete.commit();
+
+                    // Seed next phase workouts
+                    let nextWorkouts = [];
+                    if (nextPhaseIndex === 2) {
+                        nextWorkouts = getPhase2DefaultWorkouts(targetCadence);
+                    } else if (nextPhaseIndex === 3) {
+                        nextWorkouts = getPhase3DefaultWorkouts(targetCadence);
+                    } else {
+                        nextWorkouts = getPhase1DefaultWorkouts();
+                        await userDocRef.update({ currentPhaseIndex: 1 });
+                    }
+
+                    const batchWrite = db.batch();
+                    nextWorkouts.forEach((w) => {
+                        batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
+                    });
+                    await batchWrite.commit();
+
+                    console.log(`Successfully advanced to Phase ${nextPhaseIndex}`);
+                    setTimeout(() => {
+                        hideAutopilotLoader();
+                    }, 3000);
+
+                } catch (err) {
+                    console.error("Gateway transition failure: ", err);
+                    hideAutopilotLoader();
+                    alert("Firestore sync error during gateway checkout.");
+                }
+            }
+
+            // 7. Pulse Heartbeat Status Marquee (Latency Masking) & 15-Second Timeout
+            function showAutopilotLoader() {
+                document.getElementById('autopilot-loading-screen').classList.remove('hidden');
+                const tickers = [
+                    "Analyzing your consistency curve...",
+                    "Calculating fatigue curves and RPE ratios...",
+                    "Adapting pace targets to your heart rate variance...",
+                    "Seeding next 7-activity JIT block...",
+                    "Syncing updates to Firestore databases..."
+                ];
+                let tickerIdx = 0;
+                const tickerEl = document.getElementById('autopilot-loading-ticker');
+                tickerEl.innerText = tickers[0];
+
+                window.tickerInterval = setInterval(() => {
+                    tickerIdx = (tickerIdx + 1) % tickers.length;
+                    tickerEl.innerText = tickers[tickerIdx];
+                }, 2000);
+
+                // 15-second abort interceptor
+                syncTimeoutHandle = setTimeout(() => {
+                    hideAutopilotLoader();
+                    document.getElementById('timeout-error-modal').classList.remove('hidden');
+                }, 15000);
+            }
+
+            function hideAutopilotLoader() {
+                document.getElementById('autopilot-loading-screen').classList.add('hidden');
+                if (window.tickerInterval) {
+                    clearInterval(window.tickerInterval);
+                }
+                if (syncTimeoutHandle) {
+                    clearTimeout(syncTimeoutHandle);
+                    syncTimeoutHandle = null;
+                }
+            }
+
+            function retrySyncAfterTimeout() {
+                document.getElementById('timeout-error-modal').classList.add('hidden');
+                setupProfileSync(userId);
+            }
+
+            // 8. General Helpers & Timers
+            function switchStrength(routineId) {
+                document.getElementById('r-details-A').classList.add('hidden');
+                document.getElementById('r-details-B').classList.add('hidden');
+                document.getElementById('r-details-C').classList.add('hidden');
+
+                const tabs = ['btn-sa', 'btn-sb', 'btn-sc'];
+                tabs.forEach(tab => {
+                    const el = document.getElementById(tab);
+                    if (el) el.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                });
+
+                const targetDetails = document.getElementById(`r-details-${routineId}`);
+                if (targetDetails) targetDetails.classList.remove('hidden');
+
+                const activeBtn = document.getElementById(`btn-s${routineId.toLowerCase()}`);
+                if (activeBtn) activeBtn.className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-violet-600 text-white transition-all";
+            }
+
+            let mainTimerInterval = null;
+            let isTimerRunning = false;
+            let totalTimeRemaining = 30 * 60;
+
+            function toggleTimer() {
+                if (isTimerRunning) {
+                    clearInterval(mainTimerInterval);
+                    isTimerRunning = false;
+                    document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+                } else {
+                    isTimerRunning = true;
+                    document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-pause"></i> Pause`;
+
+                    mainTimerInterval = setInterval(() => {
+                        if (totalTimeRemaining > 0) {
+                            totalTimeRemaining--;
+                            const minutes = Math.floor(totalTimeRemaining / 60);
+                            const seconds = totalTimeRemaining % 60;
+                            document.getElementById('timer-display-time').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                        } else {
+                            clearInterval(mainTimerInterval);
+                            isTimerRunning = false;
+                            document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+                            document.getElementById('timer-display-time').innerText = "Done!";
+                        }
+                    }, 1000);
+                }
+            }
+
+            function resetTimer() {
+                clearInterval(mainTimerInterval);
+                isTimerRunning = false;
+                totalTimeRemaining = 30 * 60;
+                document.getElementById('timer-display-time').innerText = "30:00";
+                document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+            }
+
+            // default generators for Phase 1/2/3 workouts
+            function getPhase1DefaultWorkouts() {
+                return [
+                    { id: "act-1", phaseNumber: 1, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Highly relaxed base building. Keep your breathing perfectly controlled.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability and front heel lunge force from your strength library.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-3", phaseNumber: 1, sequenceOrder: 3, workoutTitle: "Easy Base Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Smooth and steady. Focus on keeping contact time on ground minimal.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-4", phaseNumber: 1, sequenceOrder: 4, workoutTitle: "Speed Session: 8 x 400m", type: "fast", distanceDuration: "30 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "8x400m intervals on Track (90s rest). Strive for a steady cadence of ~170 spm.", targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-5", phaseNumber: 1, sequenceOrder: 5, workoutTitle: "Active Recovery Rest Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Recommended rest to allow muscle fibers to adapt and rebuild.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Stride elasticity and Achilles tendon rigidity. Use bands/calf raises.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-7", phaseNumber: 1, sequenceOrder: 7, workoutTitle: "Threshold Tempo Run", type: "fast", distanceDuration: "2 Miles", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "2 Miles at threshold tempo. Comfortably hard effort.", targetPaceZone: "tempo", actualLoggedPace: null, rpeScore: null }
+                ];
+            }
+
+            function getPhase2DefaultWorkouts(avgCadence) {
+                const cadHint = avgCadence ? `Focus on sustaining your speed cadence of ${avgCadence} spm.` : "Focus on flat footstrike and high cadence.";
+                return [
+                    { id: "act-1", phaseNumber: 2, sequenceOrder: 1, workoutTitle: "Easy Run + Strides", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Relaxed easy run. Add 4 x 100m light strides at the end.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-2", phaseNumber: 2, sequenceOrder: 2, workoutTitle: "Strength Workout B", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Posterior engine and hamstring loading. RDLs and clamshells.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-3", phaseNumber: 2, sequenceOrder: 3, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete rest. Stay hydrated and stretch.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-4", phaseNumber: 2, sequenceOrder: 4, workoutTitle: "Intervals: 5 x 1000m", type: "fast", distanceDuration: "40 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 repetitions at goal 5K speed with 2.5 min walking rests. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-5", phaseNumber: 2, sequenceOrder: 5, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability, single-leg reverse lunges, and plank sets.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-6", phaseNumber: 2, sequenceOrder: 6, workoutTitle: "Long Aerobic Base Run", type: "easy", distanceDuration: "6 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Build cardiovascular volume. Keep the pace conversational.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-7", phaseNumber: 2, sequenceOrder: 7, workoutTitle: "Speed Capacity Check", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 x 1000m intervals on Track. Focus on flat footstrike and high cadence. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null }
+                ];
+            }
+
+            function getPhase3DefaultWorkouts(avgCadence) {
+                const cadHint = avgCadence ? `Focus on maintaining your stride rate of ${avgCadence} spm under fatigue.` : "Focus on flat footstrike and high cadence.";
+                return [
+                    { id: "act-1", phaseNumber: 3, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Slow restorative recovery jog. Keep effort very low.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-2", phaseNumber: 3, sequenceOrder: 2, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Heel tendon stiffness, calf raises, and mobility stretches.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-3", phaseNumber: 3, sequenceOrder: 3, workoutTitle: "Speed Test: 3 x 1.5 Miles", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1.5 Miles at goal pace with 3 min walking recovery. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-4", phaseNumber: 3, sequenceOrder: 4, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete restorative rest. Rehydrate and foam roll.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                    { id: "act-5", phaseNumber: 3, sequenceOrder: 5, workoutTitle: "Goal Benchmark: 3 x 1 Mile", type: "fast", distanceDuration: "35 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1 Mile at goal 5K pace with 3min rest. Sub-20 test day. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-6", phaseNumber: 3, sequenceOrder: 6, workoutTitle: "Easy Jog + Strides", type: "easy", distanceDuration: "2.5 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Light taper jog. Keep legs fresh and loose with 3 strides.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                    { id: "act-7", phaseNumber: 3, sequenceOrder: 7, workoutTitle: "GOAL DAY: THANKSGIVING 5K", type: "fast", distanceDuration: "3.1 Miles", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "GOAL: BREAK 20 MINUTES (Pace: 6:25/mi or faster!) LFG!", targetPaceZone: "race", actualLoggedPace: null, rpeScore: null }
+                ];
+            }
+
+            // Modern Progress Timeline controller
+            function updateTimelineView(phaseIndex) {
+                const phase = parseInt(phaseIndex) || 1;
+                const progressBar = document.getElementById('timeline-progress-bar');
+
+                if (progressBar) {
+                    if (phase === 1) progressBar.style.width = '0%';
+                    else if (phase === 2) progressBar.style.width = '50%';
+                    else if (phase >= 3) progressBar.style.width = '100%';
+                }
+
+                for (let i = 1; i <= 3; i++) {
+                    const node = document.getElementById(`timeline-phase-${i}`);
+                    if (!node) continue;
+
+                    const dot = node.querySelector('.rounded-full');
+                    const numSpan = node.querySelector('span');
+                    const label = node.querySelectorAll('span')[1];
+                    const descEl = document.getElementById(`timeline-phase-${i}-desc`);
+
+                    // Set themes and descriptions dynamically
+                    let themeText = "";
+                    let descText = "";
+
+                    if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan[i - 1]) {
+                        themeText = userProfileData.macrocyclePlan[i - 1].theme || "";
+                        descText = userProfileData.macrocyclePlan[i - 1].description || "";
+                    } else {
+                        if (i === 1) {
+                            themeText = "Speed Induction";
+                            descText = "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability.";
+                        } else if (i === 2) {
+                            themeText = "Speed Endurance";
+                            descText = "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts.";
+                        } else if (i === 3) {
+                            themeText = "Peak & Taper";
+                            descText = "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation.";
+                        }
+                    }
+
+                    if (label && themeText) {
+                        label.innerText = themeText;
+                    }
+                    if (descEl && descText) {
+                        descEl.innerText = descText;
+                    }
+
+                    if (i < phase) {
+                        if (dot) dot.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-500/10 transition-all duration-300 shadow-md shadow-emerald-500/10";
+                        if (numSpan) {
+                            numSpan.className = "text-xs font-black text-emerald-400";
+                            numSpan.innerHTML = `<i class="fa-solid fa-check text-[10px]"></i>`;
+                        }
+                        if (label) label.className = "text-xs font-bold text-emerald-400 mt-1.5 block tracking-tight text-center";
+                        if (descEl) descEl.className = "text-[10px] mt-2.5 leading-relaxed text-center p-3 rounded-2xl border border-emerald-500/15 bg-emerald-950/5 text-emerald-500/70 w-full transition-all duration-300 min-h-[64px] flex items-center justify-center";
+                    } else if (i === phase) {
+                        if (dot) dot.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-indigo-500 bg-indigo-950 transition-all duration-300 shadow-lg shadow-indigo-500/30 ring-4 ring-indigo-500/10";
+                        if (numSpan) {
+                            numSpan.className = "text-xs font-black text-indigo-400";
+                            numSpan.innerText = i;
+                        }
+                        if (label) label.className = "text-xs font-black text-indigo-400 mt-1.5 block tracking-tight text-center";
+                        if (descEl) descEl.className = "text-[10px] mt-2.5 leading-relaxed text-center p-3 rounded-2xl border border-indigo-500/35 bg-indigo-950/30 text-indigo-350 w-full transition-all duration-300 shadow-md shadow-indigo-500/5 font-bold";
+                    } else {
+                        if (dot) dot.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-slate-800 bg-slate-950 transition-all duration-300";
+                        if (numSpan) {
+                            numSpan.className = "text-xs font-black text-slate-500";
+                            numSpan.innerText = i;
+                        }
+                        if (label) label.className = "text-xs font-semibold text-slate-500 mt-1.5 block tracking-tight text-center";
+                        if (descEl) descEl.className = "text-[10px] mt-2.5 leading-relaxed text-center p-3 rounded-2xl border border-slate-900 bg-slate-950/20 text-slate-500 w-full transition-all duration-300 min-h-[64px] flex items-center justify-center";
+                    }
+                }
+            }
+
+            // Modern Calendar Selector Dropdown Logic
+            let calSelectedDate = null;
+            let calCurrentDate = new Date();
+
+            function initCalendar() {
+                const dateInput = document.getElementById('intake-date');
+                const dropdown = document.getElementById('calendar-dropdown');
+                const prevBtn = document.getElementById('cal-prev');
+                const nextBtn = document.getElementById('cal-next');
+
+                if (!dateInput || !dropdown) return;
+
+                // Open/close toggle
+                dateInput.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                    if (!dropdown.classList.contains('hidden')) {
+                        // Reset grid to current selected or today
+                        if (dateInput.value) {
+                            const parsed = new Date(dateInput.value + 'T00:00:00');
+                            if (!isNaN(parsed.getTime())) {
+                                calCurrentDate = parsed;
+                                calSelectedDate = parsed;
+                            }
+                        } else {
+                            calCurrentDate = new Date();
+                        }
+                        renderCalendarGrid();
+                    }
+                });
+
+                // Prev month button
+                prevBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    calCurrentDate.setMonth(calCurrentDate.getMonth() - 1);
+                    renderCalendarGrid();
+                });
+
+                // Next month button
+                nextBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    calCurrentDate.setMonth(calCurrentDate.getMonth() + 1);
+                    renderCalendarGrid();
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!dropdown.classList.contains('hidden')) {
+                        const wrapper = document.getElementById('intake-date-wrapper');
+                        if (wrapper && !wrapper.contains(e.target)) {
+                            dropdown.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+
+            function renderCalendarGrid() {
+                const dropdown = document.getElementById('calendar-dropdown');
+                const monthYearEl = document.getElementById('cal-month-year');
+                const daysGrid = document.getElementById('cal-days-grid');
+                const dateInput = document.getElementById('intake-date');
+
+                if (!monthYearEl || !daysGrid || !dateInput) return;
+
+                const year = calCurrentDate.getFullYear();
+                const month = calCurrentDate.getMonth();
+
+                // Set Header Month Year
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                monthYearEl.innerText = `${monthNames[month]} ${year}`;
+
+                daysGrid.innerHTML = "";
+
+                // Start of current month
+                const firstDayIndex = new Date(year, month, 1).getDay();
+                const lastDayDate = new Date(year, month + 1, 0).getDate();
+
+                // Prev month buffer days
+                const prevMonthLastDate = new Date(year, month, 0).getDate();
+                for (let i = firstDayIndex; i > 0; i--) {
+                    const prevDay = prevMonthLastDate - i + 1;
+                    const cell = document.createElement('div');
+                    cell.className = "p-2 text-slate-700/40 select-none font-medium cursor-not-allowed text-center";
+                    cell.innerText = prevDay;
+                    daysGrid.appendChild(cell);
+                }
+
+                // Current month days
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                for (let d = 1; d <= lastDayDate; d++) {
+                    const cellDate = new Date(year, month, d);
+                    cellDate.setHours(0, 0, 0, 0);
+
+                    const cell = document.createElement('div');
+                    cell.className = "p-2 rounded-xl text-center cursor-pointer transition-all relative font-medium";
+                    cell.innerText = d;
+
+                    // Check if in the past
+                    const isPast = cellDate < today;
+
+                    // Highlight today
+                    const isToday = cellDate.getTime() === today.getTime();
+
+                    // Highlight selected date
+                    let isSelected = false;
+                    if (dateInput.value) {
+                        const activeValDate = new Date(dateInput.value + 'T00:00:00');
+                        activeValDate.setHours(0, 0, 0, 0);
+                        isSelected = cellDate.getTime() === activeValDate.getTime();
+                    }
+
+                    if (isPast) {
+                        cell.className += " text-slate-700 cursor-not-allowed";
+                    } else {
+                        if (isSelected) {
+                            cell.className += " bg-indigo-600 text-white font-extrabold shadow-md shadow-indigo-500/20";
+                        } else {
+                            cell.className += " text-slate-200 hover:bg-indigo-500/20 hover:text-white";
+                        }
+
+                        if (isToday && !isSelected) {
+                            cell.className += " border border-indigo-500/40";
+                            const dot = document.createElement('span');
+                            dot.className = "absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-indigo-400";
+                            cell.appendChild(dot);
+                        }
+
+                        // Click handler
+                        cell.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const padMonth = String(month + 1).padStart(2, '0');
+                            const padDay = String(d).padStart(2, '0');
+                            const dateStr = `${year}-${padMonth}-${padDay}`;
+
+                            dateInput.value = dateStr;
+                            calSelectedDate = cellDate;
+
+                            // Close dropdown
+                            dropdown.classList.add('hidden');
+                        });
+                    }
+
+                    daysGrid.appendChild(cell);
+                }
+
+                // Next month buffer days to complete 6-row grid (42 cells)
+                const totalCellsUsed = firstDayIndex + lastDayDate;
+                const remainingCells = 42 - totalCellsUsed;
+                for (let i = 1; i <= remainingCells; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = "p-2 text-slate-700/40 select-none font-medium cursor-not-allowed text-center";
+                    cell.innerText = i;
+                    daysGrid.appendChild(cell);
+                }
+            }
+
+            let tempModalGPXData = null;
+            let modalGPXCleared = false;
+
+            function clearModalGPX() {
+                modalGPXCleared = true;
+                tempModalGPXData = null;
+                const statusEl = document.getElementById('modal-gpx-status');
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-slate-500 italic";
+                    statusEl.innerText = "File removed (click save to apply)";
+                }
+                const clearBtn = document.getElementById('modal-gpx-clear-btn');
+                if (clearBtn) clearBtn.classList.add('hidden');
+            }
+
+            async function handleModalGPXUpload(input) {
+                const statusEl = document.getElementById('modal-gpx-status');
+                const clearBtn = document.getElementById('modal-gpx-clear-btn');
+                if (!input.files || input.files.length === 0) {
+                    tempModalGPXData = null;
+                    if (statusEl) {
+                        statusEl.className = "text-[10px] text-slate-500 italic";
+                        statusEl.innerText = "No file uploaded";
+                    }
+                    if (clearBtn) clearBtn.classList.add('hidden');
+                    return;
+                }
+
+                const file = input.files[0];
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-amber-400 font-semibold italic animate-pulse";
+                    statusEl.innerText = "Parsing...";
+                }
+
+                try {
+                    const parsed = await parseWorkoutFile(file);
+                    tempModalGPXData = {
+                        fileName: parsed.fileName,
+                        format: parsed.format,
+                        distance: parsed.distance,
+                        duration: parsed.duration,
+                        pace: parsed.pace,
+                        avgCadence: parsed.avgCadence,
+                        avgHeartRate: parsed.avgHeartRate,
+                        maxHeartRate: parsed.maxHeartRate,
+                        elevationGain: parsed.elevationGain,
+                        avgGradient: parsed.avgGradient,
+                        uploadedAt: new Date().toISOString()
+                    };
+
+                    modalGPXCleared = false;
+                    if (statusEl) {
+                        statusEl.className = "text-[10px] text-emerald-450 font-bold";
+                        statusEl.innerText = `Parsed: ${parsed.fileName}`;
+                    }
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                } catch (err) {
+                    console.error("Modal GPX upload error:", err);
+                    tempModalGPXData = null;
+                    if (statusEl) {
+                        statusEl.className = "text-[10px] text-rose-450 font-bold";
+                        statusEl.innerText = `Error: ${err.message}`;
+                    }
+                    if (clearBtn) clearBtn.classList.add('hidden');
+                }
+            }
+
+            function openProfileModal() {
+                if (userProfileData) {
+                    document.getElementById('modal-baseline-pace').innerText = userProfileData.baseline5k || "-";
+                    document.getElementById('modal-goal-pace').innerText = userProfileData.activeAdjustedGoal || "-";
+                    document.getElementById('modal-tier').innerText = userProfileData.challengeTier || "-";
+                    document.getElementById('modal-workout-length').value = userProfileData.desiredWorkoutLength || 45;
+                    document.getElementById('modal-baseline-notes').value = userProfileData.userBaselineNotes || "";
+
+                    const hwChecked = userProfileData.equipmentList || [];
+                    const checkboxes = document.querySelectorAll('input[name="modal-hardware"]');
+                    checkboxes.forEach(cb => {
+                        cb.checked = hwChecked.includes(cb.value);
+                    });
+
+                    modalGPXCleared = false;
+                    const statusEl = document.getElementById('modal-gpx-status');
+                    const clearBtn = document.getElementById('modal-gpx-clear-btn');
+                    if (statusEl) {
+                        if (userProfileData.parsedBaselineWorkout) {
+                            statusEl.className = "text-[10px] text-indigo-400 font-bold";
+                            statusEl.innerText = `Current: ${userProfileData.parsedBaselineWorkout.fileName}`;
+                            if (clearBtn) clearBtn.classList.remove('hidden');
+                        } else {
+                            statusEl.className = "text-[10px] text-slate-500 italic";
+                            statusEl.innerText = "No file uploaded";
+                            if (clearBtn) clearBtn.classList.add('hidden');
+                        }
+                    }
+                    tempModalGPXData = null;
+                }
+                document.getElementById('profile-edit-modal').classList.remove('hidden');
+            }
+
+            function closeProfileModal() {
+                document.getElementById('profile-edit-modal').classList.add('hidden');
+            }
+
+            function saveProfileModal() {
+                const lengthVal = parseInt(document.getElementById('modal-workout-length').value) || 45;
+                const notesVal = document.getElementById('modal-baseline-notes').value.trim();
+
+                const checkboxes = document.querySelectorAll('input[name="modal-hardware"]:checked');
+                const equipmentList = Array.from(checkboxes).map(cb => cb.value);
+
+                if (db && userId) {
+                    const updatePayload = {
+                        desiredWorkoutLength: lengthVal,
+                        equipmentList: equipmentList,
+                        userBaselineNotes: notesVal
+                    };
+
+                    if (modalGPXCleared) {
+                        updatePayload.parsedBaselineWorkout = firebase.firestore.FieldValue.delete();
+                    } else if (tempModalGPXData) {
+                        updatePayload.parsedBaselineWorkout = tempModalGPXData;
+                        // Auto-adjust baseline parameters
+                        updatePayload.baseline5k = tempModalGPXData.pace;
+                        updatePayload.currentEstimated5k = tempModalGPXData.pace;
+
+                        const minSec = tempModalGPXData.pace.split(':');
+                        if (minSec.length === 2) {
+                            document.getElementById('input-min').value = parseInt(minSec[0]);
+                            document.getElementById('input-sec').value = parseInt(minSec[1]);
+                        }
+                    }
+
+                    db.collection("users").doc(userId).update(updatePayload).then(() => {
+                        console.log("Profile updated successfully in Firestore.");
+                        tempModalGPXData = null;
+                        calculateTargetPaces();
+                        closeProfileModal();
+                    }).catch(err => {
+                        console.error("Failed to update profile constraints:", err);
+                        alert("Error saving updates to Firestore.");
+                    });
+                } else {
+                    closeProfileModal();
+                }
+            }
+
+            function renderGPXBaselineCard(data) {
+                const card = document.getElementById('gpx-baseline-card');
+                if (!card) return;
+
+                if (data && data.parsedBaselineWorkout) {
+                    const pb = data.parsedBaselineWorkout;
+                    const dateStr = pb.uploadedAt ? new Date(pb.uploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown date';
+
+                    card.innerHTML = `
+                    <div class="flex items-center justify-between mb-4 flex-wrap gap-2 animate-fade-in">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
+                                <i class="fa-solid fa-route text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-lg text-slate-100">GPX Stride Baseline</h2>
+                                <p class="text-xs text-slate-400">${dateStr} &bull; ${pb.fileName || 'Uploaded Workout'}</p>
+                            </div>
+                        </div>
+                        <button onclick="clearGPXBaseline()" class="text-slate-500 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/10 transition-colors text-[10px] uppercase font-bold tracking-wider bg-rose-500/5 px-2.5 py-1.5 rounded border border-rose-500/15 cursor-pointer flex items-center gap-1">
+                            <i class="fa-solid fa-trash-can text-[9px]"></i> Clear File
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div class="flex justify-between text-xs border-b border-slate-900 pb-2">
+                            <span class="text-slate-500">Cadence</span>
+                            <span class="font-mono font-bold text-slate-200">${pb.avgCadence ? pb.avgCadence + ' spm' : 'N/A'}</span>
+                        </div>
+                        <div class="flex justify-between text-xs border-b border-slate-900 pb-2">
+                            <span class="text-slate-500">Max Heart Rate</span>
+                            <span class="font-mono font-bold text-slate-200">${pb.maxHeartRate ? pb.maxHeartRate + ' bpm' : 'N/A'}</span>
+                        </div>
+                        <div class="flex justify-between text-xs border-b border-slate-900 pb-2">
+                            <span class="text-slate-500">Avg Gradient Load</span>
+                            <span class="font-mono font-bold text-slate-200">${pb.avgGradient ? pb.avgGradient + '%' : 'N/A'}</span>
+                        </div>
+                        <div class="flex justify-between text-xs pb-1">
+                            <span class="text-slate-500">Workload Distance</span>
+                            <span class="font-mono font-bold text-indigo-300">${pb.distance} Miles (${(pb.distance * 1.60934).toFixed(2)} km) at ${pb.pace}/mi</span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-3 leading-relaxed">
+                        Coach Autopilot has integrated this workout file to tailor your intensity. To break 20m, we've calibrated your target paces based on this baseline, focusing on boosting cadence to 170-180 spm.
+                    </p>
+                `;
+                } else {
+                    card.innerHTML = `
+                    <div class="flex items-center gap-3 mb-4 animate-fade-in">
+                        <div class="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
+                            <i class="fa-solid fa-route text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-lg text-slate-100">GPX Stride Baseline</h2>
+                            <p class="text-xs text-slate-400">Unlock advanced stride metrics coaching</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 text-center space-y-4">
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Upload a GPX or TCX file from a recent workout to let the coach analyze your heart rate, cadence, and gradient loads.
+                        </p>
+                        <div class="flex justify-center">
+                            <input type="file" id="direct-gpx-upload" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleDirectGPXUpload(this)">
+                            <button onclick="document.getElementById('direct-gpx-upload').click()" class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-file-arrow-up"></i> Upload GPX/TCX Workout
+                            </button>
+                        </div>
+                    </div>
+                `;
+                }
+            }
+
+            async function handleDirectGPXUpload(input) {
+                if (!input.files || input.files.length === 0) return;
+                const file = input.files[0];
+                showAutopilotLoader();
+                try {
+                    const parsed = await parseWorkoutFile(file);
+                    const userDocRef = db.collection("users").doc(userId);
+
+                    await userDocRef.update({
+                        parsedBaselineWorkout: {
+                            fileName: parsed.fileName,
+                            format: parsed.format,
+                            distance: parsed.distance,
+                            duration: parsed.duration,
+                            pace: parsed.pace,
+                            avgCadence: parsed.avgCadence,
+                            avgHeartRate: parsed.avgHeartRate,
+                            maxHeartRate: parsed.maxHeartRate,
+                            elevationGain: parsed.elevationGain,
+                            avgGradient: parsed.avgGradient,
+                            uploadedAt: new Date().toISOString()
+                        },
+                        baseline5k: parsed.pace,
+                        currentEstimated5k: parsed.pace,
+                        journeyComments: `Coach Autopilot has analyzed your uploaded workout file (${parsed.fileName}). Your cadence was ${parsed.avgCadence || 'N/A'} spm. Pacing guidelines adjusted.`
+                    });
+
+                    console.log("Successfully uploaded direct GPX baseline.");
+                    const minSec = parsed.pace.split(':');
+                    if (minSec.length === 2) {
+                        document.getElementById('input-min').value = parseInt(minSec[0]);
+                        document.getElementById('input-sec').value = parseInt(minSec[1]);
+                    }
+
+                    setTimeout(() => {
+                        hideAutopilotLoader();
+                        calculateTargetPaces();
+                    }, 1500);
+                } catch (err) {
+                    console.error("Direct GPX upload error:", err);
+                    hideAutopilotLoader();
+                    alert("Error parsing workout file: " + err.message);
+                }
+            }
+
+            async function clearGPXBaseline() {
+                if (!db || !userId) return;
+                if (!confirm("Are you sure you want to remove your GPX baseline file?")) return;
+                showAutopilotLoader();
+                try {
+                    const userDocRef = db.collection("users").doc(userId);
+                    await userDocRef.update({
+                        parsedBaselineWorkout: firebase.firestore.FieldValue.delete()
+                    });
+                    setTimeout(() => {
+                        hideAutopilotLoader();
+                    }, 1000);
+                } catch (err) {
+                    console.error("Error clearing GPX baseline:", err);
+                    hideAutopilotLoader();
+                    alert("Error removing file from Firestore.");
+                }
+            }
+
+            // Initialize sync on window load
+            window.addEventListener('load', () => {
+                initCalendar();
+
+                // Setup inline editing for plan title and description
+                const planTitle = document.getElementById('plan-title');
+                const planDesc = document.getElementById('plan-desc');
+
+                if (planTitle) {
+                    planTitle.addEventListener('blur', async () => {
+                        const newTitle = planTitle.innerText.trim();
+                        if (newTitle && db && userId) {
+                            try {
+                                await db.collection("users").doc(userId).update({
+                                    journeyTitle: newTitle
+                                });
+                                console.log("Updated journey title in cloud.");
+                            } catch (err) {
+                                console.error("Failed to update title: ", err);
+                            }
+                        }
+                    });
+                    planTitle.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            planTitle.blur();
+                        }
+                    });
+                }
+
+                if (planDesc) {
+                    planDesc.addEventListener('blur', async () => {
+                        const newDesc = planDesc.innerText.trim();
+                        if (db && userId) {
+                            try {
+                                await db.collection("users").doc(userId).update({
+                                    journeyDescription: newDesc
+                                });
+                                console.log("Updated journey description in cloud.");
+                            } catch (err) {
+                                console.error("Failed to update description: ", err);
+                            }
+                        }
+                    });
+                    planDesc.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            planDesc.blur();
+                        }
+                    });
+                }
+
+                // Setup profile switcher handler
+                const profileInput = document.getElementById('profile-switcher');
+                if (profileInput) {
+                    const handler = function () {
+                        const val = this.value.trim();
+                        if (val) {
+                            console.log("Switching athlete profile in handler to:", val);
+                            setupProfileSync(val);
+                        }
+                    };
+                    profileInput.addEventListener('blur', handler);
+                    profileInput.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter') {
+                            this.blur(); // Blur triggers the 'blur' event, executing handler once
+                        }
+                    });
+                }
+
+                // Read last active profile from cache
+                const savedProfile = localStorage.getItem('yf_active_profile');
+                if (savedProfile) {
+                    userId = savedProfile;
+                    setupProfileSync(userId);
+                } else {
+                    userId = "";
+                    showProfileLookupPanel();
+                }
+            });

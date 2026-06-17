@@ -1,0 +1,60 @@
+YourFlow v3.3 - Phased Rollout & Migration Plan
+(Targeting Agentic Architecture & Flat NoSQL Schema)
+
+================================================================================
+PHASE 1: DATABASE RESTRUCTURING (LIVE SANDBOX)
+================================================================================
+Goal: Establish the new flat JIT (Just-In-Time) database schema without destroying the legacy profile.
+- Step 1: Manually create a test user document in the live Firestore console (e.g., `users/Bkas724`).
+- Step 2: Add required root-level tracking variables to the profile document:
+  * `currentPhaseIndex`: 1 (number)
+  * `dateExecuted`: null (null)
+- Step 3: Create a nested subcollection named `workouts`.
+- Step 4: Seed an initial flat document (Auto-ID) inside `workouts` with the core booleans:
+  * `workoutTitle`: "Base Foundation" (string)
+  * `targetInstructions`: "Easy 30 minute recovery run. Keep HR low." (string)
+  * `isSpeedWorkout`: false (boolean)
+  * `isBenchmark`: false (boolean)
+  * `completed`: false (boolean)
+
+================================================================================
+PHASE 2: FRONTEND DATA BINDING & LISTENER REFACTOR
+================================================================================
+Goal: Wire the application logic to read from the live database instead of local arrays.
+- Step 1: Remove/comment out the legacy 27-subphase hardcoded frontend array and localStorage data dumps.
+- Step 2: Write a real-time Firestore `onSnapshot` listener pointing to the new dynamic path: `users/{profileId}/workouts`.
+- Step 3: Loop through the incoming snapshot documents and `console.log()` the workout objects to verify data streams correctly before touching the UI DOM.
+
+================================================================================
+PHASE 3: DYNAMIC UI LAYOUT & GATEKEEPER MECHANICS
+================================================================================
+Goal: Make the dashboard accurately draw the state of the database and enforce strict input rules.
+- Step 1: Update `buildSubphasesHTML()` to loop through the Firestore snapshot stream and render the "Up Next Action Card".
+- Step 2: Implement Gatekeeper Logic:
+  * IF `isSpeedWorkout` == true -> Render Lightning Bolt (⚡) icon. LOCK the completion button until the user enters exact Min/Sec paces.
+  * IF `isSpeedWorkout` == false -> Render Turtle (🐢) or Feather (🪶) icon. HIDE the pacing input fields completely.
+
+================================================================================
+PHASE 4: AI & API INTEGRATION (THE AUTOPILOT)
+================================================================================
+Goal: Connect the Gemini LLM pipeline to generate the next week's workouts dynamically.
+- Step 1: Intake Form Testing: Validate the JSON payload carrying the user's initial pace, days per week, and strength/equipment toggles.
+- Step 2: Strict Prompt Formatting: Execute the Governor API call to generate Phase 2. Verify Gemini explicitly returns the JSON with `isSpeedWorkout` and `isBenchmark` booleans appropriately assigned.
+- Step 3: RPE Empathy Logic: Manually pass a high RPE (e.g., "Exhausting") from a previous block and verify the AI model scales back the intensity in its next generated block.
+
+================================================================================
+PHASE 5: THE EMA RECACULATION ENGINE
+================================================================================
+Goal: Ensure the overarching training blueprint reacts to user progression.
+- Step 1: Trigger a Benchmark run completion (`isBenchmark`: true).
+- Step 2: Verify the 70/30 Exponential Moving Average script calculates the new baseline correctly using the actual logged pace.
+- Step 3: Check that the "Dynamic Pace Blueprint" UI card automatically flashes and updates with the newly calculated times via the snapshot listener.
+
+================================================================================
+PHASE 6: FINAL POLISH & DEPLOYMENT
+================================================================================
+Goal: Push the v3.3 engine live and test mobile PWA behaviors.
+- Step 1: Test the custom `profileId` text-input switcher (ensuring real-time state breaks from the old listener and reconnects to the new typed ID).
+- Step 2: Clean up Tailwind CSS primary-easy and primary-speed class consistencies.
+- Step 3: Deploy to production using the Firebase CLI (`firebase deploy --only hosting`).
+- Step 4: Open the live web.app URL on a mobile device, use "Add to Home Screen" to cache the viewport, and test synchronization across desktop and mobile.

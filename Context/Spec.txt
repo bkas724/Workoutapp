@@ -1,0 +1,336 @@
+YourFlow: Dynamic & Adaptive Training Engine
+
+Product Specification Document (PSD)
+
+Project Name: YourFlow Adaptive Training Engine (Agentic Autopilot Architecture)
+
+Date: June 14, 2026
+
+Version: 3.3 (Production Ready)
+
+Author: AI Systems Engineering & Athletic Performance Team
+
+1. Executive Summary & Philosophy
+
+YourFlow is an elite, cloud-synchronized, autonomous coaching application built specifically for athletes balancing demanding professional and family schedules with performance targets—specifically optimizing for milestones like a sub-20 minute 5K.
+
+By moving away from traditional, calendar-based training programs, YourFlow introduces a Just-in-Time (JIT) Sequential Phase Engine. This architecture:
+
+Eliminates scheduling guilt by removing absolute calendar grid requirements.
+
+Dynamically adapts to real-world consistency delta curves.
+
+Protects physical durability via automated, safe physiological scaling.
+
+Processes conversational safety overrides (injury notes) on demand.
+
+Prominently anchors the daily experience to the athlete's personal motivation, keeping target metrics secondary to their psychological "Why".
+
+2. Onboarding Flow & Medical Shield
+
+The onboarding pipeline establishes the baseline physiological profiles, hardware availability constraints, and time capacity margins for the runner. Because running fast introduces high impact forces, the app strictly enforces legal and physical health boundaries before any data touches the AI generation pipelines.
+
+2.1 Health Notice & Medical Disclaimer Enforcement
+
+Prior to displaying form elements, a high-visibility modal card displays a mandatory notice. The user must manually check an acknowledgment box to enable the setup forms:
+
+⚠️ MEDICAL NOTICE & RESPONSIBILITY DISCLAIMER: You are strictly, personally responsible for your own training decisions and physical exertion limits. YourFlow is an automated, self-guided reference tool, not a medical professional. You should consult with your primary care physician before beginning this or any rigorous athletic, cardiovascular, or physical fitness program.
+
+2.2 Multi-Step Intake Parameters
+
+The onboarding form avoids unvalidated or qualitative descriptors. It captures the emotional personal motivation, historical physical constraints, and baseline run boundaries of the athlete to build an airtight physiological starting point:
+
+UI Input Element
+
+Captured Metric Type
+
+Technical Function & Backend Mapping
+
+Journey Title
+
+Text String (User Entered)
+
+Emotional hook or specific event target (e.g., "Thanksgiving 5K Quest").
+
+Journey Description
+
+Text String (User Entered)
+
+Personal, conversational details describing why they are training (e.g., "Finally run with my daughter's club and break 22 minutes!").
+
+User Baseline Notes
+
+Text String (Freetext)
+
+Conversational baseline inputs highlighting past injuries, preferences, schedule quirks, or specific athletic background (e.g., "Left Achilles tendinitis history; prefer running at dawn").
+
+Baseline Pace Fields
+
+Numeric (Min and Sec inputs)
+
+Establishes the runner's starting athletic threshold pace and VDOT equivalent.
+
+Baseline Distance Field
+
+Decimal (Miles input)
+
+Defines the distance over which the baseline run pace was sustained (e.g., 3.1 mi).
+
+Target Horizon Date
+
+Calendar Date (YYYY-MM-DD widget)
+
+Calculates total macrocycle duration span remaining until the goal event.
+
+Desired Workout Length
+
+Numeric (Minutes input)
+
+Sets the preferred average duration of individual workouts to fit the athlete's daily schedule availability.
+
+Hardware Inventory
+
+Checkboxes
+
+Passes available tools (Bicycle, dumbbells, treadmill, pull-up bar) to adapt cross-training.
+
+Challenge Intensity Tier
+
+Radio Select (4 distinct levels)
+
+Maps the intensity growth rate (Recreational, Progressive, Ambitious, Elite).
+
+2.3 Backend "Coach Recommended Goal Pacing Engine"
+
+To simplify user onboarding and eliminate uncalibrated or unsafe training targets, YourFlow removes the manual goal-pace input entirely. Instead, the backend dynamically calculates a safe, optimized performance target using their starting baseline pace, target horizon timeline, and chosen intensity tier.
+
+The Dynamic Progression Tiers: The maximum pacing improvement allowed scales progressively based on the number of weeks ($W$) remaining until the target event date. Each challenge tier enforces a specific weekly rate of adaptation and an absolute physiological safety boundary:
+
+Recreational Tier: Slow, organic aerobic development. 
+
+$$P_{\text{scale}} = \min(0.50\% \times W, 10\%)$$
+
+Progressive Tier: Balanced, steady aerobic progression. 
+
+$$P_{\text{scale}} = \min(1.00\% \times W, 15\%)$$
+
+Ambitious Tier: Focused performance-focused acceleration. 
+
+$$P_{\text{scale}} = \min(1.25\% \times W, 22.5\%)$$
+
+Elite Tier: Highly aggressive performance adaptation. 
+
+$$P_{\text{scale}} = \min(1.50\% \times W, 30\%)$$
+
+Execution Logic: When the intake parameters are submitted, the backend server converts baseline splits into absolute seconds and runs the chronological horizon calculations: 
+
+$$\text{baselineSeconds} = (\text{Min} \times 60) + \text{Sec}$$
+
+$$W = \max\left(1, \left\lceil \frac{\text{TargetDate} - \text{CurrentDate}}{7 \text{ days}} \right\rceil\right)$$
+
+$$\text{targetSeconds} = \lfloor \text{baselineSeconds} \times (1 - (P_{\text{scale}} / 100)) \rfloor$$
+
+State Mapping: The calculated targetSeconds is converted back into a dynamic target split (MM:SS) and saved directly to the user profile document as the active, authoritative activeAdjustedGoal.
+
+2.4 The Macrocycle Architect (Initial Generation Flow)
+
+YourFlow anchors all future 7-activity blocks to a single, overarching Master Blueprint. The user defines their emotional targets and physical constraints, and the AI coach derives the structural phase themes, details, and initial 7-activity JIT block:
+
+API Call #1: The Journey Blueprint & Initial Strength Base: Upon onboarding submission, the frontend fires a request to the secure Node.js proxy function generateMacrocyclePlan. This function passes the intake parameters and baseline notes to Gemini to draft the overarching narrative array AND the baseline strength conditioning routines.
+
+Prompt Payload (System Instruction):
+
+{
+  "role": "system",
+  "content": "You are an elite endurance coach outlining a macrocycle training journey. Based on the athlete's current baseline pace, final target pace, total weeks available, and baseline notes (history, injury status, preferences), map out the strategic sequence of training phases required to hit the goal safely. Provide an overall narrative 'journeyComments' to guide the athlete. Additionally, generate a 'strengthLibrary' array consisting of 2 to 3 foundational strength routines tailored strictly to the athlete's 'hardwareInventory'. Output strictly as a JSON object."
+}
+
+
+Data Storage: The user-entered data, the coach-generated macrocyclePlan array, the overarching journeyComments narrative, the standard strengthLibrary, the journeyStartDate, and a new state tracker currentPhaseIndex (set to 1) are written and persistently stored in the user profile document within Firestore under their custom chosen alphanumeric user string directory.
+
+3. Just-In-Time (JIT) 7-Activity Sequential Phase Engine
+
+3.1 Decoupled Block Structure
+
+Instead of scheduling activities on absolute weekdays, training is mapped as a flat collection of exactly 7 sequential activities. The user's progress rests in their own hands: if a busy parent takes 10 calendar days to complete 7 activities, the plan adjusts with them.
+
+3.2 Time Tracking and Sequences
+
+To maintain chronological sequence tracking for AI pacing adjustments, execution times are logged cleanly:
+
+Every workout document maintains a dateExecuted field, initialized as null.
+
+When hovering or interacting with the workout completion elements to check it off, the frontend dynamically exposes the client's active localized date string (YYYY-MM-DD). Upon official confirmation click, this date string overwrites the null value in Firestore.
+
+3.3 The Phase Transition Gateway
+
+Future subphases do not exist in the database; they are earned. The active dashboard only renders the active phase. When the user checks off Activity 7, YourFlow initiates a checkout gateway modal asking the runner if they have any health tweaks, injuries, or personal schedule overrides for the next training block. The backend instantly increments the currentPhaseIndex state integer by 1, triggers API Call #2 (generateNextPhase), and transitions cleanly using latency masking.
+
+3.4 Dynamic Pacing & Input Gatekeeper
+
+The 70/30 EMA Update: When the athlete completes a benchmark activity and inputs their actualLoggedPace, a Cloud Function triggers an Exponential Moving Average adjustment.
+
+Gatekeeper Rule: If an activity is a speed workout or benchmark, the main completion checkbox is rendered with the disabled attribute and only unlocks once a valid time string matching the MM:SS regex pattern is populated in the text field alongside a mandatory 1-10 integer RPE exertion score feedback capture.
+
+3.5 Mid-Phase Emergency Adaptation (The E-Stop)
+
+A permanently visible "Adapt Plan Now" button truncates the active phase immediately. Uncompleted workouts are archived, and the frontend instantly fires API Call #2, passing the emergency context as a high-priority userOverrideNotes prompt to regenerate a fresh, adjusted 7-activity block.
+
+3.6 Multi-User Profile Switching Engine (Authless Architecture)
+
+To handle multiple independent profiles without the friction of passwords and credential managers, the application top-left wrapper utilizes a token-efficient, conversational text key switcher.
+
+The Mechanics: A minimalist text input component (id="profile-switcher") rests in the top left of the main frame header layout.
+
+The Handshake Workflow: When a string is typed and submitted (or on loose focus/blur detection), the application initiates a safe context boundary teardown:
+
+Step 1 (The Unsubscribe): The frontend checks for an existing, active active-phase snapshot listener tracking Firestore. If an active listener variable is defined, it executes the unsubscribe call to physically drop the sync channel.
+
+Step 2 (The Cache): The new alphanumeric key string (e.g., "mike_runner_87") is written directly to the client browser's local cache via localStorage.setItem('yf_active_profile', profileId).
+
+Step 3 (The Rebind): A fresh real-time listener initializes, binding straight to the custom document tree descriptor: users/{profileId}.
+
+The Branch Route Boundary: If the database return resolves the document as completely fresh/null, the active training blocks slide away, and the multi-step Conversation Intake Onboarding Card rolls open smoothly to build that user profile from scratch. If the document exists, the layout effortlessly pulls through and redraws their active autopilot phase map in real time.
+
+4. Gamified Consistency Tracking & Achievements Architecture
+
+When transitioning blocks, the backend evaluates the complete day span and issues badges (Perfect Cadence, Solid Velocity, Self-Paced Flow) matching chronological consistency, written directly to a persistent queried history collection inside their isolated collection directory tree.
+
+5. Dynamic Loading State & Resilient Fail-Safes
+
+5.1 The Pulse Heartbeat Status Marquee (Latency Masking)
+
+While the Cloud Function is actively communicating with Gemini, the transition replaces the dashboard with the Achievement & Consistency Celebration Screen. An elegant SVG heartbeat wave graph pulses next to dynamic, cycling status tickers explaining what the autopilot coach is cooking up.
+
+5.2 The 15-Second Gateway Timeout Interceptor
+
+A client-side abort controller intercepts queries. If 15 seconds elapse before the cloud returns the compiled structured object arrays, the loader safely backs out and rolls into an informative synchronization recovery block element.
+
+6. Global Prompt Context Hydration & The Rolling JIT Engine
+
+6.1 Hydration Schema Matrix (Token Optimized)
+
+To prevent prompt token bloating over months of activities, the background proxy limits the historical succession matrix context array to strictly pass only the last 3 completed subphase blocks combined with their corresponding structural coachingReasoning blocks and numeric 1-10 averageRPE tracking coordinates.
+
+6.2 The Phase Generation Payload (API Call #2+)
+
+Prompt Payload (System Instruction): Injects explicit requirements for strict object formatting. It mandates the output of exactly 7 workouts mapping the precise database fields (workoutTitle, type, targetPaceZone, etc.), forces formatting for the gatekeeper booleans (isSpeedWorkout, isBenchmark), passes explicit instructions to evaluate RPE fatigue filters, periodizes strength overrides matching equipment availability, and commands token preservation via the conditional omission of the strength array key if no structural routines require editing.
+
+7. Secure Server-Side Cloud Function Architecture
+
+7.1 Complete Firestore Schema Blueprint
+
+All interactions map to flat Firestore collections. The username/password authentication schema is deprecated; user nodes map dynamically via the custom text-key profile router tracking the profile identifier value input string:
+
+Collection Path: users/{profileId} (Profile Document Directory Node)
+
+{
+  "journeyTitle": "Thanksgiving 5k",
+  "journeyDescription": "Finally run with my daughter's club and break 22 minutes!",
+  "userBaselineNotes": "Recovered from left Achilles tendinitis last year; prefer running at dawn.",
+  "journeyStartDate": "2026-06-14",
+  "targetDate": "2026-11-26",
+  "baseline5k": "26:00",
+  "currentEstimated5k": "26:00",
+  "activeAdjustedGoal": "23:24",
+  "desiredWorkoutLength": 45,
+  "challengeTier": "progressive",
+  "equipmentList": ["bicycle", "dumbbells"],
+  "medicalAcknowledge": true,
+  "journeyComments": "This is a great starting point. We have 12 weeks to safely build your aerobic base...",
+  "currentPhaseIndex": 1,
+  "strengthLibrary": [
+      {
+        "name": "Workout A",
+        "focus": "Core & Stability",
+        "exercises": [
+          { "name": "Planks", "sets": 3, "reps": "60s" },
+          { "name": "Dead Bugs", "sets": 3, "reps": "12 reps" }
+        ]
+      }
+  ],
+  "macrocyclePlan": [
+    { "phase": 1, "theme": "Speed Induction Foundations", "description": "Neuromuscular speed coordination." }
+  ]
+}
+
+
+Collection Path: users/{profileId}/active_phase/{activityId} (Flat Active Phase Slot Collection)
+
+{
+  "id": "act-3",
+  "phaseNumber": 2,
+  "sequenceOrder": 3,
+  "workoutTitle": "Active Recovery Foundation",
+  "type": "easy",
+  "distanceDuration": "45 mins",
+  "isSpeedWorkout": false,
+  "isBenchmark": false,
+  "completed": false,
+  "dateExecuted": null,
+  "targetInstructions": "Aerobic flush run. Focus on light impact and high cadence.",
+  "targetPaceZone": "09:30 min/mile",
+  "actualLoggedPace": null,
+  "rpeScore": null
+}
+
+
+8. Dashboard UI Component & Tile Specifications
+
+Module Component
+
+Functional Domain Mechanics
+
+Athlete/System Justification Strategy
+
+1. Profile Switcher Input
+
+A minimalist text input pill positioned in the top-left corner layout wrapper. Listens to blur/submit enter keys, cleanly unsubscribes real-time background streams, caches active profile keys to localStorage, and hooks look-up parameters directly to user document directories.
+
+Eliminates full auth workflow friction for rapid test profile sandbox switches, while instantly preserving cross-device state memory via cached localStorage identifiers.
+
+2. Expandable Journey Header
+
+Collapsed State: Displays the user-entered emotional target journeyTitle and journeyDescription in massive, clean typography at the top of the interface.
+
+
+
+Expanded State: Slates open smoothly via a tap/click gesture to expose input metrics, conversational baseline records, and coach-generated planning blueprinted phase blocks.
+
+Keeps the athlete’s core personal "Why" visible at all times to reinforce motivation, while hiding dense details inside an interactive drawer tray.
+
+3. Up Next Action Card
+
+Dynamically queries the current chronological uncompleted step in the flat 7-activity collection layout. Isolates and displays the exact target pace ranges and specific execution instructions.
+
+Mitigates execution paralysis. Eliminates confusion by isolating exactly what needs to be run on the given training day.
+
+4. Active Progress Meter
+
+Aggregates total checklist nodes (max 7) in the active phase document, tracking completed nodes vs total to draw a real-time progress track marker element.
+
+Provides immediate macro-level validation and psychological reinforcement to keep momentum high inside the active block.
+
+5. Dynamic Pace Blueprint
+
+Maintains and prints the calibrated threshold zones. Paces are derived from the currentEstimated5k EMA baseline rather than arbitrary entries.
+
+Eliminates dangerous guess-work. Ensures the user trains precisely at correct biological margins.
+
+6. JIT Training Checklist
+
+Renders a flat list view grouping the 7 sequence activities. Future unearned blocks are hidden entirely from the UI to prevent scheduling anxiety.
+
+Establishes a strict, distraction-free structural map of the immediate microcycle.
+
+7. Strength Library Panel (Ephemeral Sets)
+
+Houses interactive exercise lists derived from the user's strengthLibrary. Loops through the sets integer to dynamically sketch horizontal circular toggle tracking items. Checking an active task row elements completely resets local tracking toggles.
+
+Enforces the baseline structural tolerance, tissue health, and mechanics necessary to safely absorb increased speed impact forces. Provides tactile set-level tracking loops.
+
+8. Emergency Adaptation (E-Stop)
+
+A permanently accessible "Adapt Plan Now" button on the dashboard. Captures user context, truncates the active phase immediately, and triggers an API generation with emergency user notes.
+
+Acts as the real-time "coach on speed dial" for unexpected injuries or schedule blow-ups.
