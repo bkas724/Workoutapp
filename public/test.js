@@ -508,6 +508,10 @@
                     // Render GPX Baseline card dynamically
                     renderGPXBaselineCard(data);
 
+                    if (typeof window.updateDashboardBMI === 'function') {
+                        window.updateDashboardBMI(data);
+                    }
+
                     // Hide onboarding modal
                     hideOnboardingModal();
                     calculateTargetPaces();
@@ -905,52 +909,85 @@
         function buildActivePhaseHTML() {
             const container = document.getElementById('jit-checklist-container');
             container.innerHTML = "";
+            
+            if (!activePhaseWorkouts || activePhaseWorkouts.length === 0) return;
 
-            activePhaseWorkouts.forEach((step) => {
-                const isCheckedAttr = step.completed ? "checked" : "";
-                const iconSVG = icons[step.type] || icons.easy;
-
-                let paceHintText = "";
-                if (step.targetPaceZone) {
-                    if (step.targetPaceZone === 'easy') paceHintText = "Easy/Recovery Target";
-                    else if (step.targetPaceZone === 'long') paceHintText = "Long Aerobic Target";
-                    else if (step.targetPaceZone === 'tempo') paceHintText = "Tempo Target";
-                    else if (step.targetPaceZone === 'goal') paceHintText = `Goal Target: ${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
-                    else paceHintText = step.targetPaceZone;
+            // Group by sequenceOrder
+            const groupedWorkouts = {};
+            activePhaseWorkouts.forEach(step => {
+                const day = step.sequenceOrder || 1;
+                if (!groupedWorkouts[day]) {
+                    groupedWorkouts[day] = [];
                 }
+                groupedWorkouts[day].push(step);
+            });
 
-                container.innerHTML += `
-                    <div class="flex items-start gap-4 p-3.5 rounded-xl bg-slate-900/30 border border-slate-800/55 hover:border-slate-800 transition-all">
-                        <label class="relative flex items-center justify-center cursor-pointer mt-0.5 shrink-0 group">
-                            <input type="checkbox" id="${step.id}" onchange="toggleStepCheckDirect('${step.id}')" class="peer sr-only" ${isCheckedAttr}>
-                            <div class="w-5.5 h-5.5 border-2 border-slate-700 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-lg flex items-center justify-center text-slate-950 transition-all">
-                                <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            </div>
-                        </label>
+            const sortedDays = Object.keys(groupedWorkouts).sort((a, b) => Number(a) - Number(b));
 
-                        <div class="p-2 bg-slate-950 rounded-lg border border-slate-800/80 shrink-0">
-                            ${iconSVG}
-                        </div>
+            sortedDays.forEach(day => {
+                const dayWorkouts = groupedWorkouts[day];
+                
+                // Sort day workouts: non-strength (run/rest) first, strength second
+                dayWorkouts.sort((a, b) => {
+                    if (a.type === 'strength' && b.type !== 'strength') return 1;
+                    if (a.type !== 'strength' && b.type === 'strength') return -1;
+                    return 0;
+                });
 
-                        <div class="flex-1">
-                            <div class="flex items-baseline justify-between flex-wrap gap-2">
-                                <span class="text-xs font-bold text-slate-200">${step.workoutTitle} <span class="text-[10px] text-slate-500 font-normal">(${step.distanceDuration})</span></span>
-                                <div class="flex items-center gap-2">
-                                    ${step.targetPaceZone ? `<span class="text-[10px] font-extrabold text-indigo-400 font-mono">${paceHintText}</span>` : ''}
-                                    ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Logged: ${step.actualLoggedPace}</span>` : ''}
-                                    ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">RPE: ${step.rpeScore}</span>` : ''}
+                let dayHTML = `<div class="mb-4">`;
+                dayHTML += `<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Day ${day}</h3>`;
+                dayHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+                
+                dayWorkouts.forEach(step => {
+                    const colSpan = dayWorkouts.length === 1 ? 'col-span-1 md:col-span-2' : 'col-span-1';
+                    const isCheckedAttr = step.completed ? "checked" : "";
+                    const iconSVG = icons[step.type] || icons.easy;
+
+                    let paceHintText = "";
+                    if (step.targetPaceZone) {
+                        if (step.targetPaceZone === 'easy') paceHintText = "Easy/Recovery Target";
+                        else if (step.targetPaceZone === 'long') paceHintText = "Long Aerobic Target";
+                        else if (step.targetPaceZone === 'tempo') paceHintText = "Tempo Target";
+                        else if (step.targetPaceZone === 'goal') paceHintText = `Goal Target: ${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                        else paceHintText = step.targetPaceZone;
+                    }
+
+                    dayHTML += `
+                        <div class="${colSpan} flex items-start gap-4 p-3.5 rounded-xl bg-slate-900/30 border border-slate-800/55 hover:border-slate-800 transition-all h-full">
+                            <label class="relative flex items-center justify-center cursor-pointer mt-0.5 shrink-0 group">
+                                <input type="checkbox" id="${step.id}" onchange="toggleStepCheckDirect('${step.id}')" class="peer sr-only" ${isCheckedAttr}>
+                                <div class="w-5.5 h-5.5 border-2 border-slate-700 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-lg flex items-center justify-center text-slate-950 transition-all">
+                                    <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                 </div>
+                            </label>
+
+                            <div class="p-2 bg-slate-950 rounded-lg border border-slate-800/80 shrink-0">
+                                ${iconSVG}
                             </div>
-                            <p class="text-xs text-slate-400 mt-1 leading-relaxed">${step.targetInstructions}</p>
-                            ${step.completed && step.dateExecuted ? `
-                            <div class="flex items-center gap-2 mt-1.5">
-                                <span class="text-[9px] text-slate-500 font-semibold">Completed on:</span>
-                                <input type="date" value="${step.dateExecuted}" onchange="updateWorkoutDate('${step.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-0.5 rounded-lg focus:outline-none focus:border-indigo-500 cursor-pointer font-mono select-none">
+
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-baseline justify-between flex-wrap gap-2">
+                                    <span class="text-xs font-bold text-slate-200 truncate pr-2">${step.workoutTitle} <span class="text-[10px] text-slate-500 font-normal">(${step.distanceDuration})</span></span>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        ${step.targetPaceZone ? `<span class="text-[10px] font-extrabold text-indigo-400 font-mono hidden sm:inline-block">${paceHintText}</span>` : ''}
+                                        ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Logged: ${step.actualLoggedPace}</span>` : ''}
+                                        ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">RPE: ${step.rpeScore}</span>` : ''}
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">${step.targetInstructions}</p>
+                                ${step.completed && step.dateExecuted ? `
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span class="text-[9px] text-slate-500 font-semibold">Completed on:</span>
+                                    <input type="date" value="${step.dateExecuted}" onchange="updateWorkoutDate('${step.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-0.5 rounded-lg focus:outline-none focus:border-indigo-500 cursor-pointer font-mono select-none">
+                                </div>
+                                ` : ''}
                             </div>
-                            ` : ''}
                         </div>
-                    </div>
-                `;
+                    `;
+                });
+                
+                dayHTML += `</div></div>`;
+                container.innerHTML += dayHTML;
             });
         }
 
@@ -1069,43 +1106,42 @@
                     statusEl.innerText = "Error parsing file: " + err.message;
                 }
             }
-        }
-
-        function renderNextActivityCard() {
+          function renderNextActivityCard() {
             lastUploadedWorkoutFile = null; // Reset uploaded workout file state for a fresh card
             const container = document.getElementById('focus-content');
-            let nextStep = null;
-            let showCompletedToday = false;
-
+            
             const d = new Date();
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             const todayLocalStr = `${year}-${month}-${day}`;
 
-            // Find the last completed workout in the active phase
+            // Find the active sequence order
+            let activeSequenceOrder = null;
             let lastCompletedStep = null;
-            for (let i = activePhaseWorkouts.length - 1; i >= 0; i--) {
-                const w = activePhaseWorkouts[i];
-                if (w.completed) {
-                    lastCompletedStep = w;
+
+            for (let i = 0; i < activePhaseWorkouts.length; i++) {
+                if (activePhaseWorkouts[i].completed) {
+                    lastCompletedStep = activePhaseWorkouts[i];
+                }
+            }
+
+            for (let w of activePhaseWorkouts) {
+                if (!w.completed) {
+                    activeSequenceOrder = w.sequenceOrder;
                     break;
                 }
             }
 
+            // Lock to today's completed slate if applicable
+            let renderSequenceOrder = activeSequenceOrder;
             if (lastCompletedStep && lastCompletedStep.dateExecuted === todayLocalStr) {
-                nextStep = lastCompletedStep;
-                showCompletedToday = true;
-            } else {
-                for (let w of activePhaseWorkouts) {
-                    if (!w.completed) {
-                        nextStep = w;
-                        break;
-                    }
+                if (activeSequenceOrder === null || activeSequenceOrder > lastCompletedStep.sequenceOrder) {
+                    renderSequenceOrder = lastCompletedStep.sequenceOrder;
                 }
             }
 
-            if (!nextStep) {
+            if (renderSequenceOrder === null) {
                 container.innerHTML = `
                     <div class="flex items-center gap-4 text-emerald-400 p-4">
                         <i class="fa-solid fa-trophy text-4xl"></i>
@@ -1117,166 +1153,302 @@
                 return;
             }
 
-            const isSpeed = nextStep.isSpeedWorkout;
-            const isBenchmark = nextStep.isBenchmark;
-            const iconSVG = icons[nextStep.type] || icons.easy;
+            const dailySlate = activePhaseWorkouts.filter(w => w.sequenceOrder === renderSequenceOrder);
+            
+            let htmlAccumulator = `<div class="space-y-8">`;
 
-            let paceHtml = "";
-            if (nextStep.targetPaceZone) {
-                let pType = nextStep.targetPaceZone;
-                paceHtml = `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Pace</span>
-                <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${pType}">Computing...</span></div>`;
-            } else {
-                paceHtml = `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Time Investment</span>
-                <span class="font-mono text-xl md:text-2xl font-black text-white">${nextStep.distanceDuration}</span></div>`;
-            }
+            for (let i = 0; i < dailySlate.length; i++) {
+                const nextStep = dailySlate[i];
+                const isSpeed = nextStep.isSpeedWorkout;
+                const isBenchmark = nextStep.isBenchmark;
+                const iconSVG = icons[nextStep.type] || icons.easy;
 
-            const isCheckedAttr = nextStep.completed ? "checked" : "";
+                // Calculate defaults
+                let defaultDistance = "";
+                if (nextStep.distanceDuration && nextStep.distanceDuration.toLowerCase().includes("mile")) {
+                    defaultDistance = parseFloat(nextStep.distanceDuration) || "";
+                }
 
-            container.innerHTML = `
-                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                    <span class="text-[10px] font-bold uppercase tracking-widest ${showCompletedToday ? 'text-emerald-450 bg-emerald-950/50 border-emerald-500/30' : 'text-indigo-400 bg-indigo-950/50 border-indigo-500/30'} px-3 py-1 rounded-full border">
-                        ${showCompletedToday ? 'Completed Today' : 'Up Next'}
-                    </span>
-                    ${isBenchmark ? `<span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-3 py-1 rounded-full border border-amber-500/30 pulse-slow">Fitness Milestone Benchmark</span>` : ''}
-                </div>
-                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 w-full pointer-events-auto">
-                    <div class="flex items-center gap-5 w-full md:w-auto">
-                        <label class="relative flex items-center justify-center ${isSpeed && !nextStep.completed ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} shrink-0 group">
-                            <input type="checkbox" ${isCheckedAttr} ${isSpeed && !nextStep.completed ? 'disabled' : `onchange="toggleStepCheck('${nextStep.id}', this.checked)"`} class="peer sr-only">
-                            <div class="w-12 h-12 md:w-16 md:h-16 border-2 border-slate-600 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 transition-all shadow-inner">
-                                <svg class="w-6 h-6 md:w-8 md:h-8 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            </div>
-                        </label>
-                        
-                        <div class="flex-1">
-                            <h2 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight">${nextStep.workoutTitle}</h2>
-                            <p class="text-indigo-200 text-sm font-semibold mt-1">Sequence Position #${nextStep.sequenceOrder}</p>
-                        </div>
+                let targetMidDecimal = null;
+                const currentMins = parseFloat(document.getElementById('input-min') ? document.getElementById('input-min').value : 8) || 8;
+                const currentSecs = parseFloat(document.getElementById('input-sec') ? document.getElementById('input-sec').value : 10) || 10;
+                const decimalPace = currentMins + (currentSecs / 60);
+
+                if (nextStep.targetPaceZone === 'easy') targetMidDecimal = decimalPace + (80 / 60);
+                else if (nextStep.targetPaceZone === 'long') targetMidDecimal = decimalPace + (55 / 60);
+                else if (nextStep.targetPaceZone === 'tempo') targetMidDecimal = decimalPace - (57.5 / 60);
+                else if (nextStep.targetPaceZone === 'goal') {
+                    const goalPaceStr = userProfileData ? userProfileData.activeAdjustedGoal : "6:26";
+                    if (goalPaceStr) {
+                        const p = goalPaceStr.split(':');
+                        targetMidDecimal = parseInt(p[0]) + (parseInt(p[1] || 0)/60);
+                    }
+                } else if (nextStep.targetPaceZone === 'race') targetMidDecimal = 6 + (25/60);
+
+                let defaultMin = "", defaultSec = "";
+                if (targetMidDecimal !== null) {
+                    defaultMin = Math.floor(targetMidDecimal);
+                    let sec = Math.round((targetMidDecimal - defaultMin) * 60);
+                    defaultSec = sec < 10 ? '0' + sec : sec;
+                }
+
+                let paceHtml = "";
+                if (nextStep.targetPaceZone) {
+                    let pType = nextStep.targetPaceZone;
+                    paceHtml = `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Pace</span>
+                    <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${pType}">Computing...</span></div>`;
+                } else {
+                    paceHtml = `<div><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Time Investment</span>
+                    <span class="font-mono text-xl md:text-2xl font-black text-white">${nextStep.distanceDuration}</span></div>`;
+                }
+
+                const isCheckedAttr = nextStep.completed ? "checked" : "";
+                const opacityClass = nextStep.completed ? "opacity-60 grayscale-[30%]" : "";
+
+                htmlAccumulator += `
+                    <div class="relative ${opacityClass} transition-all duration-300">
+                    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                        <span class="text-[10px] font-bold uppercase tracking-widest ${nextStep.completed ? 'text-emerald-400 bg-emerald-950/50 border-emerald-500/30' : 'text-indigo-400 bg-indigo-950/50 border-indigo-500/30'} px-3 py-1 rounded-full border">
+                            ${nextStep.completed ? 'Completed' : 'Up Next'}
+                        </span>
+                        ${isBenchmark ? `<span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-3 py-1 rounded-full border border-amber-500/30 pulse-slow">Fitness Milestone Benchmark</span>` : ''}
                     </div>
-                    
-                    <div class="w-full h-px md:w-px md:h-20 bg-indigo-500/20"></div>
- 
-                    <div class="flex-1 w-full bg-black/20 p-4 md:p-6 rounded-2xl border border-indigo-500/20 shadow-inner">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center mb-4">
-                            <div class="flex items-start gap-3">
-                                <div class="mt-1 opacity-80 shrink-0">${iconSVG}</div>
-                                <div>
-                                    <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Instructions</span>
-                                    <p class="text-xs text-slate-200 leading-relaxed">${nextStep.targetInstructions}</p>
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-6 w-full pointer-events-auto">
+                        <div class="flex items-center gap-5 w-full md:w-auto">
+                            <label class="relative flex items-center justify-center ${nextStep.completed ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'} shrink-0 group">
+                                <input type="checkbox" ${isCheckedAttr} disabled class="peer sr-only">
+                                <div class="w-12 h-12 md:w-16 md:h-16 border-2 border-slate-600 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-2xl flex items-center justify-center text-slate-950 transition-all shadow-inner">
+                                    <svg class="w-6 h-6 md:w-8 md:h-8 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                            </label>
+                            
+                            <div class="flex-1">
+                                <h2 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight">${nextStep.workoutTitle}</h2>
+                                <p class="text-indigo-200 text-sm font-semibold mt-1">Sequence Position #${nextStep.sequenceOrder}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full h-px md:w-px md:h-20 bg-indigo-500/20"></div>
+     
+                        <div class="flex-1 w-full bg-black/20 p-4 md:p-6 rounded-2xl border border-indigo-500/20 shadow-inner">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center mb-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="mt-1 opacity-80 shrink-0">${iconSVG}</div>
+                                    <div>
+                                        <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Instructions</span>
+                                        <p class="text-xs text-slate-200 leading-relaxed">${nextStep.targetInstructions}</p>
+                                    </div>
+                                </div>
+                                ${paceHtml}
+                            </div>
+                            
+                            ${nextStep.jitPreparationTip && !nextStep.completed ? `
+                            <div class="mb-4 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex gap-3 relative overflow-hidden">
+                                <div class="absolute -left-2 -top-2 opacity-10 pointer-events-none"><i class="fa-solid fa-fire text-4xl text-amber-500"></i></div>
+                                <div class="mt-0.5 text-amber-400 z-10 shrink-0"><i class="fa-solid fa-lightbulb"></i></div>
+                                <div class="z-10">
+                                    <span class="block text-[10px] text-amber-400 uppercase tracking-wider font-bold mb-0.5">Preparation & Fueling</span>
+                                    <p class="text-xs text-slate-300 leading-relaxed">${nextStep.jitPreparationTip}</p>
                                 </div>
                             </div>
-                            ${paceHtml}
-                        </div>
- 
-                        ${isSpeed && !nextStep.completed ? `
-                        <div id="gatekeeper-form" class="border-t border-indigo-500/10 pt-4 mt-2">
-                            <span class="block text-[10px] text-amber-400 font-bold uppercase tracking-wider mb-2">🔒 The Gatekeeper Validation: Log Run Metrics</span>
-                            <div class="flex flex-wrap items-center gap-3">
-                                <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
-                                    <input id="logged-min" type="number" min="4" max="15" placeholder="Min" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none">
-                                    <span class="text-slate-650 font-bold">:</span>
-                                    <input id="logged-sec" type="number" min="0" max="59" placeholder="Sec" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none">
-                                    <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
-                                </div>
-                                <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
-                                    <span class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider ml-1 mr-1">Date</span>
-                                    <input id="logged-date" type="date" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
-                                </div>
-                                <div class="flex items-center gap-1.5">
-                                    <select id="logged-rpe" class="bg-slate-950/60 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
-                                        <option value="" disabled selected>Select RPE</option>
-                                        <option value="1">1 - Restful</option>
-                                        <option value="2">2 - Easy</option>
-                                        <option value="3">3 - Light</option>
-                                        <option value="4">4 - Comfortable</option>
-                                        <option value="5">5 - Moderate</option>
-                                        <option value="6">6 - Steady</option>
-                                        <option value="7">7 - Hard</option>
-                                        <option value="8">8 - Very Hard</option>
-                                        <option value="9">9 - Exhausting</option>
-                                        <option value="10">10 - Maximum</option>
-                                    </select>
-                                </div>
-                                <div class="flex items-center gap-1.5">
-                                    <input type="file" id="workout-file-upload" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleWorkoutFileUpload(this)">
-                                    <button type="button" onclick="document.getElementById('workout-file-upload').click()" class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
-                                        <i class="fa-solid fa-file-arrow-up"></i> Upload Run File (Optional)
+                            ` : ''}
+     
+                            ${!nextStep.completed ? `
+                            <div id="gatekeeper-form-${nextStep.id}" class="border-t border-indigo-500/10 pt-4 mt-2">
+                                <span class="block text-[10px] ${isSpeed ? 'text-amber-400' : 'text-indigo-300'} font-bold uppercase tracking-wider mb-2">
+                                    ${isSpeed ? '🔒 The Gatekeeper Validation: Log Run Metrics' : 'Log Activity Metrics'}
+                                </span>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    ${['run', 'walk', 'bike', 'swim', 'easy', 'fast'].includes(nextStep.type) ? `
+                                    <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
+                                        <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-16 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                        <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">mi</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
+                                        <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                        <span class="text-slate-650 font-bold">:</span>
+                                        <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                        <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                    </div>
+                                    ` : `
+                                    <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
+                                        <input id="logged-duration-${nextStep.id}" type="number" min="0" placeholder="Time" class="w-16 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                        <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">mins</span>
+                                    </div>
+                                    `}
+                                    <div class="flex items-center gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800">
+                                        <span class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider ml-1 mr-1">Date</span>
+                                        <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <select id="logged-rpe-${nextStep.id}" class="bg-slate-950/60 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                                            <option value="" disabled selected>Select RPE</option>
+                                            <option value="1">1 - Restful</option>
+                                            <option value="2">2 - Easy</option>
+                                            <option value="3">3 - Light</option>
+                                            <option value="4">4 - Comfortable</option>
+                                            <option value="5">5 - Moderate</option>
+                                            <option value="6">6 - Steady</option>
+                                            <option value="7">7 - Hard</option>
+                                            <option value="8">8 - Very Hard</option>
+                                            <option value="9">9 - Exhausting</option>
+                                            <option value="10">10 - Maximum</option>
+                                        </select>
+                                    </div>
+                                    ${isSpeed ? `
+                                    <div class="flex items-center gap-1.5">
+                                        <input type="file" id="workout-file-upload-${nextStep.id}" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleWorkoutFileUpload(this, '${nextStep.id}')">
+                                        <button type="button" onclick="document.getElementById('workout-file-upload-${nextStep.id}').click()" class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                                            <i class="fa-solid fa-file-arrow-up"></i> Upload Run
+                                        </button>
+                                    </div>
+                                    ` : ''}
+                                    <button onclick="submitWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}')" class="${isSpeed ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400' : 'bg-emerald-600/80 hover:bg-emerald-500/90'} px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center gap-1.5 cursor-pointer">
+                                        <i class="fa-solid fa-square-check"></i> Validate & Complete
+                                    </button>
+                                    <button onclick="openAlternativeModal('${nextStep.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                                        Log Alternative Activity
                                     </button>
                                 </div>
-                                <button onclick="submitSpeedWorkout('${nextStep.id}', ${isBenchmark})" class="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center gap-1.5 cursor-pointer">
-                                    <i class="fa-solid fa-square-check"></i> Validate & Complete Run
-                                </button>
+                                <p id="workout-file-status-${nextStep.id}" class="text-[10px] text-slate-500 font-semibold italic ml-1 mt-2 hidden"></p>
+                                <p id="gatekeeper-warn-${nextStep.id}" class="text-[11px] text-rose-450 mt-2 font-medium hidden">⚠️ Please ensure all fields are valid before submitting.</p>
                             </div>
-                            <p id="workout-file-status" class="text-[10px] text-slate-500 font-semibold italic ml-1 mt-2 hidden"></p>
-                            <p id="gatekeeper-warn" class="text-[11px] text-rose-450 mt-2 font-medium hidden">⚠️ Please fill out pace parameters and select RPE before submitting.</p>
-                        </div>
-                        ` : ''}
-
-                        ${!isSpeed && !nextStep.completed ? `
-                        <div class="border-t border-indigo-500/10 pt-4 mt-2 flex items-center gap-2">
-                            <span class="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Completion Date:</span>
-                            <input id="date-picker-${nextStep.id}" type="date" class="bg-slate-950 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer select-none">
-                        </div>
-                        ` : ''}
-
-                        ${nextStep.completed ? `
-                        <div class="border-t border-indigo-500/10 pt-4 mt-2 flex items-center gap-3 flex-wrap">
-                            <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                                <i class="fa-solid fa-circle-check"></i> Completed!
-                            </span>
-                            ${nextStep.actualLoggedPace ? `<span class="text-xs text-slate-350 font-bold font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">Logged Pace: ${nextStep.actualLoggedPace} /mi</span>` : ''}
-                            ${nextStep.rpeScore ? `<span class="text-xs text-slate-350 font-bold font-mono bg-violet-500/10 px-2.5 py-1 rounded border border-violet-500/20">RPE: ${nextStep.rpeScore}</span>` : ''}
-                            <div class="flex items-center gap-1.5 ml-auto">
-                                <span class="text-[10px] text-slate-500">Date:</span>
-                                <input type="date" value="${nextStep.dateExecuted}" onchange="updateWorkoutDate('${nextStep.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-1 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer select-none font-mono">
+                            ` : ''}
+     
+                            ${nextStep.completed ? `
+                            <div class="border-t border-indigo-500/10 pt-4 mt-2 flex items-center gap-3 flex-wrap">
+                                <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check"></i> Completed!
+                                </span>
+                                ${nextStep.actualActivityType && nextStep.actualActivityType !== nextStep.type ? `<span class="text-xs text-sky-350 font-bold font-mono bg-sky-500/10 px-2.5 py-1 rounded border border-sky-500/20 capitalize">Type: ${nextStep.actualActivityType}</span>` : ''}
+                                ${nextStep.actualLoggedDistance ? `<span class="text-xs text-indigo-350 font-bold font-mono bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20">${nextStep.actualLoggedDistance} mi</span>` : ''}
+                                ${nextStep.actualLoggedDuration ? `<span class="text-xs text-indigo-350 font-bold font-mono bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20">${nextStep.actualLoggedDuration} mins</span>` : ''}
+                                ${nextStep.actualLoggedPace ? `<span class="text-xs text-slate-350 font-bold font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">Pace: ${nextStep.actualLoggedPace} /mi</span>` : ''}
+                                ${nextStep.rpeScore ? `<span class="text-xs text-slate-350 font-bold font-mono bg-violet-500/10 px-2.5 py-1 rounded border border-violet-500/20">RPE: ${nextStep.rpeScore}</span>` : ''}
+                                <div class="flex items-center gap-1.5 ml-auto">
+                                    <span class="text-[10px] text-slate-500">Date:</span>
+                                    <input type="date" value="${nextStep.dateExecuted}" onchange="updateWorkoutDate('${nextStep.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-1 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer select-none font-mono">
+                                </div>
                             </div>
+                            ` : ''}
                         </div>
-                        ` : ''}
                     </div>
-                </div>
-            `;
+                    </div>
+                `;
+            }
 
-            // Set default date values
-            const datePicker = document.getElementById(`date-picker-${nextStep.id}`);
-            if (datePicker) datePicker.value = todayLocalStr;
+            const isSlateFullyCompleted = dailySlate.every(w => w.completed);
+            if (isSlateFullyCompleted && renderSequenceOrder === (lastCompletedStep ? lastCompletedStep.sequenceOrder : null)) {
+                // Find next available sequence
+                const nextSequenceOrder = activePhaseWorkouts.find(w => w.sequenceOrder > renderSequenceOrder)?.sequenceOrder;
+                if (nextSequenceOrder !== undefined) {
+                    const nextSlate = activePhaseWorkouts.filter(w => w.sequenceOrder === nextSequenceOrder);
+                    htmlAccumulator += `<div class="mt-8 border-t border-slate-800/60 pt-6">
+                        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><i class="fa-solid fa-calendar-day"></i> Tomorrow's Preview</h3>
+                        <div class="space-y-4">`;
+                    
+                    for (let n of nextSlate) {
+                        const nIconSVG = icons[n.type] || icons.easy;
+                        htmlAccumulator += `
+                        <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-bold">${n.workoutTitle}</span>
+                                <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">${n.distanceDuration}</span>
+                            </div>
+                            <div class="flex items-start gap-3 mt-3">
+                                <div class="mt-1 opacity-50 shrink-0 text-slate-500">${nIconSVG}</div>
+                                <div>
+                                    <p class="text-xs text-slate-400 leading-relaxed">${n.targetInstructions}</p>
+                                </div>
+                            </div>
+                            ${n.jitPreparationTip ? `
+                            <div class="mt-3 bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 flex gap-3 relative overflow-hidden">
+                                <div class="absolute -left-2 -top-2 opacity-5 pointer-events-none"><i class="fa-solid fa-fire text-4xl text-amber-500"></i></div>
+                                <div class="mt-0.5 text-amber-500/50 shrink-0 z-10"><i class="fa-solid fa-lightbulb"></i></div>
+                                <div class="z-10">
+                                    <span class="block text-[10px] text-amber-500/70 uppercase tracking-wider font-bold mb-0.5">Preparation</span>
+                                    <p class="text-[11px] text-slate-400 leading-relaxed">${n.jitPreparationTip}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>`;
+                    }
+                    htmlAccumulator += `</div></div>`;
+                }
+            }
 
-            const loggedDate = document.getElementById('logged-date');
-            if (loggedDate) loggedDate.value = todayLocalStr;
+            htmlAccumulator += `</div>`;
+            container.innerHTML = htmlAccumulator;
+
+            // Set default date values dynamically for all generated cards
+            for (let i = 0; i < dailySlate.length; i++) {
+                const nextStep = dailySlate[i];
+                const datePicker = document.getElementById(`date-picker-${nextStep.id}`);
+                if (datePicker) datePicker.value = todayLocalStr;
+
+                const loggedDate = document.getElementById(`logged-date-${nextStep.id}`);
+                if (loggedDate) loggedDate.value = todayLocalStr;
+            }
 
             calculateTargetPaces();
         }
 
-        // 5. 70/30 EMA & Recalculation Engine
-        function submitSpeedWorkout(activityId, isBenchmark) {
-            const minInput = document.getElementById('logged-min');
-            const secInput = document.getElementById('logged-sec');
-            const rpeSelect = document.getElementById('logged-rpe');
-            const warning = document.getElementById('gatekeeper-warn');
-
-            const mins = parseFloat(minInput.value);
-            const secs = parseFloat(secInput.value);
+        // 5. Unified Workout Submission & Recalculation Engine
+        function submitWorkout(activityId, isBenchmark, defaultType) {
+            const typeClass = ['run', 'walk', 'bike', 'swim', 'easy', 'fast'].includes(defaultType) ? 'distance' : 'duration';
+            
+            const rpeSelect = document.getElementById(`logged-rpe-${activityId}`);
+            const warning = document.getElementById(`gatekeeper-warn-${activityId}`);
             const rpeVal = rpeSelect ? rpeSelect.value : null;
 
-            if (isNaN(mins) || isNaN(secs) || minInput.value === "" || secInput.value === "" || !rpeVal) {
-                if (warning) {
-                    warning.innerText = "⚠️ Please fill out pace parameters and select an RPE score before submitting.";
-                    warning.classList.remove('hidden');
+            let actualDistance = null;
+            let actualDuration = null;
+            let actualWorkoutPaceDecimal = null;
+            let paceStr = null;
+
+            if (typeClass === 'distance') {
+                const distInput = document.getElementById(`logged-distance-${activityId}`);
+                const minInput = document.getElementById(`logged-min-${activityId}`);
+                const secInput = document.getElementById(`logged-sec-${activityId}`);
+
+                const dist = parseFloat(distInput.value);
+                const mins = parseFloat(minInput.value);
+                const secs = parseFloat(secInput.value);
+
+                if (isNaN(dist) || isNaN(mins) || isNaN(secs) || minInput.value === "" || secInput.value === "" || !rpeVal) {
+                    if (warning) {
+                        warning.innerText = "⚠️ Please fill out all metrics and select an RPE score before submitting.";
+                        warning.classList.remove('hidden');
+                    }
+                    return;
                 }
-                return;
+                
+                actualDistance = dist;
+                actualWorkoutPaceDecimal = mins + (secs / 60);
+                paceStr = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+            } else {
+                const durInput = document.getElementById(`logged-duration-${activityId}`);
+                const dur = parseFloat(durInput.value);
+
+                if (isNaN(dur) || !rpeVal) {
+                    if (warning) {
+                        warning.innerText = "⚠️ Please fill out duration and select an RPE score before submitting.";
+                        warning.classList.remove('hidden');
+                    }
+                    return;
+                }
+                actualDuration = dur;
             }
+
             if (warning) warning.classList.add('hidden');
 
-            const actualWorkoutPaceDecimal = mins + (secs / 60);
-            const paceStr = `${mins}:${secs < 10 ? '0' + secs : secs}`;
-            
-            const loggedDateEl = document.getElementById('logged-date');
+            const loggedDateEl = document.getElementById(`logged-date-${activityId}`);
             const completionDate = (loggedDateEl && loggedDateEl.value) ? loggedDateEl.value : new Date().toISOString().split('T')[0];
 
             const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activityId);
 
             let emaPromise = Promise.resolve();
-            if (isBenchmark) {
+            if (isBenchmark && typeClass === 'distance') {
                 const prevMins = parseFloat(document.getElementById('input-min').value) || 8;
                 const prevSecs = parseFloat(document.getElementById('input-sec').value) || 10;
                 const previousTargetBaselineDecimal = prevMins + (prevSecs / 60);
@@ -1288,7 +1460,7 @@
                 const finalSec = Math.round((newBaselinePaceDecimal - finalMin) * 60);
                 const newEstimatedPace = `${finalMin}:${finalSec < 10 ? '0' + finalSec : finalSec}`;
 
-                console.log(`EMA Recalibration: Prev=${prevMins}:${prevSecs}, Logged=${mins}:${secs}, New=${newEstimatedPace}`);
+                console.log(`EMA Recalibration: Prev=${prevMins}:${prevSecs}, Logged=${Math.floor(actualWorkoutPaceDecimal)}:${Math.round((actualWorkoutPaceDecimal - Math.floor(actualWorkoutPaceDecimal))*60)}, New=${newEstimatedPace}`);
 
                 const currentPhase = (userProfileData && userProfileData.currentPhaseIndex) || 1;
                 const checkpointIdx = getCheckpointIndex(currentPhase, activityId);
@@ -1317,6 +1489,9 @@
             emaPromise.then(() => {
                 const updatePayload = {
                     completed: true,
+                    actualActivityType: defaultType,
+                    actualLoggedDistance: actualDistance,
+                    actualLoggedDuration: actualDuration,
                     actualLoggedPace: paceStr,
                     rpeScore: parseInt(rpeVal),
                     dateExecuted: completionDate
@@ -1326,10 +1501,115 @@
                 }
                 return workoutDocRef.update(updatePayload);
             }).then(() => {
-                console.log("Speed workout metrics synced to cloud.");
+                console.log("Workout metrics synced to cloud.");
                 lastUploadedWorkoutFile = null;
             }).catch(err => {
-                console.error("Error writing speed metrics to cloud: ", err);
+                console.error("Error writing metrics to cloud: ", err);
+                alert("Firestore sync failure.");
+            });
+        }
+
+        // Alternative Activity Modal Logic
+        function openAlternativeModal(activityId) {
+            document.getElementById('alt-activity-id').value = activityId;
+            document.getElementById('alternative-activity-modal').classList.remove('hidden');
+            document.getElementById('alternative-activity-modal').classList.add('flex');
+            
+            // Set default date
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            document.getElementById('alt-date').value = `${year}-${month}-${day}`;
+            
+            handleAltActivityTypeChange();
+        }
+
+        function closeAlternativeModal() {
+            document.getElementById('alternative-activity-modal').classList.add('hidden');
+            document.getElementById('alternative-activity-modal').classList.remove('flex');
+            
+            // reset fields
+            document.getElementById('alt-activity-type').value = 'run';
+            document.getElementById('alt-distance').value = '';
+            document.getElementById('alt-duration').value = '';
+            document.getElementById('alt-pace-min').value = '';
+            document.getElementById('alt-pace-sec').value = '';
+            document.getElementById('alt-rpe').value = '';
+        }
+
+        function handleAltActivityTypeChange() {
+            const type = document.getElementById('alt-activity-type').value;
+            const distContainer = document.getElementById('alt-distance-container');
+            const durContainer = document.getElementById('alt-duration-container');
+            const paceContainer = document.getElementById('alt-pace-container');
+            const rpeContainer = document.getElementById('alt-rpe-container');
+
+            if (['run', 'walk', 'bike', 'swim'].includes(type)) {
+                distContainer.classList.remove('hidden');
+                paceContainer.classList.remove('hidden');
+                durContainer.classList.add('hidden');
+                rpeContainer.classList.remove('hidden');
+            } else if (['strength', 'other'].includes(type)) {
+                distContainer.classList.add('hidden');
+                paceContainer.classList.add('hidden');
+                durContainer.classList.remove('hidden');
+                rpeContainer.classList.remove('hidden');
+            } else if (type === 'rest') {
+                distContainer.classList.add('hidden');
+                paceContainer.classList.add('hidden');
+                durContainer.classList.add('hidden');
+                rpeContainer.classList.add('hidden');
+            }
+        }
+
+        function submitAlternativeActivity() {
+            const activityId = document.getElementById('alt-activity-id').value;
+            const type = document.getElementById('alt-activity-type').value;
+            const dateVal = document.getElementById('alt-date').value;
+            const rpeVal = document.getElementById('alt-rpe').value;
+            
+            const updatePayload = {
+                completed: true,
+                actualActivityType: type,
+                dateExecuted: dateVal || new Date().toISOString().split('T')[0]
+            };
+
+            if (type !== 'rest') {
+                if (!rpeVal) {
+                    alert("Please select an RPE score.");
+                    return;
+                }
+                updatePayload.rpeScore = parseInt(rpeVal);
+            }
+
+            if (['run', 'walk', 'bike', 'swim'].includes(type)) {
+                const dist = parseFloat(document.getElementById('alt-distance').value);
+                const mins = parseFloat(document.getElementById('alt-pace-min').value);
+                const secs = parseFloat(document.getElementById('alt-pace-sec').value);
+
+                if (isNaN(dist) || isNaN(mins) || isNaN(secs)) {
+                    alert("Please fill out distance and pace.");
+                    return;
+                }
+                updatePayload.actualLoggedDistance = dist;
+                updatePayload.actualLoggedPace = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+            } else if (['strength', 'other'].includes(type)) {
+                const dur = parseFloat(document.getElementById('alt-duration').value);
+                if (isNaN(dur)) {
+                    alert("Please fill out duration.");
+                    return;
+                }
+                updatePayload.actualLoggedDuration = dur;
+            }
+
+            const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activityId);
+            
+            workoutDocRef.update(updatePayload).then(() => {
+                console.log("Alternative activity logged successfully.");
+                closeAlternativeModal();
+            }).catch(err => {
+                console.error("Error logging alternative activity: ", err);
                 alert("Firestore sync failure.");
             });
         }
@@ -1574,33 +1854,30 @@
                 const currentSecs = parseFloat(document.getElementById('input-sec').value) || 10;
                 const decimalPace = currentMins + (currentSecs / 60);
 
-                const easyMin = decimalPace + (65 / 60);
-                const easyMax = decimalPace + (95 / 60);
-                const longMin = decimalPace + (40 / 60);
-                const longMax = decimalPace + (70 / 60);
-                const tempoMin = decimalPace - (70 / 60);
-                const tempoMax = decimalPace - (45 / 60);
+                const easyMid = decimalPace + (80 / 60);
+                const longMid = decimalPace + (55 / 60);
+                const tempoMid = decimalPace - (57.5 / 60);
 
                 const easyEl = document.getElementById('pace-easy');
-                if (easyEl) easyEl.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+                if (easyEl) easyEl.innerText = `${formatPace(easyMid)} /mi`;
                 const longEl = document.getElementById('pace-long');
-                if (longEl) longEl.innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+                if (longEl) longEl.innerText = `${formatPace(longMid)} /mi`;
                 const tempoEl = document.getElementById('pace-tempo');
-                if (tempoEl) tempoEl.innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+                if (tempoEl) tempoEl.innerText = `${formatPace(tempoMid)} /mi`;
 
-                updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax);
+                updateTimelinePaceLabels(easyMid, longMid, tempoMid);
             }
 
-            function updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax) {
+            function updateTimelinePaceLabels(easyMid, longMid, tempoMid) {
                 const allPaceLabels = document.querySelectorAll('.dynamic-pace-hint');
                 allPaceLabels.forEach(label => {
                     const type = label.dataset.type;
                     if (type === 'easy') {
-                        label.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+                        label.innerText = `${formatPace(easyMid)} /mi`;
                     } else if (type === 'long') {
-                        label.innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+                        label.innerText = `${formatPace(longMid)} /mi`;
                     } else if (type === 'tempo') {
-                        label.innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+                        label.innerText = `${formatPace(tempoMid)} /mi`;
                     } else if (type === 'goal') {
                         label.innerText = `${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
                     } else if (type === 'race') {
@@ -1784,23 +2061,32 @@
             }
 
             // 7. Pulse Heartbeat Status Marquee (Latency Masking) & 15-Second Timeout
-            function showAutopilotLoader() {
+            function showAutopilotLoader(customMessage) {
                 document.getElementById('autopilot-loading-screen').classList.remove('hidden');
-                const tickers = [
-                    "Analyzing your consistency curve...",
-                    "Calculating fatigue curves and RPE ratios...",
-                    "Adapting pace targets to your heart rate variance...",
-                    "Seeding next 7-activity JIT block...",
-                    "Syncing updates to Firestore databases..."
-                ];
-                let tickerIdx = 0;
                 const tickerEl = document.getElementById('autopilot-loading-ticker');
-                tickerEl.innerText = tickers[0];
+                
+                if (window.tickerInterval) {
+                    clearInterval(window.tickerInterval);
+                }
 
-                window.tickerInterval = setInterval(() => {
-                    tickerIdx = (tickerIdx + 1) % tickers.length;
-                    tickerEl.innerText = tickers[tickerIdx];
-                }, 2000);
+                if (customMessage) {
+                    tickerEl.innerText = customMessage;
+                } else {
+                    const tickers = [
+                        "Analyzing your consistency curve...",
+                        "Calculating fatigue curves and RPE ratios...",
+                        "Adapting pace targets to your heart rate variance...",
+                        "Seeding next 7-activity JIT block...",
+                        "Syncing updates to Firestore databases..."
+                    ];
+                    let tickerIdx = 0;
+                    tickerEl.innerText = tickers[0];
+
+                    window.tickerInterval = setInterval(() => {
+                        tickerIdx = (tickerIdx + 1) % tickers.length;
+                        tickerEl.innerText = tickers[tickerIdx];
+                    }, 2000);
+                }
 
                 // 15-second abort interceptor
                 syncTimeoutHandle = setTimeout(() => {
@@ -1923,77 +2209,116 @@
             // Modern Progress Timeline controller
             function updateTimelineView(phaseIndex) {
                 const phase = parseInt(phaseIndex) || 1;
-                const progressBar = document.getElementById('timeline-progress-bar');
+                const container = document.getElementById('timeline-3d-container');
+                const pagination = document.getElementById('timeline-pagination');
+                if (!container || !pagination) return;
 
-                if (progressBar) {
-                    if (phase === 1) progressBar.style.width = '0%';
-                    else if (phase === 2) progressBar.style.width = '50%';
-                    else if (phase >= 3) progressBar.style.width = '100%';
+                // Default phases if none provided
+                let plan = [];
+                if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0) {
+                    plan = userProfileData.macrocyclePlan;
+                } else {
+                    plan = [
+                        { theme: "Speed Induction", description: "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability." },
+                        { theme: "Speed Endurance", description: "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts." },
+                        { theme: "Peak & Taper", description: "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation." }
+                    ];
                 }
 
-                for (let i = 1; i <= 3; i++) {
-                    const node = document.getElementById(`timeline-phase-${i}`);
-                    if (!node) continue;
+                const N = plan.length;
+                container.innerHTML = '';
+                pagination.innerHTML = '';
 
-                    const dot = node.querySelector('.rounded-full');
-                    const numSpan = node.querySelector('span');
-                    const label = node.querySelectorAll('span')[1];
-                    const descEl = document.getElementById(`timeline-phase-${i}-desc`);
-
-                    // Set themes and descriptions dynamically
-                    let themeText = "";
-                    let descText = "";
-
-                    if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan[i - 1]) {
-                        themeText = userProfileData.macrocyclePlan[i - 1].theme || "";
-                        descText = userProfileData.macrocyclePlan[i - 1].description || "";
-                    } else {
-                        if (i === 1) {
-                            themeText = "Speed Induction";
-                            descText = "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability.";
-                        } else if (i === 2) {
-                            themeText = "Speed Endurance";
-                            descText = "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts.";
-                        } else if (i === 3) {
-                            themeText = "Peak & Taper";
-                            descText = "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation.";
-                        }
-                    }
-
-                    if (label && themeText) {
-                        label.innerText = themeText;
-                    }
-                    if (descEl && descText) {
-                        descEl.innerText = descText;
-                    }
-
+                // Generate Pagination Bubbles
+                for (let i = 1; i <= N; i++) {
+                    const bubble = document.createElement('div');
                     if (i < phase) {
-                        if (dot) dot.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-500/10 transition-all duration-300 shadow-md shadow-emerald-500/10";
-                        if (numSpan) {
-                            numSpan.className = "text-xs font-black text-emerald-400";
-                            numSpan.innerHTML = `<i class="fa-solid fa-check text-[10px]"></i>`;
-                        }
-                        if (label) label.className = "text-xs font-bold text-emerald-400 mt-1.5 block tracking-tight text-center";
-                        if (descEl) descEl.className = "text-[10px] mt-2.5 leading-relaxed text-center p-3 rounded-2xl border border-emerald-500/15 bg-emerald-950/5 text-emerald-500/70 w-full transition-all duration-300 min-h-[64px] flex items-center justify-center";
+                        bubble.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50";
                     } else if (i === phase) {
-                        if (dot) dot.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-indigo-500 bg-indigo-950 transition-all duration-300 shadow-lg shadow-indigo-500/30 ring-4 ring-indigo-500/10";
-                        if (numSpan) {
-                            numSpan.className = "text-xs font-black text-indigo-400";
-                            numSpan.innerText = i;
-                        }
-                        if (label) label.className = "text-xs font-black text-indigo-400 mt-1.5 block tracking-tight text-center";
-                        if (descEl) descEl.className = "text-[10px] mt-2.5 leading-relaxed text-center p-3 rounded-2xl border border-indigo-500/35 bg-indigo-950/30 text-indigo-350 w-full transition-all duration-300 shadow-md shadow-indigo-500/5 font-bold";
+                        bubble.className = "w-3 h-3 rounded-full bg-indigo-400 shadow-md shadow-indigo-500 ring-2 ring-indigo-500/30 scale-110 transition-transform";
                     } else {
-                        if (dot) dot.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-slate-800 bg-slate-950 transition-all duration-300";
-                        if (numSpan) {
-                            numSpan.className = "text-xs font-black text-slate-500";
-                            numSpan.innerText = i;
-                        }
-                        if (label) label.className = "text-xs font-semibold text-slate-500 mt-1.5 block tracking-tight text-center";
-                        if (descEl) descEl.className = "text-[10px] mt-2.5 leading-relaxed text-center p-3 rounded-2xl border border-slate-900 bg-slate-950/20 text-slate-500 w-full transition-all duration-300 min-h-[64px] flex items-center justify-center";
+                        bubble.className = "w-2 h-2 rounded-full bg-slate-700 self-center opacity-50";
                     }
+                    pagination.appendChild(bubble);
+                }
+
+                // Generate 3D Cards
+                // Previous Phase (Left)
+                if (phase > 1) {
+                    const prev = plan[phase - 2];
+                    const prevHtml = `
+                        <div class="absolute left-[2%] md:left-[10%] w-1/3 max-w-[180px] flex flex-col items-center select-none z-0 opacity-40 transition-all duration-700" style="transform: scale(0.75) translateZ(-150px) rotateY(25deg);">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-500/10 shadow-md shadow-emerald-500/10 mb-2">
+                                <i class="fa-solid fa-check text-[10px] text-emerald-400"></i>
+                            </div>
+                            <span class="text-[9px] md:text-[10px] font-bold text-emerald-400 block tracking-tight text-center uppercase leading-snug">${prev.theme}</span>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', prevHtml);
+                }
+
+                // Active Phase (Center)
+                const current = plan[phase - 1];
+                const activeHtml = `
+                    <div class="absolute w-3/4 md:w-1/2 max-w-[340px] flex flex-col items-center select-none z-10 transition-all duration-700" style="transform: scale(1.05) translateZ(50px);">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-indigo-400 bg-indigo-950 shadow-[0_0_15px_rgba(99,102,241,0.5)] ring-4 ring-indigo-500/20 mb-3">
+                            <span class="text-sm font-black text-indigo-300">${phase}</span>
+                        </div>
+                        <span class="text-[11px] md:text-xs font-black text-indigo-300 block tracking-wider text-center uppercase drop-shadow-md leading-tight">${current.theme}</span>
+                        <p class="text-[10px] md:text-xs text-indigo-100/80 mt-3 leading-relaxed text-center p-4 rounded-3xl border border-indigo-500/30 bg-indigo-950/40 backdrop-blur-sm shadow-xl w-full">
+                            ${current.description}
+                        </p>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', activeHtml);
+
+                // Next Phase (Right)
+                if (phase < N) {
+                    const next = plan[phase];
+                    const nextHtml = `
+                        <div class="absolute right-[2%] md:right-[10%] w-1/3 max-w-[180px] flex flex-col items-center select-none z-0 opacity-40 transition-all duration-700" style="transform: scale(0.75) translateZ(-150px) rotateY(-25deg);">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-slate-700 bg-slate-900 mb-2">
+                                <span class="text-[10px] font-black text-slate-500">${phase + 1}</span>
+                            </div>
+                            <span class="text-[9px] md:text-[10px] font-semibold text-slate-500 block tracking-tight text-center uppercase leading-snug">${next.theme}</span>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', nextHtml);
                 }
             }
+
+            window.openDetailedPlanModal = function() {
+                const modal = document.getElementById('detailed-plan-modal');
+                const container = document.getElementById('detailed-plan-stages');
+                if (!modal || !container) return;
+
+                container.innerHTML = '';
+                const plan = (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0) ? userProfileData.macrocyclePlan : [
+                    { theme: "Speed Induction", description: "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability." },
+                    { theme: "Speed Endurance", description: "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts." },
+                    { theme: "Peak & Taper", description: "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation." }
+                ];
+
+                plan.forEach((stage, idx) => {
+                    container.innerHTML += `
+                        <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800 flex items-start gap-3 text-left">
+                            <div class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-slate-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                                ${idx + 1}
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-200">${stage.theme || 'Phase ' + (idx + 1)}</h4>
+                                <p class="text-xs text-slate-500 leading-relaxed mt-1">${stage.description || 'No description available.'}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                modal.classList.remove('hidden');
+            };
+
+            window.closeDetailedPlanModal = function() {
+                const modal = document.getElementById('detailed-plan-modal');
+                if (modal) modal.classList.add('hidden');
+            };
 
             // Modern Calendar Selector Dropdown Logic
             let calSelectedDate = null;
@@ -2222,11 +2547,29 @@
 
             function openProfileModal() {
                 if (userProfileData) {
-                    document.getElementById('modal-baseline-pace').innerText = userProfileData.baseline5k || "-";
-                    document.getElementById('modal-goal-pace').innerText = userProfileData.activeAdjustedGoal || "-";
-                    document.getElementById('modal-tier').innerText = userProfileData.challengeTier || "-";
                     document.getElementById('modal-workout-length').value = userProfileData.desiredWorkoutLength || 45;
                     document.getElementById('modal-baseline-notes').value = userProfileData.userBaselineNotes || "";
+
+                    if (userProfileData.birthYear) {
+                        document.getElementById('modal-birthyear').value = userProfileData.birthYear;
+                    } else if (userProfileData.age) {
+                        document.getElementById('modal-birthyear').value = new Date().getFullYear() - userProfileData.age;
+                    } else {
+                        document.getElementById('modal-birthyear').value = "";
+                    }
+                    document.getElementById('modal-weight').value = userProfileData.weight || "";
+                    document.getElementById('modal-sex').value = userProfileData.sex || "male";
+                    if (userProfileData.heightInches) {
+                        document.getElementById('modal-height-ft').value = Math.floor(userProfileData.heightInches / 12);
+                        document.getElementById('modal-height-in').value = userProfileData.heightInches % 12;
+                    } else {
+                        document.getElementById('modal-height-ft').value = "";
+                        document.getElementById('modal-height-in').value = "";
+                    }
+                    document.getElementById('modal-days-available').value = userProfileData.daysAvailable || 4;
+                    document.getElementById('modal-include-strength').value = userProfileData.strengthType || 'runner_specific';
+                    document.getElementById('modal-why-notes').value = userProfileData.whyMotivation || userProfileData.why || '';
+                    document.getElementById('modal-target-weight').value = userProfileData.targetWeight || '';
 
                     const hwChecked = userProfileData.equipmentList || [];
                     const checkboxes = document.querySelectorAll('input[name="modal-hardware"]');
@@ -2257,6 +2600,92 @@
                 document.getElementById('profile-edit-modal').classList.add('hidden');
             }
 
+            window.validateTargetWeight = function() {
+                const targetInput = document.getElementById('modal-target-weight');
+                const warningSpan = document.getElementById('target-weight-warning');
+                const weight = parseInt(document.getElementById('modal-weight').value);
+                const targetWeight = parseInt(targetInput.value);
+                
+                const ftVal = parseInt(document.getElementById('modal-height-ft').value) || 0;
+                const inVal = parseInt(document.getElementById('modal-height-in').value) || 0;
+                const heightInches = (ftVal * 12) + inVal;
+
+                if (!weight || !heightInches || !targetWeight) {
+                    warningSpan.classList.add('hidden');
+                    targetInput.classList.remove('ring-2', 'ring-rose-500', 'border-rose-500');
+                    return;
+                }
+
+                const heightM = heightInches * 0.0254;
+                const weightKg = weight * 0.453592;
+                const startingBmi = weightKg / (heightM * heightM);
+
+                // Safe Weekly Loss Rate based on starting weight guardrails
+                let aiCoachMaxLossFactor = window.userProfileData && window.userProfileData.aiCoachMaxLossAdjustment ? window.userProfileData.aiCoachMaxLossAdjustment : 1.0;
+                let maxWeeklyPercentLoss;
+
+                if (weight >= 250) {
+                    maxWeeklyPercentLoss = 0.015 * aiCoachMaxLossFactor; // max 1.5% for 250+ lbs
+                } else if (weight >= 180) {
+                    maxWeeklyPercentLoss = 0.01 * aiCoachMaxLossFactor; // max 1.0% for 180-240 lbs
+                } else {
+                    maxWeeklyPercentLoss = 0.005 * aiCoachMaxLossFactor; // max 0.5% for < 180 lbs
+                }
+
+                let totalWeeks = 26; // Default to 6 months
+                if (window.userProfileData && window.userProfileData.journeyStartDate && window.userProfileData.targetDate) {
+                    const start = new Date(window.userProfileData.journeyStartDate);
+                    const end = new Date(window.userProfileData.targetDate);
+                    const diffTime = end - start;
+                    totalWeeks = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24 * 7)));
+                }
+
+                // The 3-Month Constraint: Enforce 12-week max if user is on the Consistent / Recreational track
+                if (window.userProfileData && window.userProfileData.challengeTier === 'recreational') {
+                    totalWeeks = Math.min(totalWeeks, 12);
+                }
+
+                const maxTotalPercentLoss = maxWeeklyPercentLoss * totalWeeks;
+                let absoluteMinTarget = Math.round(weight * (1 - maxTotalPercentLoss));
+                
+                // Absolute safety floor: BMI 18.5
+                const minHealthyWeight = 18.5 * (heightM * heightM) / 0.453592;
+                if (absoluteMinTarget < minHealthyWeight) absoluteMinTarget = Math.round(minHealthyWeight);
+
+                const tooltip = document.getElementById('target-weight-tooltip');
+                if (tooltip) {
+                    tooltip.innerHTML = `<i class="fa-solid fa-circle-info"></i> Lowest healthy recommendation: <b>${absoluteMinTarget} lbs</b>`;
+                    tooltip.classList.remove('hidden');
+                }
+
+                if (targetWeight < absoluteMinTarget) {
+                    warningSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Max safe: ${absoluteMinTarget} lbs`;
+                    warningSpan.classList.remove('hidden');
+                    targetInput.classList.add('ring-2', 'ring-rose-500', 'border-rose-500');
+                } else if (targetWeight > weight) {
+                    warningSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Should be <= current weight`;
+                    warningSpan.classList.remove('hidden');
+                    targetInput.classList.add('ring-2', 'ring-rose-500', 'border-rose-500');
+                } else {
+                    warningSpan.classList.add('hidden');
+                    targetInput.classList.remove('ring-2', 'ring-rose-500', 'border-rose-500');
+                }
+            };
+
+            window.openFullJourneyModal = function() {
+                document.getElementById('full-journey-modal').classList.remove('hidden');
+                if (window.userProfileData) {
+                    // Triggers the chart to draw in the full-journey-chart context
+                    updateDashboardBMI(window.userProfileData, true);
+                }
+            };
+
+            window.closeFullJourneyModal = function() {
+                document.getElementById('full-journey-modal').classList.add('hidden');
+                // Re-draw normal dashboard chart
+                if (window.userProfileData) updateDashboardBMI(window.userProfileData, false);
+            };
+
             function saveProfileModal() {
                 const lengthVal = parseInt(document.getElementById('modal-workout-length').value) || 45;
                 const notesVal = document.getElementById('modal-baseline-notes').value.trim();
@@ -2264,11 +2693,28 @@
                 const checkboxes = document.querySelectorAll('input[name="modal-hardware"]:checked');
                 const equipmentList = Array.from(checkboxes).map(cb => cb.value);
 
+                const weight = parseInt(document.getElementById('modal-weight').value) || null;
+                const ftVal = parseInt(document.getElementById('modal-height-ft').value) || 0;
+                const inVal = parseInt(document.getElementById('modal-height-in').value) || 0;
+                const heightInchesVal = (ftVal * 12) + inVal > 0 ? (ftVal * 12) + inVal : null;
+                const daysAvailable = parseInt(document.getElementById('modal-days-available').value) || 4;
+                const strengthType = document.getElementById('modal-include-strength').value;
+                const whyMotivation = document.getElementById('modal-why-notes').value.trim();
+                const targetWeightVal = parseInt(document.getElementById('modal-target-weight').value) || null;
+
                 if (db && userId) {
                     const updatePayload = {
                         desiredWorkoutLength: lengthVal,
                         equipmentList: equipmentList,
-                        userBaselineNotes: notesVal
+                        userBaselineNotes: notesVal,
+                        weight: weight,
+                        targetWeight: targetWeightVal,
+                        heightInches: heightInchesVal,
+                        daysAvailable: daysAvailable,
+                        includeStrength: strengthType !== 'none',
+                        strengthType: strengthType,
+                        whyMotivation: whyMotivation,
+                        why: whyMotivation
                     };
 
                     if (modalGPXCleared) {
@@ -2516,3 +2962,57 @@
                     showProfileLookupPanel();
                 }
             });
+}
+
+        async function refreshAIInsights() {
+            try {
+                const btn = document.getElementById('btn-refresh-insights');
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Refreshing...`;
+                    btn.disabled = true;
+                }
+                const backfillAIInsights = firebase.functions().httpsCallable('backfillAIInsights');
+                const result = await backfillAIInsights({
+                    profile: userProfileData,
+                    activeWorkouts: activePhaseWorkouts
+                });
+                
+                const data = result.data;
+                if (!data || !data.healthInsights) throw new Error("Invalid response from AI");
+
+                // Batch write to Firestore
+                const batch = db.batch();
+                
+                // 1. Update Profile
+                const profileRef = db.collection("users").doc(userId);
+                batch.update(profileRef, {
+                    healthInsights: data.healthInsights
+                });
+
+                // 2. Update Workouts
+                if (data.workoutTips && Array.isArray(data.workoutTips)) {
+                    data.workoutTips.forEach(tip => {
+                        if (tip.id && tip.jitPreparationTip) {
+                            const workoutRef = db.collection("users").doc(userId).collection("active_phase").doc(tip.id);
+                            batch.update(workoutRef, {
+                                jitPreparationTip: tip.jitPreparationTip
+                            });
+                        }
+                    });
+                }
+
+                await batch.commit();
+                
+                closeProfileModal();
+                alert("AI Insights successfully refreshed! Loading latest data...");
+                location.reload();
+            } catch (err) {
+                console.error("Failed to refresh AI Insights:", err);
+                alert("Failed to refresh AI Insights.");
+                const btn = document.getElementById('btn-refresh-insights');
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Refresh AI Insights`;
+                    btn.disabled = false;
+                }
+            }
+        }
