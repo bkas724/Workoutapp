@@ -148,7 +148,7 @@ exports.generateWorkoutBlock = onCall({
     let historyContext = "No recent history available.";
     if (history && history.length > 0) {
         historyContext = history.map(h => 
-            `- ${h.workoutTitle} (${h.distanceDuration}): target=${h.targetPaceZone || 'N/A'}, actual=${h.actualLoggedPace || 'N/A'}, RPE=${h.rpeScore || 'N/A'}`
+            `- ${h.workoutTitle} (${h.distanceDuration}): target=${h.targetPaceZone || 'N/A'}, actual=${h.actualLoggedPace || 'N/A'}, RPE=${h.rpeScore || 'N/A'}${h.userWorkoutNotes ? `, Notes: "${h.userWorkoutNotes}"` : ''}`
         ).join("\n");
     }
 
@@ -175,7 +175,7 @@ The user is entering Macrocycle Phase ${phaseIndex || 1}.
 
 1. Generate a 7-day workout block that precisely fits their Days Available to Train (use "rest" type for the remaining days).
 If strength training is Yes, include at least 1-2 "strength" workouts.
-You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same 'sequenceOrder' (1 through 7) so that their rest days are truly restorative.
+You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same 'sequenceOrder' (1 through 7) so that their rest days are truly restorative. IMPORTANT: When stacking, you MUST create two completely separate workout objects in the JSON array (one for the run, one for the strength) with the same sequenceOrder. DO NOT combine a run and a strength routine into a single workout title or object.
 For strength workouts, also generate 1 to 3 specific Strength Guides for the week.
 Set the 'strengthGuideReference' of the strength workout to match the guide you generated (e.g., "A", "B", or "C" corresponding to the 1st, 2nd, or 3rd guide).
 

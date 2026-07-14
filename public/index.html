@@ -1671,7 +1671,7 @@
                             Score</label>
                         <select id="alt-rpe"
                             class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-slate-200 font-bold text-sm focus:outline-none focus:border-indigo-500/80 cursor-pointer">
-                            <option value="" disabled selected>Select RPE</option>
+                            <option value="" disabled selected>Effort</option>
                             <option value="1">1 - Restful</option>
                             <option value="2">2 - Easy</option>
                             <option value="3">3 - Light</option>
@@ -3362,8 +3362,13 @@
                                                 ${nextStep.activities.map((act, actIdx) => {
                                                     if (act.type === 'work') {
                                                         return `
-                                                        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/60">
-                                                            <div class="flex-1 leading-tight">
+                                                        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/60 relative">
+                                                            ${nextStep.strengthGuideReference ? `
+                                                            <button onclick="switchTab('strength'); setTimeout(() => switchStrength('${nextStep.strengthGuideReference}'), 100);" class="absolute top-3 right-3 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 hover:border-violet-500/50 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer z-10" title="View Details in Strength Guide ${nextStep.strengthGuideReference}">
+                                                                <i class="fa-solid fa-dumbbell text-xs"></i>
+                                                            </button>
+                                                            ` : ''}
+                                                            <div class="flex-1 leading-tight pr-10">
                                                                 <span class="text-xs font-bold text-slate-200 block">${act.name}</span>
                                                                 <span class="text-[10px] text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
                                                             </div>
@@ -3389,13 +3394,6 @@
                                                     }
                                                 }).join('')}
                                             </div>
-                                        </div>
-                                        ` : ''}
-                                        ${nextStep.strengthGuideReference ? `
-                                        <div class="mt-4">
-                                            <button onclick="switchTab('strength'); setTimeout(() => switchStrength('${nextStep.strengthGuideReference}'), 100);" class="w-full bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 hover:border-violet-500/50 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
-                                                <i class="fa-solid fa-dumbbell"></i> View Details in Strength Guide ${nextStep.strengthGuideReference}
-                                            </button>
                                         </div>
                                         ` : ''}
                                     </div>
@@ -3426,16 +3424,19 @@
                                                 ${nextStep.type !== 'rest' ? `
                                                 <div class="flex flex-wrap items-center gap-3">
                                                     ${['run', 'walk', 'bike', 'swim', 'easy', 'fast'].includes(nextStep.type) ? `
-                                                    <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800">
-                                                        <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
-                                                        <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
-                                                        
-                                                        <div class="w-px h-4 bg-slate-700 mx-1"></div>
-                                                        
-                                                        <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs ml-3">
-                                                        <span class="text-slate-650 font-bold text-xs">:</span>
-                                                        <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
-                                                        <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                                    <div class="flex flex-col gap-1 w-full">
+                                                        <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
+                                                            <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
+                                                            
+                                                            <div class="w-px h-4 bg-slate-700 mx-1"></div>
+                                                            
+                                                            <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs ml-3">
+                                                            <span class="text-slate-650 font-bold text-xs">:</span>
+                                                            <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                                        </div>
+                                                        ${isSpeed ? `<span class="text-[9px] text-slate-500 italic ml-1">Enter total mileage and avg. sprint pace.</span>` : ''}
                                                     </div>
                                             ` : `
                                             <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800">
@@ -3446,7 +3447,7 @@
                                             <div class="flex items-center gap-3">
                                                 <div class="flex items-center gap-1.5">
                                                     <select id="logged-rpe-${nextStep.id}" class="w-[105px] truncate bg-slate-900 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
-                                                        <option value="" disabled selected>Select RPE</option>
+                                                        <option value="" disabled selected>Effort</option>
                                                         <option value="1">1 - Restful (Avg HR < 100)</option>
                                                         <option value="2">2 - Easy (Avg HR 100-115)</option>
                                                         <option value="3">3 - Light (Avg HR 115-130)</option>
@@ -3463,11 +3464,14 @@
                                                     <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
                                                 </div>
                                             </div>
+                                            <div class="w-full mt-1">
+                                                <textarea id="logged-notes-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:border-indigo-500 placeholder-slate-600 resize-none h-16" placeholder="Add workout notes or splits..."></textarea>
+                                            </div>
                                             ${isSpeed ? `
-                                            <div class="flex items-center gap-1.5">
+                                            <div class="flex items-center gap-1.5 w-full mt-1">
                                                 <input type="file" id="workout-file-upload-${nextStep.id}" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleWorkoutFileUpload(this, '${nextStep.id}')">
-                                                <button type="button" onclick="document.getElementById('workout-file-upload-${nextStep.id}').click()" class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
-                                                    <i class="fa-solid fa-file-arrow-up"></i> Upload Run
+                                                <button type="button" onclick="document.getElementById('workout-file-upload-${nextStep.id}').click()" class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer w-full">
+                                                    <i class="fa-solid fa-file-arrow-up"></i> Upload Run Data (GPX/TCX)
                                                 </button>
                                             </div>
                                             ` : ''}
@@ -3623,7 +3627,7 @@
 
                 if (isNaN(dist) || isNaN(mins) || isNaN(secs) || minInput.value === "" || secInput.value === "" || !rpeVal) {
                     if (warning) {
-                        warning.innerText = "⚠️ Please fill out all metrics and select an RPE score before submitting.";
+                        warning.innerText = "⚠️ Please fill out all metrics and select an Effort score before submitting.";
                         warning.classList.remove('hidden');
                     }
                     if (cbElement) cbElement.checked = false;
@@ -3652,6 +3656,8 @@
 
             const loggedDateEl = document.getElementById(`logged-date-${activityId}`);
             const completionDate = (loggedDateEl && loggedDateEl.value) ? loggedDateEl.value : new Date().toISOString().split('T')[0];
+            const notesEl = document.getElementById(`logged-notes-${activityId}`);
+            const notesVal = (notesEl && notesEl.value.trim() !== '') ? notesEl.value.trim() : null;
 
             const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activityId);
 
@@ -3704,6 +3710,9 @@
                     rpeScore: parseInt(rpeVal),
                     dateExecuted: completionDate
                 };
+                if (notesVal) {
+                    updatePayload.userWorkoutNotes = notesVal;
+                }
                 if (lastUploadedWorkoutFile) {
                     updatePayload.uploadedWorkoutFile = lastUploadedWorkoutFile;
                 }
