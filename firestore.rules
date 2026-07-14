@@ -8,6 +8,10 @@ service cloud.firestore {
       match /active_phase/{activityId} {
         allow read, write: if true;
       }
+      
+      match /history/{activityId} {
+        allow read, write: if true;
+      }
     }
   }
 }

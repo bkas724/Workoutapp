@@ -3616,7 +3616,9 @@
             let actualWorkoutPaceDecimal = null;
             let paceStr = null;
 
-            if (typeClass === 'distance') {
+            if (defaultType === 'rest') {
+                // Rest day needs no distance/duration/RPE validation
+            } else if (typeClass === 'distance') {
                 const distInput = document.getElementById(`logged-distance-${activityId}`);
                 const minInput = document.getElementById(`logged-min-${activityId}`);
                 const secInput = document.getElementById(`logged-sec-${activityId}`);
@@ -4188,6 +4190,14 @@
         }
 
         async function proceedToNextPhase() {
+            try {
+                if (firebase.auth().currentUser) {
+                    await firebase.auth().currentUser.getIdToken(true); // Force token refresh if backgrounded overnight
+                }
+            } catch (e) {
+                console.warn("Token refresh failed:", e);
+            }
+
             const notes = document.getElementById('gateway-override-notes').value.trim();
             const newWeightStr = document.getElementById('gateway-weight').value;
             let newWeight = parseFloat(newWeightStr);
@@ -4265,7 +4275,12 @@
                 if (bmiHistoryUpdate) {
                     updateData.bmiHistory = bmiHistoryUpdate;
                 }
-                await userDocRef.update(updateData);
+                
+                try {
+                    await userDocRef.update(updateData);
+                } catch(e) {
+                    throw new Error("Profile Update Error: " + e.message);
+                }
 
                 // Archive active phase to history, then clear active_phase
                 const batchArchive = db.batch();
@@ -4273,13 +4288,24 @@
                     batchArchive.set(userDocRef.collection("history").doc(w.id), w);
                     batchArchive.delete(userDocRef.collection("active_phase").doc(w.id));
                 });
-                await batchArchive.commit();
+                
+                try {
+                    await batchArchive.commit();
+                } catch(e) {
+                    throw new Error("Batch Archive Error: " + e.message);
+                }
 
                 // Fetch recent history (up to last 14 workouts)
-                const historySnapshot = await userDocRef.collection("history")
-                    .orderBy("dateExecuted", "desc")
-                    .limit(14)
-                    .get();
+                let historySnapshot;
+                try {
+                    historySnapshot = await userDocRef.collection("history")
+                        .orderBy("dateExecuted", "desc")
+                        .limit(14)
+                        .get();
+                } catch(e) {
+                    throw new Error("History Fetch Error: " + e.message);
+                }
+
                 const recentHistory = [];
                 historySnapshot.forEach(doc => {
                     recentHistory.push(doc.data());
@@ -4319,7 +4345,12 @@
                 nextWorkouts.forEach((w) => {
                     batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
                 });
-                await batchWrite.commit();
+                
+                try {
+                    await batchWrite.commit();
+                } catch(e) {
+                    throw new Error("Batch Write Next Workouts Error: " + e.message);
+                }
 
                 console.log(`Successfully advanced to Phase ${nextPhaseIndex}`);
                 setTimeout(() => {
@@ -4329,7 +4360,7 @@
             } catch (err) {
                 console.error("Gateway transition failure: ", err);
                 hideAutopilotLoader();
-                alert("Firestore sync error during gateway checkout.");
+                alert("Checkout Failed: " + err.message);
             }
         }
 
@@ -6182,7 +6213,7 @@
                     });
 
                     console.log("BMI Chart Debug:", {
-                        history, labels, weights, startD, endD, validWeights, dynamicMin, dynamicMax
+                        history, labels, startD, endD, validWeights, dynamicMin, dynamicMax
                     });
 
                     if (isFullJourney) window.fullBmiChartInstance = chartInstance;
