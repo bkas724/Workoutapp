@@ -177,7 +177,7 @@ The user is entering Macrocycle Phase ${phaseIndex || 1}.
 If strength training is Yes, include at least 1-2 "strength" workouts.
 You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same 'sequenceOrder' (1 through 7) so that their rest days are truly restorative.
 For strength workouts, also generate 1 to 3 specific Strength Guides for the week.
-Set the 'targetInstructions' of the strength workout to reference the title of the guide you generated.
+Set the 'strengthGuideReference' of the strength workout to match the guide you generated (e.g., "A", "B", or "C" corresponding to the 1st, 2nd, or 3rd guide).
 
 2. Attach a 'jitPreparationTip' to EVERY workout object (including rest days). This tip should instruct the user on what to do *the day before* or *the hours leading up to* this specific workout to prepare/fuel/recover.
 
@@ -198,7 +198,16 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "isBenchmark": Boolean,
       "targetInstructions": "String (Keep under 100 characters)",
       "targetPaceZone": "String (easy, goal, tempo, long, or null)",
-      "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)"
+      "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
+      "strengthGuideReference": "String ('A', 'B', or 'C' if strength workout, else null)",
+      "activities": [
+        {
+          "name": "String (e.g., Warmup, Interval, Squats)",
+          "type": "String (prep, work, cool)",
+          "sets": Number,
+          "repsDistanceTime": "String (e.g., 10 reps, 400m, 5 mins)"
+        }
+      ]
     }
   ],
   "strengthGuides": [
