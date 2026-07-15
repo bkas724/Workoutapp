@@ -62,7 +62,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 exports.backfillAIInsights = onCall({
     secrets: [geminiApiKey],
     cors: true,
-    timeoutSeconds: 300
+    timeoutSeconds: 60
 }, async (request) => {
     const { profile, activeWorkouts } = request.data;
     const ai = new GoogleGenerativeAI(geminiApiKey.value());
@@ -139,6 +139,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 exports.generateWorkoutBlock = onCall({
     secrets: [geminiApiKey],
     cors: true,
+    timeoutSeconds: 60
 }, async (request) => {
     const { phaseIndex, profile, history, simpleMode } = request.data;
     

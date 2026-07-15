@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fitness Dashboard</title>
+    <title>MyFlow</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         function submitSpeedWorkout(stepId, subId, isBenchmark) {
@@ -288,6 +288,11 @@
                     class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 cursor-pointer flex items-center gap-1"
                     title="Edit Athlete Profile">
                     <i class="fa-solid fa-pen text-[9px]"></i> Edit
+                </button>
+                <button id="regenerate-block-btn" onclick="retryAIBlockGeneration()"
+                    class="text-[10px] font-bold text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-wider bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20 cursor-pointer flex items-center gap-1 hidden"
+                    title="Regenerate Active Block">
+                    <i class="fa-solid fa-rotate-right text-[9px]"></i> Regenerate AI Block
                 </button>
             </div>
 
@@ -661,7 +666,7 @@
                     <div>
                         <h2
                             class="text-2xl font-black text-white bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-                            Welcome to YourFlow</h2>
+                            Welcome to MyFlow</h2>
                         <p class="text-xs text-indigo-400 font-semibold mt-1">Adaptive Just-in-Time Autopilot</p>
                     </div>
                 </div>
@@ -737,7 +742,7 @@
                     ⚠️ <strong class="text-amber-400">MEDICAL NOTICE & RESPONSIBILITY DISCLAIMER:</strong> You are
                     strictly, personally responsible for your own training decisions and physical exertion limits. You
                     are liable for your own actions. These training plans are merely suggestions and everything should
-                    be approved by your Primary Care doctor before completing any activities. YourFlow is an automated,
+                    be approved by your Primary Care doctor before completing any activities. MyFlow is an automated,
                     self-guided reference tool, not a medical professional.
                 </div>
                 <div class="flex items-start gap-3 bg-slate-950/50 p-4 rounded-xl border border-slate-850">
@@ -2314,18 +2319,10 @@
                 });
 
                 console.log("☁️ Workout snapshot updated: ", activePhaseWorkouts.length);
-                if (activePhaseWorkouts.length > 0) {
-                    buildActivePhaseHTML();
-                    renderNextActivityCard();
-                    updateOverallProgressMeter();
-                    checkPhaseCompletion();
-                } else {
-                    document.getElementById('jit-checklist-container').innerHTML = `
-                        <div class="text-center py-8 text-slate-500 text-xs">
-                            <i class="fa-solid fa-cloud-arrow-up text-lg mb-2 block text-indigo-500 animate-pulse"></i>
-                            Initializing active phase workouts...
-                        </div>`;
-                }
+                buildActivePhaseHTML();
+                renderNextActivityCard();
+                updateOverallProgressMeter();
+                checkPhaseCompletion();
             }, (error) => {
                 console.error("Workouts channel sync error: ", error);
             });
@@ -2753,10 +2750,14 @@
 
             try {
                 const proposeGoalPaces = firebase.functions().httpsCallable('proposeGoalPaces');
+                
+                let birthYearVal = parseInt(document.getElementById('intake-birthyear').value);
+                let ageVal = isNaN(birthYearVal) ? null : new Date().getFullYear() - birthYearVal;
+                
                 const result = await proposeGoalPaces({
-                    age: new Date().getFullYear() - parseInt(document.getElementById('intake-birthyear').value),
-                    weight: document.getElementById('intake-weight').value,
-                    sex: document.getElementById('intake-sex').value,
+                    age: ageVal,
+                    weight: document.getElementById('intake-weight').value || null,
+                    sex: document.getElementById('intake-sex').value || null,
                     fitnessLevel: fitness,
                     targetDistance: targetDistance,
                     targetDate: targetDate,
@@ -2910,7 +2911,8 @@
                 const ticker = document.getElementById('autopilot-loading-ticker');
                 if (ticker) ticker.innerText = "Designing macrocycle roadmap...";
                 const generateMacrocyclePlan = firebase.functions().httpsCallable('generateMacrocyclePlan');
-                const planResult = await generateMacrocyclePlan({ profile: profilePayload });
+                const cleanProfilePayload = JSON.parse(JSON.stringify(profilePayload));
+                const planResult = await generateMacrocyclePlan({ profile: cleanProfilePayload });
                 if (targetWeight) {
                     document.getElementById('review-target-weight-badge').classList.remove('hidden');
                     document.getElementById('review-target-weight-val').innerText = targetWeight;
@@ -2954,9 +2956,10 @@
                     const ticker = document.getElementById('autopilot-loading-ticker');
                     if (ticker) ticker.innerText = "Designing initial workout block...";
                     const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                    const cleanProfilePayload = JSON.parse(JSON.stringify(profilePayload));
                     const aiResult = await generateWorkoutBlock({
                         phaseIndex: 1,
-                        profile: profilePayload,
+                        profile: cleanProfilePayload,
                         history: []
                     });
                     p1Workouts = aiResult.data.workouts || getPhase1DefaultWorkouts();
@@ -3000,7 +3003,32 @@
             const container = document.getElementById('jit-checklist-container');
             container.innerHTML = "";
 
-            if (!activePhaseWorkouts || activePhaseWorkouts.length === 0) return;
+            if (!activePhaseWorkouts || activePhaseWorkouts.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-10 bg-slate-900/50 rounded-2xl border border-slate-800 text-center gap-4">
+                        <div class="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-2">
+                            <i class="fa-solid fa-flag-checkered text-2xl text-indigo-400"></i>
+                        </div>
+                        <h3 class="text-white font-bold text-lg">Phase Complete</h3>
+                        <p class="text-slate-400 text-sm max-w-sm">You have no active workouts. Generate your next phase to continue your journey.</p>
+                        <button onclick="proceedToNextPhase()" class="mt-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate Next Phase
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Toggle Regenerate Button visibility
+            const regenBtn = document.getElementById('regenerate-block-btn');
+            if (regenBtn) {
+                const anyCompleted = activePhaseWorkouts.some(w => w.completed);
+                if (anyCompleted) {
+                    regenBtn.classList.add('hidden');
+                } else {
+                    regenBtn.classList.remove('hidden');
+                }
+            }
 
             // Group by sequenceOrder
             const groupedWorkouts = {};
@@ -3235,12 +3263,17 @@
 
             if (renderSequenceOrder === null) {
                 container.innerHTML = `
-                    <div class="flex items-center gap-4 text-emerald-400 p-4">
-                        <i class="fa-solid fa-trophy text-4xl"></i>
-                        <div>
-                            <h2 class="text-2xl font-black uppercase tracking-wider">All Phase Workouts Complete!</h2>
-                            <p class="text-slate-300 mt-1">Unlock your next autopilot block below.</p>
+                    <div class="flex flex-col md:flex-row items-center md:items-start justify-between w-full gap-4 p-4 text-emerald-400">
+                        <div class="flex items-center gap-4">
+                            <i class="fa-solid fa-trophy text-4xl"></i>
+                            <div>
+                                <h2 class="text-2xl font-black uppercase tracking-wider">All Phase Workouts Complete!</h2>
+                                <p class="text-slate-300 mt-1">Unlock your next autopilot block to continue your training.</p>
+                            </div>
                         </div>
+                        <button onclick="proceedToNextPhase()" class="shrink-0 bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] whitespace-nowrap">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate Next Phase
+                        </button>
                     </div>`;
                 return;
             }
@@ -3709,7 +3742,7 @@
                     actualLoggedDistance: actualDistance,
                     actualLoggedDuration: actualDuration,
                     actualLoggedPace: paceStr,
-                    rpeScore: parseInt(rpeVal),
+                    rpeScore: (rpeVal && !isNaN(parseInt(rpeVal))) ? parseInt(rpeVal) : null,
                     dateExecuted: completionDate
                 };
                 if (notesVal) {
@@ -3799,7 +3832,7 @@
                     alert("Please select an RPE score.");
                     return;
                 }
-                updatePayload.rpeScore = parseInt(rpeVal);
+                updatePayload.rpeScore = !isNaN(parseInt(rpeVal)) ? parseInt(rpeVal) : null;
             }
 
             if (['run', 'walk', 'bike', 'swim'].includes(type)) {
@@ -4285,7 +4318,9 @@
                 // Archive active phase to history, then clear active_phase
                 const batchArchive = db.batch();
                 activePhaseWorkouts.forEach((w) => {
-                    batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                    if (w.completed) {
+                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                    }
                     batchArchive.delete(userDocRef.collection("active_phase").doc(w.id));
                 });
                 
@@ -4311,14 +4346,17 @@
                     recentHistory.push(doc.data());
                 });
 
+                const cleanProfile = JSON.parse(JSON.stringify(userProfileData));
+                const cleanHistory = JSON.parse(JSON.stringify(recentHistory));
+
                 // Call Firebase Cloud Function to generate AI workouts
                 let nextWorkouts = [];
                 try {
                     const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
                     const aiResult = await generateWorkoutBlock({
                         phaseIndex: nextPhaseIndex,
-                        profile: userProfileData,
-                        history: recentHistory
+                        profile: cleanProfile,
+                        history: cleanHistory
                     });
                     nextWorkouts = aiResult.data.workouts || [];
                     const strengthGuides = aiResult.data.strengthGuides || [];
@@ -4338,6 +4376,7 @@
                     }
                 } catch (error) {
                     console.error("Failed to generate AI workouts, falling back to defaults.", error);
+                    alert("AI Generation Error: " + error.message + "\n\nFalling back to default workouts instead.");
                     nextWorkouts = getPhase1DefaultWorkouts();
                 }
 
@@ -4362,6 +4401,23 @@
                 hideAutopilotLoader();
                 alert("Checkout Failed: " + err.message);
             }
+        }
+        function retryAIBlockGeneration() {
+            const confirmed = window.confirm("Are you sure you want to regenerate this block? This will replace your current workouts with a new AI-generated plan.");
+            if (!confirmed) return;
+            
+            const notesEl = document.getElementById('gateway-override-notes');
+            if (notesEl) notesEl.value = "";
+            const weightEl = document.getElementById('gateway-weight');
+            if (weightEl) weightEl.value = "";
+
+            showAutopilotLoader();
+            
+            proceedToNextPhase().catch(err => {
+                console.error(err);
+                alert("Failed to regenerate block.");
+                hideAutopilotLoader();
+            });
         }
 
         // 7. Pulse Heartbeat Status Marquee (Latency Masking) & 15-Second Timeout
@@ -4392,11 +4448,11 @@
                 }, 2000);
             }
 
-            // 60-second abort interceptor
+            // 120-second abort interceptor
             syncTimeoutHandle = setTimeout(() => {
                 hideAutopilotLoader();
                 document.getElementById('timeout-error-modal').classList.remove('hidden');
-            }, 60000);
+            }, 120000);
         }
 
         function hideAutopilotLoader() {
@@ -4522,9 +4578,11 @@
                 showAutopilotLoader("Generating Simplified workouts.");
                 try {
                     const generateStrengthGuidesOnly = firebase.functions().httpsCallable('generateStrengthGuidesOnly');
+                    const cleanProfile = JSON.parse(JSON.stringify(userProfileData));
                     const aiResult = await generateStrengthGuidesOnly({
                         phaseIndex: userProfileData.currentPhaseIndex || 1,
-                        profile: userProfileData,
+                        profile: cleanProfile,
+                        history: [],
                         simpleMode: true
                     });
 
@@ -5120,8 +5178,10 @@
                     btn.disabled = true;
                 }
                 const backfillAIInsights = firebase.functions().httpsCallable('backfillAIInsights');
+                const cleanProfile = JSON.parse(JSON.stringify(userProfileData));
                 const result = await backfillAIInsights({
-                    profile: userProfileData,
+                    profile: cleanProfile,
+                    history: [],
                     activeWorkouts: activePhaseWorkouts
                 });
 
