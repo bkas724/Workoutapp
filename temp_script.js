@@ -1,0 +1,4710 @@
+
+
+        function submitSpeedWorkout(stepId, subId, isBenchmark) {
+            const minInput = document.getElementById('logged-min');
+            const secInput = document.getElementById('logged-sec');
+            const warning = document.getElementById('gatekeeper-warn');
+
+            const mins = parseFloat(minInput.value);
+            const secs = parseFloat(secInput.value);
+
+            // Enforce data governance limits (Gating validation)
+            if (isNaN(mins) || isNaN(secs) || minInput.value === "" || secInput.value === "") {
+                warning.classList.remove('hidden');
+                return;
+            }
+            warning.classList.add('hidden');
+
+            // Process step completion status
+            appState[stepId] = true;
+            const timelineCb = document.getElementById(stepId);
+            if (timelineCb) timelineCb.checked = true;
+
+            // Capture the metrics directly to the subphases array
+            const stepNum = stepId.substring(stepId.lastIndexOf('-') + 1);
+            const stepObj = subphases.find(s => s.id === subId)?.steps[parseInt(stepNum)];
+            if (stepObj) {
+                stepObj.completed = true;
+                stepObj.actualLoggedPace = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+            }
+
+            // Handle Adaptive Physiological Recalculation if it is a benchmark day
+            if (isBenchmark) {
+                const actualWorkoutPaceDecimal = mins + (secs / 60);
+
+                // Grab old baseline parameters
+                const prevMins = parseFloat(document.getElementById('input-min').value) || 8;
+                const prevSecs = parseFloat(document.getElementById('input-sec').value) || 10;
+                const previousTargetBaselineDecimal = prevMins + (prevSecs / 60);
+
+                // Execute the 70/30 EMA Formula
+                const newBaselinePaceDecimal = (previousTargetBaselineDecimal * 0.70) + (actualWorkoutPaceDecimal * 0.30);
+
+                // Convert the final updated decimal blueprint back to clean integers
+                const finalMin = Math.floor(newBaselinePaceDecimal);
+                const finalSec = Math.round((newBaselinePaceDecimal - finalMin) * 60);
+
+                // Inject the updated baseline straight back to user data configuration views
+                document.getElementById('input-min').value = finalMin;
+                document.getElementById('input-sec').value = finalSec;
+
+                if (document.getElementById('input-min-display')) {
+                    document.getElementById('input-min-display').innerText = finalMin;
+                    document.getElementById('input-sec-display').innerText = finalSec < 10 ? '0' + finalSec : finalSec;
+                }
+
+                console.log(`EMA recalibration triggered! Previous: ${prevMins}:${prevSecs}, Logged: ${mins}:${secs}, New Engine Base Calibration: ${finalMin}:${finalSec}`);
+            }
+
+            // Refresh UI components across layout streams
+            updateSubphaseProgressBadge(subId);
+            updateOverallProgressMeter();
+            calculateTargetPaces(); // This will recalculate threshold slots
+            saveStateToCloud(); // Explicitly push the speed workout metrics to Firestore
+            renderNextActivityCard();
+            updateStageProgress();
+        }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            easy: '#22c55e', /* Green for easy runs */
+                            speed: '#6366f1', /* Indigo for speed runs */
+                            strength: '#f97316', /* Orange for strength */
+                        }
+                    }
+                }
+            }
+        }
+    
+
+
+
+
+
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            document.querySelectorAll(`.tab-${tabId}`).forEach(el => {
+                el.classList.remove('hidden');
+                el.classList.add('block');
+            });
+
+            document.querySelectorAll('nav button').forEach(el => {
+                el.classList.remove('text-indigo-400');
+                el.classList.add('text-slate-500');
+            });
+            const btn = document.getElementById(`nav-btn-${tabId}`);
+            if (btn) {
+                btn.classList.remove('text-slate-500');
+                btn.classList.add('text-indigo-400');
+            }
+
+            const header = document.getElementById('journey-header-card');
+            const headerText = document.getElementById('header-text-toggle');
+            const motivationBlock = document.getElementById('motivation-block-container');
+
+            if (header) {
+                if (tabId === 'home') {
+                    header.classList.remove('py-2', 'px-4');
+                    header.classList.add('p-4', 'md:p-5', 'mb-4');
+                    if (headerText) headerText.classList.remove('hidden');
+                    if (motivationBlock) motivationBlock.classList.remove('hidden');
+                } else {
+                    header.classList.remove('p-4', 'md:p-5', 'mb-4');
+                    header.classList.add('py-2', 'px-4', 'mb-2');
+                    if (headerText) headerText.classList.add('hidden');
+                    if (motivationBlock) motivationBlock.classList.add('hidden');
+                }
+            }
+        }
+        // Your web app's Firebase configuration 
+        // (Copy this exact block from your Firebase Project Settings Web App page)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCedoObrQQHkJ9B_ycYsWla5q8aIIts9nE",
+            authDomain: "yourflow-b8645.firebaseapp.com",
+            projectId: "yourflow-b8645",
+            storageBucket: "yourflow-b8645.firebasestorage.app",
+            messagingSenderId: "886635521341",
+            appId: "1:886635521341:web:f1162e315632e67a2cd154"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        window.db = firebase.firestore();
+
+    
+
+        // Custom SVG Icons definition matching user specs
+        const icons = {
+            easy: `<div class="w-5 h-5 bg-primary-easy icon-turtle" title="Easy Run"></div>`,
+            fast: `<div class="w-5 h-5 bg-primary-speed icon-fast" title="Fast Run"></div>`,
+            strength: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Strength"></div>`,
+            rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`
+        };
+
+        // ------------------ WORKOUT FILE PARSER ENGINE ------------------
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth radius in meters
+            const phi1 = lat1 * Math.PI / 180;
+            const phi2 = lat2 * Math.PI / 180;
+            const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+            const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                Math.cos(phi1) * Math.cos(phi2) *
+                Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // in meters
+        }
+
+        function parseGPX(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const trkpts = xmlDoc.getElementsByTagName("trkpt");
+
+            if (trkpts.length === 0) {
+                throw new Error("No trackpoints found in GPX file.");
+            }
+
+            let totalDistanceMeters = 0;
+            let totalDurationSeconds = 0;
+            let heartRates = [];
+            let cadences = [];
+            let elevations = [];
+
+            let prevLat = null;
+            let prevLon = null;
+            let prevTime = null;
+
+            for (let i = 0; i < trkpts.length; i++) {
+                const trkpt = trkpts[i];
+                const lat = parseFloat(trkpt.getAttribute("lat"));
+                const lon = parseFloat(trkpt.getAttribute("lon"));
+
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    if (prevLat !== null && prevLon !== null) {
+                        totalDistanceMeters += haversineDistance(prevLat, prevLon, lat, lon);
+                    }
+                    prevLat = lat;
+                    prevLon = lon;
+                }
+
+                const timeEl = trkpt.getElementsByTagName("time")[0];
+                if (timeEl) {
+                    const currentTime = new Date(timeEl.textContent);
+                    if (prevTime !== null) {
+                        const diff = (currentTime - prevTime) / 1000;
+                        if (diff > 0 && diff < 300) {
+                            totalDurationSeconds += diff;
+                        }
+                    }
+                    prevTime = currentTime;
+                }
+
+                const eleEl = trkpt.getElementsByTagName("ele")[0];
+                if (eleEl) {
+                    const eleVal = parseFloat(eleEl.textContent);
+                    if (!isNaN(eleVal)) elevations.push(eleVal);
+                }
+
+                let hr = null;
+                let cad = null;
+
+                const hrEl = trkpt.getElementsByTagName("hr")[0] || trkpt.getElementsByTagName("gpxtpx:hr")[0];
+                if (hrEl) hr = parseFloat(hrEl.textContent);
+
+                const cadEl = trkpt.getElementsByTagName("cad")[0] || trkpt.getElementsByTagName("gpxtpx:cad")[0];
+                if (cadEl) cad = parseFloat(cadEl.textContent);
+
+                if (isNaN(hr) || hr === null || isNaN(cad) || cad === null) {
+                    const extensions = trkpt.getElementsByTagName("extensions")[0];
+                    if (extensions) {
+                        const allChildren = extensions.getElementsByTagName("*");
+                        for (let j = 0; j < allChildren.length; j++) {
+                            const child = allChildren[j];
+                            if (child.localName === 'hr' && (isNaN(hr) || hr === null)) {
+                                hr = parseFloat(child.textContent);
+                            }
+                            if (child.localName === 'cad' && (isNaN(cad) || cad === null)) {
+                                cad = parseFloat(child.textContent);
+                            }
+                        }
+                    }
+                }
+
+                if (hr && !isNaN(hr)) heartRates.push(hr);
+                if (cad && !isNaN(cad)) cadences.push(cad);
+            }
+
+            if (totalDurationSeconds === 0 && trkpts.length > 1) {
+                const startTimeEl = trkpts[0].getElementsByTagName("time")[0];
+                const endTimeEl = trkpts[trkpts.length - 1].getElementsByTagName("time")[0];
+                if (startTimeEl && endTimeEl) {
+                    const start = new Date(startTimeEl.textContent);
+                    const end = new Date(endTimeEl.textContent);
+                    totalDurationSeconds = (end - start) / 1000;
+                }
+            }
+
+            const distanceMiles = totalDistanceMeters / 1609.344;
+            let paceDecimal = 0;
+            let paceStr = "0:00";
+            if (distanceMiles > 0 && totalDurationSeconds > 0) {
+                paceDecimal = (totalDurationSeconds / 60) / distanceMiles;
+                const paceMins = Math.floor(paceDecimal);
+                const paceSecs = Math.round((paceDecimal - paceMins) * 60);
+                paceStr = `${paceMins}:${paceSecs < 10 ? '0' + paceSecs : paceSecs}`;
+            }
+
+            let avgCadence = 0;
+            if (cadences.length > 0) {
+                avgCadence = Math.round(cadences.reduce((a, b) => a + b, 0) / cadences.length);
+            }
+
+            let avgHeartRate = 0;
+            let maxHeartRate = 0;
+            if (heartRates.length > 0) {
+                avgHeartRate = Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length);
+                maxHeartRate = Math.max(...heartRates);
+            }
+
+            let elevationGainMeters = 0;
+            if (elevations.length > 1) {
+                for (let i = 1; i < elevations.length; i++) {
+                    const diff = elevations[i] - elevations[i - 1];
+                    if (diff > 0) elevationGainMeters += diff;
+                }
+            }
+            const elevationGainFeet = elevationGainMeters * 3.28084;
+
+            let avgGradient = 0;
+            if (totalDistanceMeters > 0 && elevationGainMeters > 0) {
+                avgGradient = (elevationGainMeters / totalDistanceMeters) * 100;
+            }
+
+            return {
+                distance: parseFloat(distanceMiles.toFixed(2)),
+                duration: Math.round(totalDurationSeconds),
+                pace: paceStr,
+                paceDecimal: paceDecimal,
+                avgCadence: avgCadence || null,
+                avgHeartRate: avgHeartRate || null,
+                maxHeartRate: maxHeartRate || null,
+                elevationGain: parseFloat(elevationGainFeet.toFixed(1)),
+                avgGradient: parseFloat(avgGradient.toFixed(2))
+            };
+        }
+
+        function parseTCX(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const trackpoints = xmlDoc.getElementsByTagName("Trackpoint");
+
+            if (trackpoints.length === 0) {
+                throw new Error("No trackpoints found in TCX file.");
+            }
+
+            let totalDistanceMeters = 0;
+            let totalDurationSeconds = 0;
+            let heartRates = [];
+            let cadences = [];
+            let elevations = [];
+
+            let prevTime = null;
+            let startDistance = null;
+            let endDistance = null;
+
+            for (let i = 0; i < trackpoints.length; i++) {
+                const tp = trackpoints[i];
+
+                const distEl = tp.getElementsByTagName("DistanceMeters")[0];
+                if (distEl) {
+                    const dist = parseFloat(distEl.textContent);
+                    if (startDistance === null) startDistance = dist;
+                    endDistance = dist;
+                }
+
+                const timeEl = tp.getElementsByTagName("Time")[0];
+                if (timeEl) {
+                    const currentTime = new Date(timeEl.textContent);
+                    if (prevTime !== null) {
+                        const diff = (currentTime - prevTime) / 1000;
+                        if (diff > 0 && diff < 300) {
+                            totalDurationSeconds += diff;
+                        }
+                    }
+                    prevTime = currentTime;
+                }
+
+                const altEl = tp.getElementsByTagName("AltitudeMeters")[0];
+                if (altEl) {
+                    const altVal = parseFloat(altEl.textContent);
+                    if (!isNaN(altVal)) elevations.push(altVal);
+                }
+
+                const hrEl = tp.getElementsByTagName("HeartRateBpm")[0];
+                if (hrEl) {
+                    const valEl = hrEl.getElementsByTagName("Value")[0];
+                    if (valEl) {
+                        const hr = parseFloat(valEl.textContent);
+                        if (!isNaN(hr)) heartRates.push(hr);
+                    }
+                }
+
+                const cadEl = tp.getElementsByTagName("Cadence")[0];
+                if (cadEl) {
+                    const cad = parseFloat(cadEl.textContent);
+                    if (!isNaN(cad)) cadences.push(cad);
+                }
+            }
+
+            if (startDistance !== null && endDistance !== null) {
+                totalDistanceMeters = endDistance - startDistance;
+            }
+
+            if (totalDurationSeconds === 0 && trackpoints.length > 1) {
+                const startTimeEl = trackpoints[0].getElementsByTagName("Time")[0];
+                const endTimeEl = trackpoints[trackpoints.length - 1].getElementsByTagName("Time")[0];
+                if (startTimeEl && endTimeEl) {
+                    const start = new Date(startTimeEl.textContent);
+                    const end = new Date(endTimeEl.textContent);
+                    totalDurationSeconds = (end - start) / 1000;
+                }
+            }
+
+            const distanceMiles = totalDistanceMeters / 1609.344;
+            let paceDecimal = 0;
+            let paceStr = "0:00";
+            if (distanceMiles > 0 && totalDurationSeconds > 0) {
+                paceDecimal = (totalDurationSeconds / 60) / distanceMiles;
+                const paceMins = Math.floor(paceDecimal);
+                const paceSecs = Math.round((paceDecimal - paceMins) * 60);
+                paceStr = `${paceMins}:${paceSecs < 10 ? '0' + paceSecs : paceSecs}`;
+            }
+
+            let avgCadence = 0;
+            if (cadences.length > 0) {
+                avgCadence = Math.round(cadences.reduce((a, b) => a + b, 0) / cadences.length);
+            }
+
+            let avgHeartRate = 0;
+            let maxHeartRate = 0;
+            if (heartRates.length > 0) {
+                avgHeartRate = Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length);
+                maxHeartRate = Math.max(...heartRates);
+            }
+
+            let elevationGainMeters = 0;
+            if (elevations.length > 1) {
+                for (let i = 1; i < elevations.length; i++) {
+                    const diff = elevations[i] - elevations[i - 1];
+                    if (diff > 0) elevationGainMeters += diff;
+                }
+            }
+            const elevationGainFeet = elevationGainMeters * 3.28084;
+
+            let avgGradient = 0;
+            if (totalDistanceMeters > 0 && elevationGainMeters > 0) {
+                avgGradient = (elevationGainMeters / totalDistanceMeters) * 100;
+            }
+
+            return {
+                distance: parseFloat(distanceMiles.toFixed(2)),
+                duration: Math.round(totalDurationSeconds),
+                pace: paceStr,
+                paceDecimal: paceDecimal,
+                avgCadence: avgCadence || null,
+                avgHeartRate: avgHeartRate || null,
+                maxHeartRate: maxHeartRate || null,
+                elevationGain: parseFloat(elevationGainFeet.toFixed(1)),
+                avgGradient: parseFloat(avgGradient.toFixed(2))
+            };
+        }
+
+        function parseGenericWorkout(text) {
+            const lines = text.split('\n');
+            let distance = null;
+            let duration = null;
+            let pace = null;
+            let avgCadence = null;
+            let avgHeartRate = null;
+
+            for (let line of lines) {
+                const parts = line.split(':');
+                if (parts.length >= 2) {
+                    const key = parts[0].trim().toLowerCase();
+                    const val = parts.slice(1).join(':').trim();
+                    if (key.includes('distance') || key.includes('dist')) {
+                        distance = parseFloat(val);
+                    } else if (key.includes('duration') || key.includes('time')) {
+                        if (val.includes(':')) {
+                            const tParts = val.split(':');
+                            if (tParts.length === 2) duration = parseInt(tParts[0]) * 60 + parseInt(tParts[1]);
+                            else if (tParts.length === 3) duration = parseInt(tParts[0]) * 3600 + parseInt(tParts[1]) * 60 + parseInt(tParts[2]);
+                        } else {
+                            duration = parseFloat(val);
+                        }
+                    } else if (key.includes('pace') || key.includes('speed')) {
+                        pace = val;
+                    } else if (key.includes('cadence') || key.includes('cad')) {
+                        avgCadence = parseInt(val);
+                    } else if (key.includes('heart') || key.includes('hr')) {
+                        avgHeartRate = parseInt(val);
+                    }
+                }
+            }
+
+            if (distance === null || isNaN(distance)) {
+                throw new Error("Could not parse generic file: missing distance.");
+            }
+
+            return {
+                distance: distance,
+                duration: duration || 0,
+                pace: pace || "8:10",
+                avgCadence: avgCadence,
+                avgHeartRate: avgHeartRate,
+                elevationGain: 0,
+                avgGradient: 0
+            };
+        }
+
+        function parseWorkoutFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const content = e.target.result;
+                    const fileName = file.name;
+                    const fileExtension = fileName.split('.').pop().toLowerCase();
+
+                    try {
+                        if (fileExtension === 'gpx') {
+                            const parsedData = parseGPX(content);
+                            resolve({ fileName, format: 'GPX', ...parsedData });
+                        } else if (fileExtension === 'tcx') {
+                            const parsedData = parseTCX(content);
+                            resolve({ fileName, format: 'TCX', ...parsedData });
+                        } else if (fileExtension === 'json') {
+                            const parsedData = JSON.parse(content);
+                            resolve({ fileName, format: 'JSON', ...parsedData });
+                        } else {
+                            const parsedData = parseGenericWorkout(content);
+                            resolve({ fileName, format: 'TXT', ...parsedData });
+                        }
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = () => reject(new Error("File reading error"));
+                reader.readAsText(file);
+            });
+        }
+
+        // Firebase Sync Infrastructure Setup
+        let auth = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth() : null;
+        let db = typeof window.db !== 'undefined' ? window.db : null;
+        let userId = ""; // Athlete ID tracker
+        let userProfileData = null;
+        let activePhaseWorkouts = [];
+        let activeUserListener = null;
+        let activeWorkoutsListener = null;
+        let syncTimeoutHandle = null;
+        let paceChartInstance = null;
+
+        // Initialize Firebase
+        if (typeof __firebase_config !== 'undefined') {
+            try {
+                const configBlock = JSON.parse(__firebase_config);
+                const firebaseInstanceApp = firebase.initializeApp(configBlock);
+                db = firebase.firestore(firebaseInstanceApp);
+                auth = firebase.auth(firebaseInstanceApp);
+                console.log("Firebase linked securely.");
+            } catch (err) {
+                console.error("Firebase initialization mismatch error: ", err);
+            }
+        }
+
+        // 1. Profile Switcher & Real-Time Sync Handshake
+        async function setupProfileSync(profileId) {
+            const syncBadge = document.getElementById('sync-badge');
+            if (!db) {
+                console.warn("Sync Offline: Firestore unreachable.");
+                if (syncBadge) {
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Offline`;
+                }
+                return;
+            }
+
+            // Show loading feedback
+            showAutopilotLoader();
+
+            // Show immediate syncing state feedback on the badge
+            if (syncBadge) {
+                syncBadge.className = "inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Syncing...`;
+            }
+
+            // Unsubscribe existing snapshot streams
+            if (activeUserListener) {
+                activeUserListener();
+                activeUserListener = null;
+            }
+            if (activeWorkoutsListener) {
+                activeWorkoutsListener();
+                activeWorkoutsListener = null;
+            }
+
+            userId = profileId.trim();
+            localStorage.setItem('yf_active_profile', userId);
+
+            const profileDisplay = document.getElementById('active-athlete-id-display');
+            if (profileDisplay) profileDisplay.innerText = userId;
+
+            console.log("Syncing database channel: users/", userId);
+            const userDocRef = db.collection("users").doc(userId);
+
+            // Start connection timeout (30 seconds)
+            const connectionTimeout = setTimeout(() => {
+                console.warn("Sync Timeout: Connection delayed for profile:", userId);
+                if (syncBadge) {
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Timeout`;
+                }
+                document.getElementById('timeout-error-modal').classList.remove('hidden');
+                hideAutopilotLoader();
+            }, 30000);
+
+            // Bind real-time listener to user profile
+            activeUserListener = userDocRef.onSnapshot((docSnapshot) => {
+                clearTimeout(connectionTimeout);
+                hideAutopilotLoader();
+                if (docSnapshot.exists) {
+                    console.log("☁️ User profile change detected.");
+                    const data = docSnapshot.data();
+                    userProfileData = data;
+
+                    if (data.journeyStatus === 'pending_review') {
+                        // Render Review Panel
+                        document.getElementById('onboarding-modal').classList.remove('hidden');
+                        document.getElementById('profile-lookup-panel').classList.add('hidden');
+                        document.getElementById('medical-disclaimer-panel').classList.add('hidden');
+                        document.getElementById('onboarding-form-panel').classList.add('hidden');
+                        document.getElementById('macrocycle-review-panel').classList.remove('hidden');
+
+                        document.getElementById('review-overarching-theme').innerText = data.overarchingTheme || "Your Training Journey";
+
+                        const stagesContainer = document.getElementById('review-macrocycle-stages');
+                        stagesContainer.innerHTML = '';
+                        let planToRender = [];
+                        if (data.macrocyclePlan && data.macrocyclePlan.length > 0) {
+                            planToRender = data.macrocyclePlan;
+                        }
+
+                        let currentAccumulatedDate = data.journeyStartDate ? new Date(data.journeyStartDate) : new Date();
+
+                        planToRender.forEach((stage, index) => {
+                            let dateBadge = '';
+                            if (stage.expectedDurationWeeks) {
+                                currentAccumulatedDate.setDate(currentAccumulatedDate.getDate() + (stage.expectedDurationWeeks * 7));
+                                const options = { month: 'short', day: 'numeric' };
+                                dateBadge = `<span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] px-2 py-0.5 rounded-md whitespace-nowrap">Target: ${currentAccumulatedDate.toLocaleDateString(undefined, options)}</span>`;
+                            }
+
+                            stagesContainer.innerHTML += `
+                                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col gap-1 text-left">
+                                    <div class="flex items-center justify-between w-full">
+                                        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Phase ${stage.phase || (index + 1)}</span>
+                                        ${dateBadge}
+                                    </div>
+                                    <span class="text-sm font-bold text-white">${stage.theme}</span>
+                                    <span class="text-xs text-slate-400 mt-1">${stage.description}</span>
+                                </div>
+                            `;
+                        });
+                        return; // Halt rendering of the dashboard
+                    } else {
+                        // Ensure modal is closed
+                        document.getElementById('onboarding-modal').classList.add('hidden');
+                    }
+
+                    // Update UI text views if they aren't currently being edited
+                    const titleEl = document.getElementById('plan-title');
+                    const descEl = document.getElementById('plan-desc');
+                    if (titleEl && document.activeElement !== titleEl) {
+                        titleEl.innerText = data.journeyTitle || "Your Journey";
+                    }
+                    if (descEl && document.activeElement !== descEl) {
+                        descEl.innerText = data.journeyDescription || "";
+                    }
+
+                    // Set remaining weeks display
+                    if (data.journeyStartDate && data.targetDate) {
+                        const target = new Date(data.targetDate);
+                        const today = new Date();
+                        const diffTime = target - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const displayEl = document.getElementById('days-remaining-display');
+                        if (displayEl) {
+                            displayEl.innerText = `${Math.max(0, diffDays)} Days to go`;
+                        }
+                    }
+
+                    // Set modal profile stats and coach comments
+                    const modalBaselineEl = document.getElementById('modal-baseline-pace');
+                    if (modalBaselineEl) modalBaselineEl.innerText = data.baseline5k || "-";
+
+                    const modalGoalEl = document.getElementById('modal-goal-pace');
+                    if (modalGoalEl) modalGoalEl.innerText = data.activeAdjustedGoal || "-";
+
+                    const modalTierEl = document.getElementById('modal-tier');
+                    if (modalTierEl) modalTierEl.innerText = data.challengeTier || "-";
+
+                    const coachCommentsEl = document.getElementById('drawer-coach-comments');
+                    if (coachCommentsEl) coachCommentsEl.innerText = data.journeyComments || "-";
+
+                    const isSimpleChecked = document.getElementById('simple-mode-toggle') && document.getElementById('simple-mode-toggle').checked;
+                    let guidesToRender = (isSimpleChecked && data.simpleStrengthGuides) ? data.simpleStrengthGuides : data.currentStrengthGuides;
+
+                    if (!guidesToRender || guidesToRender.length === 0) {
+                        guidesToRender = getDefaultStrengthGuides();
+                    }
+
+                    if (guidesToRender) {
+                        renderStrengthGuides(guidesToRender);
+                        if (guidesToRender.length > 0) {
+                            switchStrength('A');
+                        }
+                    }
+
+                    // Auto-sync pace constraints
+                    const baselinePace = data.currentEstimated5k || data.baseline5k;
+                    if (baselinePace) {
+                        const minSec = baselinePace.split(':');
+                        if (minSec.length === 2) {
+                            const inMin = document.getElementById('input-min');
+                            const inSec = document.getElementById('input-sec');
+                            if (inMin) inMin.value = parseInt(minSec[0]);
+                            if (inSec) inSec.value = parseInt(minSec[1]);
+
+                            const minDisp = document.getElementById('input-min-display');
+                            const secDisp = document.getElementById('input-sec-display');
+                            if (minDisp) minDisp.innerText = parseInt(minSec[0]);
+                            if (secDisp) secDisp.innerText = minSec[1];
+                        }
+                    }
+
+                    if (data.primaryGoal === 'race') {
+                        document.getElementById('pace-chart-card').style.display = '';
+                        if (typeof updatePaceChart === 'function') {
+                            updatePaceChart(data);
+                        }
+                    } else {
+                        document.getElementById('pace-chart-card').style.display = 'none';
+                    }
+
+                    // Render GPX Baseline card dynamically
+                    renderGPXBaselineCard(data);
+
+                    if (typeof window.updateDashboardBMI === 'function') {
+                        window.updateDashboardBMI(data);
+                    }
+
+                    // Hide onboarding modal
+                    hideOnboardingModal();
+                    calculateTargetPaces();
+                    updateTimelineView(data.currentPhaseIndex || 1);
+
+                    if (syncBadge) {
+                        syncBadge.className = "inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Synced`;
+                    }
+                } else {
+                    console.log("Profile empty. Displaying lookup panel.");
+                    if (syncBadge) {
+                        syncBadge.className = "inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Onboarding`;
+                    }
+                    showProfileLookupPanel(userId);
+                    const errorEl = document.getElementById('lookup-error');
+                    if (errorEl && userId) {
+                        errorEl.innerText = `Athlete ID "${userId}" not found.`;
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            }, (error) => {
+                clearTimeout(connectionTimeout);
+                hideAutopilotLoader();
+                console.error("Profile channel sync error: ", error);
+                if (syncBadge) {
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Error`;
+                }
+            });
+
+            // Bind real-time listener to active phase workouts
+            activeWorkoutsListener = userDocRef.collection("active_phase").orderBy("sequenceOrder").onSnapshot((querySnapshot) => {
+                activePhaseWorkouts = [];
+                querySnapshot.forEach((doc) => {
+                    activePhaseWorkouts.push(doc.data());
+                });
+
+                console.log("☁️ Workout snapshot updated: ", activePhaseWorkouts.length);
+                if (activePhaseWorkouts.length > 0) {
+                    buildActivePhaseHTML();
+                    renderNextActivityCard();
+                    updateOverallProgressMeter();
+                    checkPhaseCompletion();
+                } else {
+                    document.getElementById('jit-checklist-container').innerHTML = `
+                        <div class="text-center py-8 text-slate-500 text-xs">
+                            <i class="fa-solid fa-cloud-arrow-up text-lg mb-2 block text-indigo-500 animate-pulse"></i>
+                            Initializing active phase workouts...
+                        </div>`;
+                }
+            }, (error) => {
+                console.error("Workouts channel sync error: ", error);
+            });
+        }
+
+        function getActivePhaseTheme(phaseIndex) {
+            if (phaseIndex === 2) return "Speed Endurance";
+            if (phaseIndex === 3) return "Peak & Taper";
+            return "Speed Induction";
+        }
+
+        // 2. Medical Shield & Onboarding Modal Toggles
+        let isRestartingJourney = false;
+
+        function promptRestartJourney() {
+            const confirmed = window.confirm("Are you sure you want to start a new journey? This will wipe your current active block and restart you at Phase 1. Your historical completed workouts will be archived.");
+            if (confirmed) {
+                restartJourney();
+            }
+        }
+
+        function restartJourney() {
+            isRestartingJourney = true;
+            closeProfileModal();
+
+            if (userProfileData) {
+                document.getElementById('intake-athlete-id').value = userId;
+                document.getElementById('intake-title').value = userProfileData.journeyTitle || "";
+                document.getElementById('intake-notes').value = userProfileData.userBaselineNotes || "";
+
+                if (userProfileData.birthYear) {
+                    document.getElementById('intake-birthyear').value = userProfileData.birthYear;
+                } else if (userProfileData.age) {
+                    document.getElementById('intake-birthyear').value = new Date().getFullYear() - userProfileData.age;
+                } else {
+                    document.getElementById('intake-birthyear').value = "";
+                }
+                document.getElementById('intake-weight').value = userProfileData.weight || "";
+                document.getElementById('intake-sex').value = userProfileData.sex || "male";
+                if (userProfileData.heightInches) {
+                    document.getElementById('intake-height-ft').value = Math.floor(userProfileData.heightInches / 12);
+                    document.getElementById('intake-height-in').value = userProfileData.heightInches % 12;
+                } else {
+                    document.getElementById('intake-height-ft').value = "";
+                    document.getElementById('intake-height-in').value = "";
+                }
+                setTimeout(updateBMIVisual, 100);
+
+                if (userProfileData.fitnessLevel) {
+                    selectFitness(userProfileData.fitnessLevel);
+                }
+
+                if (userProfileData.primaryGoal) {
+                    selectGoal(userProfileData.primaryGoal);
+                }
+
+                document.getElementById('intake-days-available').value = userProfileData.daysAvailable || 4;
+                document.getElementById('intake-strength').value = userProfileData.strengthType || 'runner_specific';
+
+                if (userProfileData.dynamicGoalData) {
+                    if (userProfileData.primaryGoal === 'race') {
+                        document.getElementById('intake-target-distance').value = userProfileData.dynamicGoalData.targetDistance || "";
+                        document.getElementById('intake-date').value = userProfileData.dynamicGoalData.targetDate || "";
+                        document.getElementById('intake-current-pace').value = userProfileData.dynamicGoalData.currentPace || "";
+                        document.getElementById('intake-goal-pace').value = userProfileData.dynamicGoalData.goalPace || "";
+                    } else if (userProfileData.primaryGoal === 'recovery') {
+                        document.getElementById('intake-recovery-nature').value = userProfileData.dynamicGoalData.natureOfBreak || "injury";
+                        document.getElementById('intake-recovery-phase').value = userProfileData.dynamicGoalData.currentPhase || "just_starting";
+                    }
+                }
+            }
+
+            document.getElementById('onboarding-modal').classList.remove('hidden');
+            document.getElementById('profile-lookup-panel').classList.add('hidden');
+            document.getElementById('medical-disclaimer-panel').classList.add('hidden');
+            document.getElementById('onboarding-form-panel').classList.remove('hidden');
+            document.getElementById('intake-athlete-id').disabled = true;
+            document.getElementById('intake-athlete-id').classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        async function startFlow() {
+            if (!userId) return;
+            const userDocRef = db.collection("users").doc(userId);
+            try {
+                await userDocRef.update({ journeyStatus: "active" });
+            } catch (e) {
+                console.error("Failed to start flow", e);
+                alert("Failed to start flow. Please check connection.");
+            }
+        }
+
+        function signOut() {
+            localStorage.removeItem('yf_active_profile');
+            window.location.reload();
+        }
+
+        function showProfileLookupPanel(prefilledId) {
+            document.getElementById('onboarding-modal').classList.remove('hidden');
+            document.getElementById('profile-lookup-panel').classList.remove('hidden');
+            document.getElementById('medical-disclaimer-panel').classList.add('hidden');
+            document.getElementById('onboarding-form-panel').classList.add('hidden');
+            const errorEl = document.getElementById('lookup-error');
+            if (errorEl) errorEl.classList.add('hidden');
+            const inputEl = document.getElementById('lookup-athlete-id');
+            if (inputEl) inputEl.value = prefilledId || "";
+        }
+
+        function startNewProfileOnboarding() {
+            document.getElementById('profile-lookup-panel').classList.add('hidden');
+            document.getElementById('create-id-panel').classList.remove('hidden');
+            const errorEl = document.getElementById('create-id-error');
+            if (errorEl) errorEl.classList.add('hidden');
+
+            const createIdInput = document.getElementById('create-athlete-id');
+            const lookupVal = document.getElementById('lookup-athlete-id').value.trim();
+            if (createIdInput) createIdInput.value = lookupVal;
+        }
+
+        function cancelCreateId() {
+            document.getElementById('create-id-panel').classList.add('hidden');
+            document.getElementById('profile-lookup-panel').classList.remove('hidden');
+        }
+
+        async function verifyAndReserveId() {
+            const inputVal = document.getElementById('create-athlete-id').value;
+            const errorEl = document.getElementById('create-id-error');
+            const cleanId = inputVal.replace(/[^a-zA-Z0-9_]/g, '').trim();
+
+            if (!cleanId) {
+                errorEl.innerText = "Athlete ID must contain alphanumeric characters or underscores.";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            errorEl.classList.add('hidden');
+            showAutopilotLoader();
+
+            try {
+                const doc = await db.collection("users").doc(cleanId).get();
+                if (doc.exists) {
+                    hideAutopilotLoader();
+                    errorEl.innerText = `The Athlete ID "${cleanId}" is already taken. Please choose another.`;
+                    errorEl.classList.remove('hidden');
+                } else {
+                    hideAutopilotLoader();
+
+                    // Route to medical disclaimer
+                    document.getElementById('create-id-panel').classList.add('hidden');
+                    document.getElementById('medical-disclaimer-panel').classList.remove('hidden');
+                    document.getElementById('medical-ack').checked = false;
+                    toggleDisclaimerNextBtn();
+
+                    // Prep the main intake form ID field
+                    const intakeAthleteId = document.getElementById('intake-athlete-id');
+                    if (intakeAthleteId) {
+                        intakeAthleteId.value = cleanId;
+                    }
+                }
+            } catch (err) {
+                console.error("ID verification error:", err);
+                hideAutopilotLoader();
+                errorEl.innerText = "Connection error verifying ID. Please try again.";
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function submitProfileLookup() {
+            const input = document.getElementById('lookup-athlete-id');
+            const errorEl = document.getElementById('lookup-error');
+            const val = input.value.trim();
+            if (!val) {
+                if (errorEl) {
+                    errorEl.innerText = "Please enter an Athlete ID.";
+                    errorEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (errorEl) errorEl.classList.add('hidden');
+            showAutopilotLoader();
+
+            try {
+                const doc = await db.collection("users").doc(val).get();
+                if (doc.exists) {
+                    hideAutopilotLoader();
+                    hideOnboardingModal();
+                    setupProfileSync(val);
+                } else {
+                    hideAutopilotLoader();
+                    if (errorEl) {
+                        errorEl.innerText = `Athlete ID "${val}" not found. Please check spelling or create a new profile.`;
+                        errorEl.classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.error("Lookup failure: ", err);
+                hideAutopilotLoader();
+                if (errorEl) {
+                    errorEl.innerText = "Connection error. Please try again.";
+                    errorEl.classList.remove('hidden');
+                }
+            }
+        }
+
+        function showOnboardingModal(profileId) {
+            showProfileLookupPanel(profileId);
+        }
+
+        function hideOnboardingModal() {
+            document.getElementById('onboarding-modal').classList.add('hidden');
+        }
+
+        function toggleDisclaimerNextBtn() {
+            const checked = document.getElementById('medical-ack').checked;
+            const btn = document.getElementById('btn-disclaimer-next');
+            if (checked) {
+                btn.disabled = false;
+                btn.className = "w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg cursor-pointer text-xs";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full bg-slate-850 text-slate-500 py-3 rounded-xl font-bold transition-all cursor-not-allowed text-xs";
+            }
+        }
+
+        async function acceptMedicalDisclaimer() {
+            document.getElementById('medical-disclaimer-panel').classList.add('hidden');
+            document.getElementById('onboarding-form-panel').classList.remove('hidden');
+
+            const cleanId = document.getElementById('intake-athlete-id').value;
+            if (cleanId) {
+                try {
+                    await db.collection('legal_agreements').doc(cleanId).set({
+                        athleteId: cleanId,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        userAgent: navigator.userAgent,
+                        acceptedLiabilityDisclaimer: true
+                    });
+                    console.log("Logged medical disclaimer acceptance.");
+                } catch (e) {
+                    console.warn("Could not log legal agreement immediately", e);
+                }
+            }
+        }
+
+        function calculateOnboardingGoalPace(baselineMin, baselineSec, targetDateStr, tier) {
+            const baselineSeconds = (baselineMin * 60) + baselineSec;
+            const targetDate = new Date(targetDateStr);
+            const currentDate = new Date();
+            const diffTime = targetDate - currentDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const W = Math.max(1, Math.ceil(diffDays / 7));
+
+            let pScale = 0;
+            if (tier === 'recreational') {
+                pScale = Math.min(0.50 * W, 10);
+            } else if (tier === 'progressive') {
+                pScale = Math.min(1.00 * W, 15);
+            } else if (tier === 'ambitious') {
+                pScale = Math.min(1.25 * W, 22.5);
+            } else if (tier === 'elite') {
+                pScale = Math.min(1.50 * W, 30);
+            }
+
+            const targetSeconds = Math.floor(baselineSeconds * (1 - (pScale / 100)));
+            const targetMin = Math.floor(targetSeconds / 60);
+            const targetSec = targetSeconds % 60;
+            return `${targetMin}:${targetSec < 10 ? '0' : ''}${targetSec}`;
+        }
+        let parsedIntakeWorkout = null;
+
+        async function handleIntakeFileUpload(input) {
+            const statusEl = document.getElementById('intake-file-status');
+            const previewEl = document.getElementById('intake-file-preview');
+
+            if (!input.files || input.files.length === 0) {
+                parsedIntakeWorkout = null;
+                if (statusEl) {
+                    statusEl.innerText = "";
+                    statusEl.classList.add('hidden');
+                }
+                if (previewEl) previewEl.classList.add('hidden');
+                return;
+            }
+
+            const file = input.files[0];
+            if (statusEl) {
+                statusEl.innerText = "Parsing workout file...";
+                statusEl.classList.remove('hidden');
+            }
+
+            try {
+                const parsed = await parseWorkoutFile(file);
+                parsedIntakeWorkout = {
+                    fileName: parsed.fileName,
+                    format: parsed.format,
+                    distance: parsed.distance,
+                    duration: parsed.duration,
+                    pace: parsed.pace,
+                    avgCadence: parsed.avgCadence,
+                    avgHeartRate: parsed.avgHeartRate,
+                    maxHeartRate: parsed.maxHeartRate,
+                    elevationGain: parsed.elevationGain,
+                    avgGradient: parsed.avgGradient,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-emerald-450 font-bold mt-2";
+                    statusEl.innerText = `Successfully parsed: ${parsed.fileName}`;
+                }
+
+                // Auto-populate manual entry fields
+                const minInput = document.getElementById('intake-pace-min');
+                const secInput = document.getElementById('intake-pace-sec');
+                const distanceInput = document.getElementById('intake-distance');
+
+                if (parsed.pace) {
+                    const parts = parsed.pace.split(':');
+                    if (parts.length === 2) {
+                        if (minInput) minInput.value = parseInt(parts[0]);
+                        if (secInput) secInput.value = parseInt(parts[1]);
+                    }
+                }
+
+                if (parsed.distance && distanceInput) {
+                    distanceInput.value = parsed.distance;
+                }
+
+                // Show dynamic workout preview
+                if (previewEl) {
+                    previewEl.innerHTML = `
+                        <div class="font-bold text-indigo-400 uppercase tracking-widest text-[9px] mb-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-square-poll-vertical text-[10px]"></i> Coach Insights: Parsed Workout Baseline
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-slate-350">
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Distance:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.distance} mi</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Avg Pace:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.pace} /mi</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Cadence:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.avgCadence ? parsed.avgCadence + ' spm' : 'N/A'}</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Avg / Max HR:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.avgHeartRate ? parsed.avgHeartRate + ' / ' + parsed.maxHeartRate + ' bpm' : 'N/A'}</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Elevation Gain:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.elevationGain ? parsed.elevationGain + ' ft' : 'N/A'}</strong></div>
+                            <div><span class="text-slate-500 font-semibold uppercase tracking-wider text-[9px]">Avg Gradient:</span> <strong class="text-slate-100 font-mono font-bold">${parsed.avgGradient ? parsed.avgGradient + '%' : 'N/A'}</strong></div>
+                        </div>
+                    `;
+                    previewEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Intake GPX parsing error: ", err);
+                parsedIntakeWorkout = null;
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-rose-450 font-bold mt-2";
+                    statusEl.innerText = `Error parsing file: ${err.message}`;
+                }
+                if (previewEl) previewEl.classList.add('hidden');
+            }
+        }
+
+        function selectFitness(level) {
+            document.getElementById('intake-fitness-level').value = level;
+
+            document.getElementById('fit-beginner').classList.remove('border-green-500', 'bg-green-900/50');
+            document.getElementById('fit-intermediate').classList.remove('border-blue-500', 'bg-blue-900/50');
+            document.getElementById('fit-advanced').classList.remove('border-purple-500', 'bg-purple-900/50');
+
+            document.getElementById('fit-beginner').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('fit-intermediate').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('fit-advanced').classList.add('border-slate-700', 'bg-slate-900');
+
+            if (level === 'beginner') {
+                document.getElementById('fit-beginner').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('fit-beginner').classList.add('border-green-500', 'bg-green-900/50');
+            } else if (level === 'intermediate') {
+                document.getElementById('fit-intermediate').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('fit-intermediate').classList.add('border-blue-500', 'bg-blue-900/50');
+            } else if (level === 'advanced') {
+                document.getElementById('fit-advanced').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('fit-advanced').classList.add('border-purple-500', 'bg-purple-900/50');
+            }
+        }
+
+        function selectGoal(goal) {
+            document.getElementById('intake-primary-goal').value = goal;
+
+            document.getElementById('goal-health').classList.remove('border-emerald-500', 'bg-emerald-900/50');
+            document.getElementById('goal-race').classList.remove('border-amber-500', 'bg-amber-900/50');
+            document.getElementById('goal-recovery').classList.remove('border-sky-500', 'bg-sky-900/50');
+
+            document.getElementById('goal-health').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('goal-race').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('goal-recovery').classList.add('border-slate-700', 'bg-slate-900');
+
+            document.getElementById('dynamic-form-race').classList.add('hidden');
+            document.getElementById('dynamic-form-recovery').classList.add('hidden');
+
+            if (goal === 'health') {
+                document.getElementById('goal-health').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('goal-health').classList.add('border-emerald-500', 'bg-emerald-900/50');
+            } else if (goal === 'race') {
+                document.getElementById('goal-race').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('goal-race').classList.add('border-amber-500', 'bg-amber-900/50');
+                document.getElementById('dynamic-form-race').classList.remove('hidden');
+            } else if (goal === 'recovery') {
+                document.getElementById('goal-recovery').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('goal-recovery').classList.add('border-sky-500', 'bg-sky-900/50');
+                document.getElementById('dynamic-form-recovery').classList.remove('hidden');
+            }
+        }
+
+        async function getGoalPaces() {
+            const fitness = document.getElementById('intake-fitness-level').value;
+            const targetDistance = document.getElementById('intake-target-distance').value;
+            const targetDate = document.getElementById('intake-date').value;
+            const currentPace = document.getElementById('intake-current-pace').value;
+            const daysAvailable = document.getElementById('intake-days-available').value;
+            const notes = document.getElementById('intake-notes').value;
+            const why = document.getElementById('intake-why').value;
+
+            if (!fitness || !targetDate || !currentPace) {
+                alert("Please fill out Fitness Level, Target Date, and Current Pace first.");
+                return;
+            }
+
+            const btnIcon = document.getElementById('goal-pace-spinner');
+            btnIcon.classList.remove('fa-wand-magic-sparkles');
+            btnIcon.classList.add('fa-spinner', 'fa-spin');
+
+            try {
+                const proposeGoalPaces = firebase.functions().httpsCallable('proposeGoalPaces');
+                
+                let birthYearVal = parseInt(document.getElementById('intake-birthyear').value);
+                let ageVal = isNaN(birthYearVal) ? null : new Date().getFullYear() - birthYearVal;
+                
+                const result = await proposeGoalPaces({
+                    age: ageVal,
+                    weight: document.getElementById('intake-weight').value || null,
+                    sex: document.getElementById('intake-sex').value || null,
+                    fitnessLevel: fitness,
+                    targetDistance: targetDistance,
+                    targetDate: targetDate,
+                    currentPace: currentPace,
+                    daysAvailable: daysAvailable,
+                    notes: notes,
+                    why: why
+                });
+
+                const container = document.getElementById('goal-pace-proposals');
+                container.innerHTML = '';
+
+                if (result.data && result.data.paces) {
+                    const tiers = ['Elite', 'Aggressive', 'Progressive', 'Consistent'];
+                    const colors = ['border-fuchsia-500 text-fuchsia-400', 'border-red-500 text-red-400', 'border-amber-500 text-amber-400', 'border-emerald-500 text-emerald-400'];
+
+                    tiers.forEach((tier, i) => {
+                        const pace = result.data.paces[tier] || 'N/A';
+                        container.innerHTML += `
+                            <div onclick="document.getElementById('intake-goal-pace').value = '${pace}'" class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-2 rounded-xl text-center transition-all">
+                                <div class="text-[10px] uppercase font-bold text-slate-500">${tier}</div>
+                                <div class="font-bold text-sm ${colors[i].split(' ')[1]} mt-0.5">${pace}</div>
+                            </div>
+                        `;
+                    });
+                    container.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error proposing paces');
+            }
+
+            btnIcon.classList.remove('fa-spinner', 'fa-spin');
+            btnIcon.classList.add('fa-wand-magic-sparkles');
+        }
+
+        async function submitOnboardingForm() {
+            const intakeAthleteId = document.getElementById('intake-athlete-id').value.trim();
+            const title = document.getElementById('intake-title').value.trim();
+            const notes = document.getElementById('intake-notes').value.trim();
+            const why = document.getElementById('intake-why').value.trim();
+
+            const birthYear = parseInt(document.getElementById('intake-birthyear').value);
+            const currentYear = new Date().getFullYear();
+            const age = birthYear ? (currentYear - birthYear) : null;
+            const weight = parseFloat(document.getElementById('intake-weight').value);
+            const sex = document.getElementById('intake-sex').value;
+            const ft = parseInt(document.getElementById('intake-height-ft').value) || 0;
+            const inch = parseInt(document.getElementById('intake-height-in').value) || 0;
+            const heightInches = (ft * 12) + inch;
+
+            const fitnessLevel = document.getElementById('intake-fitness-level').value;
+            const primaryGoal = document.getElementById('intake-primary-goal').value;
+
+            const daysAvailable = parseInt(document.getElementById('intake-days-available').value);
+            const minsAvailable = parseInt(document.getElementById('intake-mins-available').value) || 45;
+            const strength = document.getElementById('intake-strength').value;
+            const targetWeightRaw = document.getElementById('intake-target-weight').value;
+            const targetWeight = targetWeightRaw ? parseFloat(targetWeightRaw) : null;
+
+            const equipmentCheckboxes = document.querySelectorAll('input[name="intake-hardware"]:checked');
+            const equipmentList = Array.from(equipmentCheckboxes).map(cb => cb.value);
+
+            if (!intakeAthleteId) {
+                alert("Please specify a unique Athlete ID.");
+                return;
+            }
+
+            const cleanId = intakeAthleteId.replace(/[^a-zA-Z0-9_]/g, '').trim();
+            if (!cleanId) {
+                alert("Athlete ID must contain alphanumeric characters or underscores.");
+                return;
+            }
+
+            if (!age || !weight || !fitnessLevel || !primaryGoal || !daysAvailable || !title) {
+                alert("Please fill out all required base fields (Age, Weight, Fitness, Goal, Days, Title).");
+                return;
+            }
+
+            // Collect dynamic fields
+            let dynamicData = {};
+            let activeAdjustedGoal = "10:00"; // fallback
+
+            if (primaryGoal === 'race') {
+                dynamicData = {
+                    targetDistance: document.getElementById('intake-target-distance').value,
+                    targetDate: document.getElementById('intake-date').value,
+                    currentPace: document.getElementById('intake-current-pace').value,
+                    goalPace: document.getElementById('intake-goal-pace').value
+                };
+                if (!dynamicData.targetDate) {
+                    alert("Please select a target date for your race goal.");
+                    return;
+                }
+                activeAdjustedGoal = dynamicData.goalPace || dynamicData.currentPace || "10:00";
+            } else if (primaryGoal === 'recovery') {
+                dynamicData = {
+                    natureOfBreak: document.getElementById('intake-recovery-nature').value,
+                    currentPhase: document.getElementById('intake-recovery-phase').value
+                };
+            }
+
+            showAutopilotLoader();
+
+            const userDocRef = db.collection("users").doc(cleanId);
+            userId = cleanId;
+            localStorage.setItem('yf_active_profile', userId);
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            let coachJourneyComments = `Welcome to your training plan. Your goal is set to ${primaryGoal.toUpperCase()}. We have adapted the initial block to your fitness level (${fitnessLevel}).`;
+
+            const profilePayload = {
+                activeAdjustedGoal: activeAdjustedGoal,
+                userBaselineNotes: notes,
+                title: title,
+                why: why,
+                desiredWorkoutLength: minsAvailable,
+                journeyTitle: title,
+                userBaselineNotes: notes,
+                whyMotivation: why,
+                journeyStartDate: todayStr,
+                birthYear: birthYear,
+                age: age,
+                weight: weight,
+                heightInches: heightInches > 0 ? heightInches : null,
+                sex: sex,
+                fitnessLevel: fitnessLevel,
+                primaryGoal: primaryGoal,
+                dynamicGoalData: dynamicData,
+                daysAvailable: daysAvailable,
+                targetWeight: targetWeight,
+                includeStrength: strength !== 'none',
+                strengthType: strength,
+                equipmentList: equipmentList,
+                activeAdjustedGoal: activeAdjustedGoal,
+                baseline5k: dynamicData.currentPace || "10:00",
+                paceHistory: [
+                    { phase: 1, pace: dynamicData.currentPace || "10:00", date: todayStr, label: "Start", index: 0 }
+                ],
+                bmiHistory: [
+                    { date: new Date().toISOString(), weight: weight, bmi: parseFloat(((weight / (heightInches * heightInches)) * 703).toFixed(1)) }
+                ],
+                medicalAcknowledge: true,
+                journeyComments: coachJourneyComments,
+                currentPhaseIndex: 1,
+                journeyStatus: "pending_review"
+            };
+
+            try {
+                const ticker = document.getElementById('autopilot-loading-ticker');
+                if (ticker) ticker.innerText = "Designing macrocycle roadmap...";
+                const generateMacrocyclePlan = firebase.functions().httpsCallable('generateMacrocyclePlan');
+                const cleanProfilePayload = JSON.parse(JSON.stringify(profilePayload));
+                const planResult = await generateMacrocyclePlan({ profile: cleanProfilePayload });
+                if (targetWeight) {
+                    document.getElementById('review-target-weight-badge').classList.remove('hidden');
+                    document.getElementById('review-target-weight-val').innerText = targetWeight;
+                } else {
+                    document.getElementById('review-target-weight-badge').classList.add('hidden');
+                }
+
+                if (planResult.data && planResult.data.macrocyclePlan) {
+                    profilePayload.macrocyclePlan = planResult.data.macrocyclePlan;
+                    profilePayload.overarchingTheme = planResult.data.overarchingTheme || "Your Training Journey";
+                } else {
+                    throw new Error("Invalid format");
+                }
+            } catch (err) {
+                console.warn("Failed to generate AI macrocycle, falling back to default.", err);
+                profilePayload.macrocyclePlan = [
+                    { phase: 1, theme: "Baseline Establishment", description: "Getting familiar with consistent volume and intensity." }
+                ];
+                profilePayload.overarchingTheme = "Your Training Journey";
+            }
+
+            if (parsedIntakeWorkout) {
+                profilePayload.parsedBaselineWorkout = parsedIntakeWorkout;
+            }
+
+            try {
+                if (isRestartingJourney) {
+                    await userDocRef.update(profilePayload);
+                    const batchArchive = db.batch();
+                    activePhaseWorkouts.forEach((w) => {
+                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                        batchArchive.delete(userDocRef.collection("active_phase").doc(w.id));
+                    });
+                    await batchArchive.commit();
+                } else {
+                    await userDocRef.set(profilePayload);
+                }
+
+                let p1Workouts = [];
+                try {
+                    const ticker = document.getElementById('autopilot-loading-ticker');
+                    if (ticker) ticker.innerText = "Designing initial workout block...";
+                    const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                    const cleanProfilePayload = JSON.parse(JSON.stringify(profilePayload));
+                    const aiResult = await generateWorkoutBlock({
+                        phaseIndex: 1,
+                        profile: cleanProfilePayload,
+                        history: []
+                    });
+                    p1Workouts = aiResult.data.workouts || getPhase1DefaultWorkouts();
+                    const strengthGuides = aiResult.data.strengthGuides || [];
+                    let updatePayload = {};
+                    if (strengthGuides.length > 0) {
+                        updatePayload.currentStrengthGuides = strengthGuides;
+                        updatePayload.simpleStrengthGuides = firebase.firestore.FieldValue.delete();
+                        const simpleToggle = document.getElementById('simple-mode-toggle');
+                        if (simpleToggle) simpleToggle.checked = false;
+                    }
+
+                    if (Object.keys(updatePayload).length > 0) {
+                        await userDocRef.update(updatePayload);
+                    }
+                } catch (error) {
+                    console.error("Failed to generate AI initial workouts, falling back to defaults.", error);
+                    p1Workouts = getPhase1DefaultWorkouts();
+                }
+
+                const batch = db.batch();
+                p1Workouts.forEach((w) => {
+                    batch.set(userDocRef.collection("active_phase").doc(w.id), w);
+                });
+                await batch.commit();
+                isRestartingJourney = false;
+
+                setTimeout(() => {
+                    hideAutopilotLoader();
+                    setupProfileSync(userId);
+                }, 3000);
+            } catch (err) {
+                console.error("Onboarding setup failure: ", err);
+                hideAutopilotLoader();
+                alert("Firestore error seeding plan.");
+            }
+        }
+
+        // 3. Render checklist UI to Flat JIT Layout
+        function buildActivePhaseHTML() {
+            const container = document.getElementById('jit-checklist-container');
+            container.innerHTML = "";
+
+            if (!activePhaseWorkouts || activePhaseWorkouts.length === 0) return;
+
+            // Toggle Regenerate Button visibility
+            const regenBtn = document.getElementById('regenerate-block-btn');
+            if (regenBtn) {
+                const anyCompleted = activePhaseWorkouts.some(w => w.completed);
+                if (anyCompleted) {
+                    regenBtn.classList.add('hidden');
+                } else {
+                    regenBtn.classList.remove('hidden');
+                }
+            }
+
+            // Group by sequenceOrder
+            const groupedWorkouts = {};
+            activePhaseWorkouts.forEach(step => {
+                const day = step.sequenceOrder || 1;
+                if (!groupedWorkouts[day]) {
+                    groupedWorkouts[day] = [];
+                }
+                groupedWorkouts[day].push(step);
+            });
+
+            const sortedDays = Object.keys(groupedWorkouts).sort((a, b) => Number(a) - Number(b));
+
+            sortedDays.forEach(day => {
+                const dayWorkouts = groupedWorkouts[day];
+
+                // Sort day workouts: non-strength (run/rest) first, strength second
+                dayWorkouts.sort((a, b) => {
+                    if (a.type === 'strength' && b.type !== 'strength') return 1;
+                    if (a.type !== 'strength' && b.type === 'strength') return -1;
+                    return 0;
+                });
+
+                let dayHTML = `<div class="mb-4">`;
+                dayHTML += `<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Day ${day}</h3>`;
+                dayHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+
+                dayWorkouts.forEach(step => {
+                    const colSpan = dayWorkouts.length === 1 ? 'col-span-1 md:col-span-2' : 'col-span-1';
+                    const isCheckedAttr = step.completed ? "checked" : "";
+                    const iconSVG = icons[step.type] || icons.easy;
+
+                    let paceHintText = "";
+                    if (step.targetPaceZone) {
+                        if (step.targetPaceZone === 'easy') paceHintText = "Easy/Recovery Target";
+                        else if (step.targetPaceZone === 'long') paceHintText = "Long Aerobic Target";
+                        else if (step.targetPaceZone === 'tempo') paceHintText = "Tempo Target";
+                        else if (step.targetPaceZone === 'goal') paceHintText = `Goal Target: ${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                        else paceHintText = step.targetPaceZone;
+                    }
+
+                    dayHTML += `
+                        <div class="${colSpan} flex items-start gap-4 p-3.5 rounded-xl bg-slate-900/30 border border-slate-800/55 hover:border-slate-800 transition-all h-full">
+                            <label class="relative flex items-center justify-center cursor-pointer mt-0.5 shrink-0 group">
+                                <input type="checkbox" id="${step.id}" onchange="toggleStepCheckDirect('${step.id}')" class="peer sr-only" ${isCheckedAttr}>
+                                <div class="w-5.5 h-5.5 border-2 border-slate-700 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-lg flex items-center justify-center text-slate-950 transition-all">
+                                    <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                            </label>
+
+                            <div class="p-2 bg-slate-950 rounded-lg border border-slate-800/80 shrink-0">
+                                ${iconSVG}
+                            </div>
+
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-baseline justify-between flex-wrap gap-2">
+                                    <span class="text-xs font-bold text-slate-200 truncate pr-2">${step.workoutTitle} <span class="text-[10px] text-slate-500 font-normal">(${step.distanceDuration})</span></span>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        ${step.targetPaceZone ? `<span class="text-[10px] font-extrabold text-indigo-400 font-mono hidden sm:inline-block">${paceHintText}</span>` : ''}
+                                        ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Logged: ${step.actualLoggedPace}</span>` : ''}
+                                        ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">RPE: ${step.rpeScore}</span>` : ''}
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">${step.targetInstructions}</p>
+                                ${step.completed && step.dateExecuted ? `
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span class="text-[9px] text-slate-500 font-semibold">Completed on:</span>
+                                    <input type="date" value="${step.dateExecuted}" onchange="updateWorkoutDate('${step.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-0.5 rounded-lg focus:outline-none focus:border-indigo-500 cursor-pointer font-mono select-none">
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                dayHTML += `</div></div>`;
+                container.innerHTML += dayHTML;
+            });
+        }
+
+        function toggleStepCheckDirect(stepId) {
+            const cb = document.getElementById(stepId);
+            const workout = activePhaseWorkouts.find(w => w.id === stepId);
+
+            if (workout && workout.isSpeedWorkout && cb.checked) {
+                cb.checked = false;
+                alert("🔒 Speed & Benchmark workouts require explicit pace metrics validation. Please execute and log this session within the primary 'Up Next' card.");
+                return;
+            }
+
+            toggleStepCheck(stepId, cb.checked);
+        }
+
+        function toggleStepCheck(activityId, completed) {
+            let selectedDate = null;
+            const updatePayload = {
+                completed: completed
+            };
+
+            if (completed) {
+                const dateEl = document.getElementById(`date-picker-${activityId}`) || document.getElementById('logged-date');
+                if (dateEl && dateEl.value) {
+                    selectedDate = dateEl.value;
+                } else {
+                    const d = new Date();
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    selectedDate = `${year}-${month}-${day}`;
+                }
+                updatePayload.dateExecuted = selectedDate;
+            } else {
+                updatePayload.dateExecuted = null;
+                updatePayload.actualLoggedPace = null;
+                updatePayload.rpeScore = null;
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    updatePayload.uploadedWorkoutFile = firebase.firestore.FieldValue.delete();
+                }
+            }
+
+            db.collection("users").doc(userId).collection("active_phase").doc(activityId).update(updatePayload).then(() => {
+                console.log("Workout checklist item updated successfully.");
+            }).catch(err => {
+                console.error("Error writing checkmark to cloud: ", err);
+            });
+        }
+
+        function updateWorkoutDate(activityId, newDate) {
+            if (!newDate) return;
+            db.collection("users").doc(userId).collection("active_phase").doc(activityId).update({
+                dateExecuted: newDate
+            }).then(() => {
+                console.log("Workout date updated successfully.");
+            }).catch(err => {
+                console.error("Error updating workout date: ", err);
+            });
+        }
+
+        // 4. Refactor Up Next Card with Gatekeeper Locks
+        let lastUploadedWorkoutFile = null;
+
+        async function handleWorkoutFileUpload(input) {
+            const statusEl = document.getElementById('workout-file-status');
+            if (!input.files || input.files.length === 0) {
+                lastUploadedWorkoutFile = null;
+                if (statusEl) statusEl.classList.add('hidden');
+                return;
+            }
+
+            const file = input.files[0];
+            if (statusEl) {
+                statusEl.className = "text-[10px] text-amber-400 font-semibold italic animate-pulse ml-1";
+                statusEl.innerText = "Parsing file...";
+                statusEl.classList.remove('hidden');
+            }
+
+            try {
+                const parsed = await parseWorkoutFile(file);
+                lastUploadedWorkoutFile = {
+                    fileName: parsed.fileName,
+                    format: parsed.format,
+                    distance: parsed.distance,
+                    duration: parsed.duration,
+                    pace: parsed.pace,
+                    avgCadence: parsed.avgCadence,
+                    avgHeartRate: parsed.avgHeartRate,
+                    maxHeartRate: parsed.maxHeartRate,
+                    elevationGain: parsed.elevationGain,
+                    avgGradient: parsed.avgGradient,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                // Auto-fill logged pace fields
+                const minInput = document.getElementById('logged-min');
+                const secInput = document.getElementById('logged-sec');
+                if (parsed.pace && minInput && secInput) {
+                    const parts = parsed.pace.split(':');
+                    if (parts.length === 2) {
+                        minInput.value = parseInt(parts[0]);
+                        secInput.value = parseInt(parts[1]);
+                    }
+                }
+
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-emerald-450 font-bold ml-1";
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check text-[9px]"></i> Parsed ${parsed.fileName} (${parsed.distance}mi at ${parsed.pace}/mi)`;
+                }
+            } catch (err) {
+                console.error("Workout file parsing error:", err);
+                lastUploadedWorkoutFile = null;
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-rose-450 font-bold ml-1";
+                    statusEl.innerText = "Error parsing file: " + err.message;
+                }
+            }
+        }
+
+        function renderNextActivityCard() {
+            lastUploadedWorkoutFile = null; // Reset uploaded workout file state for a fresh card
+            const container = document.getElementById('focus-content');
+
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const todayLocalStr = `${year}-${month}-${day}`;
+
+            // Find the active sequence order
+            let activeSequenceOrder = null;
+            let lastCompletedStep = null;
+
+            for (let i = 0; i < activePhaseWorkouts.length; i++) {
+                if (activePhaseWorkouts[i].completed) {
+                    lastCompletedStep = activePhaseWorkouts[i];
+                }
+            }
+
+            for (let w of activePhaseWorkouts) {
+                if (!w.completed) {
+                    activeSequenceOrder = w.sequenceOrder;
+                    break;
+                }
+            }
+
+            // Lock to today's completed slate if applicable
+            let renderSequenceOrder = activeSequenceOrder;
+            if (lastCompletedStep && lastCompletedStep.dateExecuted === todayLocalStr) {
+                if (activeSequenceOrder === null || activeSequenceOrder > lastCompletedStep.sequenceOrder) {
+                    renderSequenceOrder = lastCompletedStep.sequenceOrder;
+                }
+            }
+
+            if (renderSequenceOrder === null) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-4 text-emerald-400 p-4">
+                        <i class="fa-solid fa-trophy text-4xl"></i>
+                        <div>
+                            <h2 class="text-2xl font-black uppercase tracking-wider">All Phase Workouts Complete!</h2>
+                            <p class="text-slate-300 mt-1">Unlock your next autopilot block below.</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const dailySlate = activePhaseWorkouts.filter(w => w.sequenceOrder === renderSequenceOrder);
+
+            let allCompleted = dailySlate.every(w => w.completed);
+            let slateLabel = allCompleted ? 'Completed Today' : 'Up Next Today';
+            let slateColor = allCompleted ? 'text-emerald-400 bg-emerald-950/50 border-emerald-500/30' : 'text-indigo-400 bg-indigo-950/50 border-indigo-500/30';
+
+            let htmlAccumulator = `
+                <div class="mb-4">
+                    <span class="text-[10px] font-bold uppercase tracking-widest ${slateColor} px-3 py-1 rounded-full border">
+                        ${slateLabel}
+                    </span>
+                </div>
+                <div class="space-y-8">`;
+
+            for (let i = 0; i < dailySlate.length; i++) {
+                const nextStep = dailySlate[i];
+                const isSpeed = nextStep.isSpeedWorkout;
+                const isBenchmark = nextStep.isBenchmark;
+                const iconSVG = icons[nextStep.type] || icons.easy;
+
+                // Calculate defaults
+                let defaultDistance = "";
+                if (nextStep.distanceDuration && nextStep.distanceDuration.toLowerCase().includes("mile")) {
+                    defaultDistance = parseFloat(nextStep.distanceDuration) || "";
+                }
+
+                let targetMidDecimal = null;
+                const currentMins = parseFloat(document.getElementById('input-min') ? document.getElementById('input-min').value : 8) || 8;
+                const currentSecs = parseFloat(document.getElementById('input-sec') ? document.getElementById('input-sec').value : 10) || 10;
+                const decimalPace = currentMins + (currentSecs / 60);
+
+                if (nextStep.targetPaceZone === 'easy') targetMidDecimal = decimalPace + (80 / 60);
+                else if (nextStep.targetPaceZone === 'long') targetMidDecimal = decimalPace + (55 / 60);
+                else if (nextStep.targetPaceZone === 'tempo') targetMidDecimal = decimalPace - (57.5 / 60);
+                else if (nextStep.targetPaceZone === 'goal') {
+                    const goalPaceStr = userProfileData ? userProfileData.activeAdjustedGoal : "6:26";
+                    if (goalPaceStr) {
+                        const p = goalPaceStr.split(':');
+                        targetMidDecimal = parseInt(p[0]) + (parseInt(p[1] || 0) / 60);
+                    }
+                } else if (nextStep.targetPaceZone === 'race') targetMidDecimal = 6 + (25 / 60);
+
+                let defaultMin = "", defaultSec = "";
+                if (targetMidDecimal !== null) {
+                    defaultMin = Math.floor(targetMidDecimal);
+                    let sec = Math.round((targetMidDecimal - defaultMin) * 60);
+                    defaultSec = sec < 10 ? '0' + sec : sec;
+                }
+
+                let paceHtml = "";
+                if (nextStep.targetPaceZone) {
+                    let pType = nextStep.targetPaceZone;
+                    paceHtml = `<div class="mt-4"><span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Pace</span>
+                    <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${pType}">Computing...</span></div>`;
+                }
+
+                const isCheckedAttr = nextStep.completed ? "checked" : "";
+                const opacityClass = nextStep.completed ? "opacity-60 grayscale-[30%]" : "";
+
+                htmlAccumulator += `
+                    <div class="relative ${opacityClass} transition-all duration-300 mb-6">
+                        <!-- Outer Card Container -->
+                        <div class="w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-xl relative group">
+                            
+                            <!-- Top Header: Title and Prep Tip -->
+                            <div class="p-5 md:p-6 bg-slate-900 border-b border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-6">
+                                <!-- Left 40%: Identity -->
+                                <div class="w-full md:w-2/5 shrink-0">
+                                    ${(nextStep.completed || isBenchmark) ? `
+                                    <div class="flex items-center gap-3 mb-2 flex-wrap">
+                                        ${nextStep.completed ? `<span class="text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-950/50 border-emerald-500/30 px-3 py-1 rounded-full border">Completed</span>` : ''}
+                                        ${isBenchmark ? `<span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-3 py-1 rounded-full border border-amber-500/30 pulse-slow">Fitness Milestone Benchmark</span>` : ''}
+                                    </div>
+                                    ` : ''}
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 shrink-0 text-slate-300 opacity-90">${iconSVG}</div>
+                                        <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-baseline flex-wrap gap-2">
+                                            ${nextStep.workoutTitle}
+                                            <span class="text-lg md:text-xl italic font-normal text-slate-400">(${nextStep.distanceDuration})</span>
+                                        </h2>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right 60%: Prep Tip -->
+                                <div class="w-full md:w-3/5">
+                                    ${nextStep.jitPreparationTip && !nextStep.completed ? `
+                                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 relative overflow-hidden h-full items-center">
+                                        <div class="absolute -left-2 -top-2 opacity-10 pointer-events-none"><i class="fa-solid fa-fire text-4xl text-amber-500"></i></div>
+                                        <div class="text-amber-400 z-10 shrink-0 text-xl"><i class="fa-solid fa-lightbulb"></i></div>
+                                        <div class="z-10">
+                                            <span class="block text-[10px] text-amber-400 uppercase tracking-wider font-bold mb-0.5">Preparation & Fueling</span>
+                                            <p class="text-xs text-slate-300 leading-relaxed">${nextStep.jitPreparationTip}</p>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Body: Details and Logging -->
+                            <div class="p-5 md:p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                                    <!-- Left Column: Instructions and Pace -->
+                                    <div class="flex flex-col gap-4">
+                                        <div class="flex items-start gap-3">
+                                            <div>
+                                                <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Instructions</span>
+                                                <p class="text-sm text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
+                                            </div>
+                                        </div>
+                                        ${paceHtml ? `<div>${paceHtml}</div>` : ''}
+                                        ${nextStep.activities && Array.isArray(nextStep.activities) ? `
+                                        <div class="mt-4">
+                                            <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-2 font-bold">Activity Tracking</span>
+                                            <div class="flex flex-col gap-3">
+                                                ${nextStep.activities.map((act, actIdx) => {
+                                                    if (act.type === 'work') {
+                                                        return `
+                                                        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/60 relative">
+                                                            ${nextStep.strengthGuideReference ? `
+                                                            <button onclick="switchTab('strength'); setTimeout(() => switchStrength('${nextStep.strengthGuideReference}'), 100);" class="absolute top-3 right-3 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 hover:border-violet-500/50 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer z-10" title="View Details in Strength Guide ${nextStep.strengthGuideReference}">
+                                                                <i class="fa-solid fa-dumbbell text-xs"></i>
+                                                            </button>
+                                                            ` : ''}
+                                                            <div class="flex-1 leading-tight pr-10">
+                                                                <span class="text-xs font-bold text-slate-200 block">${act.name}</span>
+                                                                <span class="text-[10px] text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                                ${Array.from({length: act.sets || 1}).map((_, s) => `
+                                                                <button id="bubble-${nextStep.id}-${actIdx}-${s}" onclick="this.classList.toggle('bg-teal-500'); this.classList.toggle('border-teal-500'); this.classList.toggle('bg-slate-800'); this.classList.toggle('border-slate-700')" class="w-6 h-6 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center transition-all focus:outline-none hover:border-teal-400/50 group shrink-0" title="Set ${s+1}">
+                                                                    <i class="fa-solid fa-check text-[10px] text-white opacity-0 group-[.bg-teal-500]:opacity-100 transition-opacity"></i>
+                                                                </button>
+                                                                `).join('')}
+                                                            </div>
+                                                        </div>
+                                                        `;
+                                                    } else {
+                                                        return `
+                                                        <div class="flex flex-col gap-1 bg-slate-950/30 p-3 rounded-xl border border-slate-800/30 border-dashed">
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="text-[9px] font-bold uppercase tracking-wider ${act.type === 'prep' ? 'text-amber-500' : 'text-sky-400'}">${act.type === 'prep' ? 'Warm Up' : 'Cool Down'}</span>
+                                                                <span class="text-xs font-bold text-slate-300">${act.name}</span>
+                                                            </div>
+                                                            <span class="text-[10px] text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
+                                                        </div>
+                                                        `;
+                                                    }
+                                                }).join('')}
+                                            </div>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+
+                                    <!-- Right Column: Gatekeeper Validation Box -->
+                                    <div class="flex flex-col h-full">
+                                        ${!nextStep.completed ? `
+                                        <div id="gatekeeper-form-${nextStep.id}" class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col gap-4 relative">
+                                            <div class="flex items-center justify-between">
+                                                <span class="block text-[10px] ${isSpeed ? 'text-amber-400' : 'text-indigo-300'} font-bold uppercase tracking-wider m-0">
+                                                    ${isSpeed ? '🔒 The Gatekeeper Validation: Log Run Metrics' : (nextStep.type === 'rest' ? 'Mark Rest Day Complete' : 'Log Activity Metrics')}
+                                                </span>
+                                                <div class="flex items-center gap-3">
+                                                    ${nextStep.type !== 'rest' ? `
+                                                    <button onclick="openAlternativeModal('${nextStep.id}')" class="bg-slate-800/40 hover:bg-slate-700/60 text-slate-500 hover:text-slate-400 border border-slate-800/50 hover:border-slate-700 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                                                        <i class="fa-solid fa-shuffle"></i> Log Alternative
+                                                    </button>
+                                                    ` : ''}
+                                                    <!-- The Submit Checkbox -->
+                                                    <label class="relative flex items-center justify-center cursor-pointer w-10 h-10 rounded-xl group transition-all bg-slate-800 border border-slate-700 hover:bg-teal-500/10 hover:border-teal-500/50" title="Submit Workout">
+                                                        <input type="checkbox" ${isCheckedAttr} onchange="handleWorkoutCheckToggle('${nextStep.id}', ${isBenchmark}, '${nextStep.type}', this)" class="peer sr-only">
+                                                        <svg class="w-5 h-5 text-slate-500 group-hover:text-teal-400 peer-checked:text-white transition-colors relative z-10 pointer-events-none" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                                        <div class="absolute inset-0 rounded-xl opacity-0 peer-checked:opacity-100 peer-checked:bg-teal-500 peer-checked:border-teal-500 peer-checked:shadow-[0_0_15px_rgba(20,184,166,0.4)] transition-all pointer-events-none"></div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                ${nextStep.type !== 'rest' ? `
+                                                <div class="flex flex-wrap items-center gap-3">
+                                                    ${['run', 'walk', 'bike', 'swim', 'easy', 'fast'].includes(nextStep.type) ? `
+                                                    <div class="flex flex-col gap-1 w-full">
+                                                        <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
+                                                            <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
+                                                            
+                                                            <div class="w-px h-4 bg-slate-700 mx-1"></div>
+                                                            
+                                                            <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs ml-3">
+                                                            <span class="text-slate-650 font-bold text-xs">:</span>
+                                                            <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                                        </div>
+                                                        ${isSpeed ? `<span class="text-[9px] text-slate-500 italic ml-1">Enter total mileage and avg. sprint pace.</span>` : ''}
+                                                    </div>
+                                            ` : `
+                                            <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800">
+                                                <input id="logged-duration-${nextStep.id}" type="number" min="0" placeholder="Time" class="w-16 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">mins</span>
+                                            </div>
+                                            `}
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex items-center gap-1.5">
+                                                    <select id="logged-rpe-${nextStep.id}" class="w-[105px] truncate bg-slate-900 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                                                        <option value="" disabled selected>Effort</option>
+                                                        <option value="1">1 - Restful (Avg HR < 100)</option>
+                                                        <option value="2">2 - Easy (Avg HR 100-115)</option>
+                                                        <option value="3">3 - Light (Avg HR 115-130)</option>
+                                                        <option value="4">4 - Comfortable (Avg HR 130-145)</option>
+                                                        <option value="5">5 - Moderate (Avg HR 145-155)</option>
+                                                        <option value="6">6 - Steady (Avg HR 155-165)</option>
+                                                        <option value="7">7 - Hard (Avg HR 165-170)</option>
+                                                        <option value="8">8 - Very Hard (Avg HR 170-175)</option>
+                                                        <option value="9">9 - Exhausting (Avg HR 175-180)</option>
+                                                        <option value="10">10 - Maximum (Avg HR 180+)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800">
+                                                    <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
+                                                </div>
+                                            </div>
+                                            <div class="w-full mt-1">
+                                                <textarea id="logged-notes-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:border-indigo-500 placeholder-slate-600 resize-none h-16" placeholder="Add workout notes or splits..."></textarea>
+                                            </div>
+                                            ${isSpeed ? `
+                                            <div class="flex items-center gap-1.5 w-full mt-1">
+                                                <input type="file" id="workout-file-upload-${nextStep.id}" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleWorkoutFileUpload(this, '${nextStep.id}')">
+                                                <button type="button" onclick="document.getElementById('workout-file-upload-${nextStep.id}').click()" class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer w-full">
+                                                    <i class="fa-solid fa-file-arrow-up"></i> Upload Run Data (GPX/TCX)
+                                                </button>
+                                            </div>
+                                            ` : ''}
+                                            </div>
+                                            ` : `
+                                            <!-- Rest Day Context -->
+                                            <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
+                                                <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
+                                            </div>
+                                            `}
+                                            <p id="workout-file-status-${nextStep.id}" class="text-[10px] text-slate-500 font-semibold italic ml-1 mt-2 hidden"></p>
+                                            <p id="gatekeeper-warn-${nextStep.id}" class="text-[11px] text-rose-450 mt-2 font-medium hidden">⚠️ Please ensure all fields are valid before submitting.</p>
+                                        </div>
+                                        
+                                    </div>
+                                ` : ''}
+
+                                ${nextStep.completed ? `
+                                        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col gap-4">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1 m-0">
+                                                    <i class="fa-solid fa-circle-check"></i> Completed!
+                                                </span>
+                                                <label class="relative flex items-center justify-center cursor-pointer w-10 h-10 rounded-xl group transition-all bg-teal-500 border border-teal-500 hover:bg-rose-500 hover:border-rose-500" title="Unsubmit Workout">
+                                                    <input type="checkbox" ${isCheckedAttr} onchange="handleWorkoutCheckToggle('${nextStep.id}', ${isBenchmark}, '${nextStep.type}', this)" class="peer sr-only">
+                                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center gap-3 flex-wrap">
+                                                ${nextStep.actualActivityType && nextStep.actualActivityType !== nextStep.type ? `<span class="text-xs text-sky-350 font-bold font-mono bg-sky-500/10 px-2.5 py-1 rounded border border-sky-500/20 capitalize">Type: ${nextStep.actualActivityType}</span>` : ''}
+                                                ${nextStep.actualLoggedDistance ? `<span class="text-xs text-indigo-350 font-bold font-mono bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20">${nextStep.actualLoggedDistance} mi</span>` : ''}
+                                                ${nextStep.actualLoggedDuration ? `<span class="text-xs text-indigo-350 font-bold font-mono bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20">${nextStep.actualLoggedDuration} mins</span>` : ''}
+                                                ${nextStep.actualLoggedPace ? `<span class="text-xs text-slate-350 font-bold font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">Pace: ${nextStep.actualLoggedPace} /mi</span>` : ''}
+                                                ${nextStep.rpeScore ? `<span class="text-xs text-slate-350 font-bold font-mono bg-violet-500/10 px-2.5 py-1 rounded border border-violet-500/20">RPE: ${nextStep.rpeScore}</span>` : ''}
+                                            </div>
+                                            <div class="flex items-center gap-1.5 mt-2">
+                                                <span class="text-[10px] text-slate-500">Date:</span>
+                                                <input type="date" value="${nextStep.dateExecuted}" onchange="updateWorkoutDate('${nextStep.id}', this.value)" class="bg-slate-950 border border-slate-850 text-slate-400 text-[10px] px-2 py-1 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer select-none font-mono">
+                                            </div>
+                                        </div>
+                                ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                `;
+            }
+
+            const isSlateFullyCompleted = dailySlate.every(w => w.completed);
+            if (isSlateFullyCompleted && renderSequenceOrder === (lastCompletedStep ? lastCompletedStep.sequenceOrder : null)) {
+                // Find next available sequence
+                const nextSequenceOrder = activePhaseWorkouts.find(w => w.sequenceOrder > renderSequenceOrder)?.sequenceOrder;
+                if (nextSequenceOrder !== undefined) {
+                    const nextSlate = activePhaseWorkouts.filter(w => w.sequenceOrder === nextSequenceOrder);
+                    htmlAccumulator += `<div class="mt-8 border-t border-slate-800/60 pt-6">
+                        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><i class="fa-solid fa-calendar-day"></i> Tomorrow's Preview</h3>
+                        <div class="space-y-4">`;
+
+                    for (let n of nextSlate) {
+                        const nIconSVG = icons[n.type] || icons.easy;
+                        htmlAccumulator += `
+                        <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-bold">${n.workoutTitle}</span>
+                                <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">${n.distanceDuration}</span>
+                            </div>
+                            <div class="flex items-start gap-3 mt-3">
+                                <div class="mt-1 opacity-50 shrink-0 text-slate-500">${nIconSVG}</div>
+                                <div>
+                                    <p class="text-xs text-slate-400 leading-relaxed">${n.targetInstructions}</p>
+                                </div>
+                            </div>
+                            ${n.jitPreparationTip ? `
+                            <div class="mt-3 bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 flex gap-3 relative overflow-hidden">
+                                <div class="absolute -left-2 -top-2 opacity-5 pointer-events-none"><i class="fa-solid fa-fire text-4xl text-amber-500"></i></div>
+                                <div class="mt-0.5 text-amber-500/50 shrink-0 z-10"><i class="fa-solid fa-lightbulb"></i></div>
+                                <div class="z-10">
+                                    <span class="block text-[10px] text-amber-500/70 uppercase tracking-wider font-bold mb-0.5">Preparation</span>
+                                    <p class="text-[11px] text-slate-400 leading-relaxed">${n.jitPreparationTip}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>`;
+                    }
+                    htmlAccumulator += `</div></div>`;
+                }
+            }
+
+            htmlAccumulator += `</div>`;
+            container.innerHTML = htmlAccumulator;
+
+            // Set default date values dynamically for all generated cards
+            for (let i = 0; i < dailySlate.length; i++) {
+                const nextStep = dailySlate[i];
+                const datePicker = document.getElementById(`date-picker-${nextStep.id}`);
+                if (datePicker) datePicker.value = todayLocalStr;
+
+                const loggedDate = document.getElementById(`logged-date-${nextStep.id}`);
+                if (loggedDate) loggedDate.value = todayLocalStr;
+            }
+
+            calculateTargetPaces();
+        }
+
+        function handleWorkoutCheckToggle(activityId, isBenchmark, type, cbElement) {
+            if (cbElement.checked) {
+                submitWorkout(activityId, isBenchmark, type, cbElement);
+            } else {
+                unsubmitWorkout(activityId);
+            }
+        }
+
+        function unsubmitWorkout(activityId) {
+            const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activityId);
+            workoutDocRef.update({
+                completed: false,
+                actualLoggedPace: firebase.firestore.FieldValue.delete(),
+                rpeScore: firebase.firestore.FieldValue.delete(),
+                actualLoggedDistance: firebase.firestore.FieldValue.delete(),
+                actualLoggedDuration: firebase.firestore.FieldValue.delete(),
+                dateExecuted: firebase.firestore.FieldValue.delete()
+            }).then(() => {
+                console.log("Workout unsubmitted.");
+            }).catch(err => {
+                console.error("Failed to unsubmit workout:", err);
+            });
+        }
+
+        // 5. Unified Workout Submission & Recalculation Engine
+        function submitWorkout(activityId, isBenchmark, defaultType, cbElement) {
+            const typeClass = ['run', 'walk', 'bike', 'swim', 'easy', 'fast'].includes(defaultType) ? 'distance' : 'duration';
+
+            const rpeSelect = document.getElementById(`logged-rpe-${activityId}`);
+            const warning = document.getElementById(`gatekeeper-warn-${activityId}`);
+            const rpeVal = rpeSelect ? rpeSelect.value : null;
+
+            let actualDistance = null;
+            let actualDuration = null;
+            let actualWorkoutPaceDecimal = null;
+            let paceStr = null;
+
+            if (defaultType === 'rest') {
+                // Rest day needs no distance/duration/RPE validation
+            } else if (typeClass === 'distance') {
+                const distInput = document.getElementById(`logged-distance-${activityId}`);
+                const minInput = document.getElementById(`logged-min-${activityId}`);
+                const secInput = document.getElementById(`logged-sec-${activityId}`);
+
+                const dist = parseFloat(distInput.value);
+                const mins = parseFloat(minInput.value);
+                const secs = parseFloat(secInput.value);
+
+                if (isNaN(dist) || isNaN(mins) || isNaN(secs) || minInput.value === "" || secInput.value === "" || !rpeVal) {
+                    if (warning) {
+                        warning.innerText = "⚠️ Please fill out all metrics and select an Effort score before submitting.";
+                        warning.classList.remove('hidden');
+                    }
+                    if (cbElement) cbElement.checked = false;
+                    return;
+                }
+
+                actualDistance = dist;
+                actualWorkoutPaceDecimal = mins + (secs / 60);
+                paceStr = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+            } else {
+                const durInput = document.getElementById(`logged-duration-${activityId}`);
+                const dur = parseFloat(durInput.value);
+
+                if (isNaN(dur) || !rpeVal) {
+                    if (warning) {
+                        warning.innerText = "⚠️ Please fill out duration and select an RPE score before submitting.";
+                        warning.classList.remove('hidden');
+                    }
+                    if (cbElement) cbElement.checked = false;
+                    return;
+                }
+                actualDuration = dur;
+            }
+
+            if (warning) warning.classList.add('hidden');
+
+            const loggedDateEl = document.getElementById(`logged-date-${activityId}`);
+            const completionDate = (loggedDateEl && loggedDateEl.value) ? loggedDateEl.value : new Date().toISOString().split('T')[0];
+            const notesEl = document.getElementById(`logged-notes-${activityId}`);
+            const notesVal = (notesEl && notesEl.value.trim() !== '') ? notesEl.value.trim() : null;
+
+            const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activityId);
+
+            let emaPromise = Promise.resolve();
+            if (isBenchmark && typeClass === 'distance') {
+                const prevMins = parseFloat(document.getElementById('input-min').value) || 8;
+                const prevSecs = parseFloat(document.getElementById('input-sec').value) || 10;
+                const previousTargetBaselineDecimal = prevMins + (prevSecs / 60);
+
+                // Execute the 70/30 EMA formula
+                const newBaselinePaceDecimal = (previousTargetBaselineDecimal * 0.70) + (actualWorkoutPaceDecimal * 0.30);
+
+                const finalMin = Math.floor(newBaselinePaceDecimal);
+                const finalSec = Math.round((newBaselinePaceDecimal - finalMin) * 60);
+                const newEstimatedPace = `${finalMin}:${finalSec < 10 ? '0' + finalSec : finalSec}`;
+
+                console.log(`EMA Recalibration: Prev=${prevMins}:${prevSecs}, Logged=${Math.floor(actualWorkoutPaceDecimal)}:${Math.round((actualWorkoutPaceDecimal - Math.floor(actualWorkoutPaceDecimal)) * 60)}, New=${newEstimatedPace}`);
+
+                const currentPhase = (userProfileData && userProfileData.currentPhaseIndex) || 1;
+                const checkpointIdx = getCheckpointIndex(currentPhase, activityId);
+                const checkpointLabel = getCheckpointLabel(checkpointIdx);
+
+                const updatePayload = {
+                    currentEstimated5k: newEstimatedPace
+                };
+                if (checkpointIdx >= 0) {
+                    updatePayload.paceHistory = firebase.firestore.FieldValue.arrayUnion({
+                        phase: currentPhase,
+                        activityId: activityId,
+                        pace: newEstimatedPace,
+                        date: completionDate,
+                        label: checkpointLabel,
+                        index: checkpointIdx
+                    });
+                }
+
+                // Update baseline in root profile document
+                emaPromise = db.collection("users").doc(userId).update(updatePayload).then(() => {
+                    flashPaceChart();
+                });
+            }
+
+            emaPromise.then(() => {
+                const updatePayload = {
+                    completed: true,
+                    actualActivityType: defaultType,
+                    actualLoggedDistance: actualDistance,
+                    actualLoggedDuration: actualDuration,
+                    actualLoggedPace: paceStr,
+                    rpeScore: rpeVal ? parseInt(rpeVal) : null,
+                    dateExecuted: completionDate
+                };
+                if (notesVal) {
+                    updatePayload.userWorkoutNotes = notesVal;
+                }
+                if (lastUploadedWorkoutFile) {
+                    updatePayload.uploadedWorkoutFile = lastUploadedWorkoutFile;
+                }
+                return workoutDocRef.update(updatePayload);
+            }).then(() => {
+                console.log("Workout metrics synced to cloud.");
+                lastUploadedWorkoutFile = null;
+            }).catch(err => {
+                console.error("Error writing metrics to cloud: ", err);
+                alert("Firestore sync failure.");
+            });
+        }
+
+        // Alternative Activity Modal Logic
+        function openAlternativeModal(activityId) {
+            document.getElementById('alt-activity-id').value = activityId;
+            document.getElementById('alternative-activity-modal').classList.remove('hidden');
+            document.getElementById('alternative-activity-modal').classList.add('flex');
+
+            // Set default date
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            document.getElementById('alt-date').value = `${year}-${month}-${day}`;
+
+            handleAltActivityTypeChange();
+        }
+
+        function closeAlternativeModal() {
+            document.getElementById('alternative-activity-modal').classList.add('hidden');
+            document.getElementById('alternative-activity-modal').classList.remove('flex');
+
+            // reset fields
+            document.getElementById('alt-activity-type').value = 'run';
+            document.getElementById('alt-distance').value = '';
+            document.getElementById('alt-duration').value = '';
+            document.getElementById('alt-pace-min').value = '';
+            document.getElementById('alt-pace-sec').value = '';
+            document.getElementById('alt-rpe').value = '';
+        }
+
+        function handleAltActivityTypeChange() {
+            const type = document.getElementById('alt-activity-type').value;
+            const distContainer = document.getElementById('alt-distance-container');
+            const durContainer = document.getElementById('alt-duration-container');
+            const paceContainer = document.getElementById('alt-pace-container');
+            const rpeContainer = document.getElementById('alt-rpe-container');
+
+            if (['run', 'walk', 'bike', 'swim'].includes(type)) {
+                distContainer.classList.remove('hidden');
+                paceContainer.classList.remove('hidden');
+                durContainer.classList.add('hidden');
+                rpeContainer.classList.remove('hidden');
+            } else if (['strength', 'other'].includes(type)) {
+                distContainer.classList.add('hidden');
+                paceContainer.classList.add('hidden');
+                durContainer.classList.remove('hidden');
+                rpeContainer.classList.remove('hidden');
+            } else if (type === 'rest') {
+                distContainer.classList.add('hidden');
+                paceContainer.classList.add('hidden');
+                durContainer.classList.add('hidden');
+                rpeContainer.classList.add('hidden');
+            }
+        }
+
+        function submitAlternativeActivity() {
+            const activityId = document.getElementById('alt-activity-id').value;
+            const type = document.getElementById('alt-activity-type').value;
+            const dateVal = document.getElementById('alt-date').value;
+            const rpeVal = document.getElementById('alt-rpe').value;
+
+            const updatePayload = {
+                completed: true,
+                actualActivityType: type,
+                dateExecuted: dateVal || new Date().toISOString().split('T')[0]
+            };
+
+            if (type !== 'rest') {
+                if (!rpeVal) {
+                    alert("Please select an RPE score.");
+                    return;
+                }
+                updatePayload.rpeScore = parseInt(rpeVal);
+            }
+
+            if (['run', 'walk', 'bike', 'swim'].includes(type)) {
+                const dist = parseFloat(document.getElementById('alt-distance').value);
+                const mins = parseFloat(document.getElementById('alt-pace-min').value);
+                const secs = parseFloat(document.getElementById('alt-pace-sec').value);
+
+                if (isNaN(dist) || isNaN(mins) || isNaN(secs)) {
+                    alert("Please fill out distance and pace.");
+                    return;
+                }
+                updatePayload.actualLoggedDistance = dist;
+                updatePayload.actualLoggedPace = `${mins}:${secs < 10 ? '0' + secs : secs}`;
+            } else if (['strength', 'other'].includes(type)) {
+                const dur = parseFloat(document.getElementById('alt-duration').value);
+                if (isNaN(dur)) {
+                    alert("Please fill out duration.");
+                    return;
+                }
+                updatePayload.actualLoggedDuration = dur;
+            }
+
+            const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activityId);
+
+            workoutDocRef.update(updatePayload).then(() => {
+                console.log("Alternative activity logged successfully.");
+                closeAlternativeModal();
+            }).catch(err => {
+                console.error("Error logging alternative activity: ", err);
+                alert("Firestore sync failure.");
+            });
+        }
+
+        function flashPaceChart() {
+            const card = document.getElementById('pace-chart-card');
+            if (!card) return;
+            card.classList.add('border-emerald-500/80', 'bg-emerald-950/20', 'shadow-emerald-500/10');
+            setTimeout(() => {
+                card.classList.remove('border-emerald-500/80', 'bg-emerald-950/20', 'shadow-emerald-500/10');
+            }, 1500);
+        }
+
+        function getCheckpointIndex(phase, activityId) {
+            const phaseNum = parseInt(phase) || 1;
+            if (phaseNum === 1) {
+                if (activityId === 'act-4') return 1;
+                if (activityId === 'act-7') return 2;
+            } else if (phaseNum === 2) {
+                if (activityId === 'act-4') return 3;
+                if (activityId === 'act-7') return 4;
+            } else if (phaseNum === 3) {
+                if (activityId === 'act-3') return 5;
+                if (activityId === 'act-5') return 6;
+                if (activityId === 'act-7') return 7;
+            }
+            return -1;
+        }
+
+        function getCheckpointLabel(index) {
+            const labels = ["Start", "P1 Mid", "P1 End", "P2 Mid", "P2 End", "P3 Mid 1", "P3 Mid 2", "Goal"];
+            if (index >= 0 && index < labels.length) {
+                return labels[index];
+            }
+            return "Checkpoint";
+        }
+
+        function generateTimelineDates(startDateStr, endDateStr) {
+            const start = startDateStr ? new Date(startDateStr) : new Date();
+            let end;
+            if (endDateStr) {
+                end = new Date(endDateStr);
+            } else {
+                end = new Date(start.getTime() + 12 * 7 * 24 * 60 * 60 * 1000); // 12 weeks later fallback
+            }
+
+            const totalMs = end.getTime() - start.getTime();
+            const intervalMs = totalMs / 7;
+
+            const dates = [];
+            for (let i = 0; i <= 7; i++) {
+                const currentMs = start.getTime() + (i * intervalMs);
+                const currentDate = new Date(currentMs);
+
+                const opt = { month: 'short', day: 'numeric' };
+                dates.push(currentDate.toLocaleDateString('en-US', opt));
+            }
+            return dates;
+        }
+
+        function paceStringToSeconds(paceStr) {
+            if (!paceStr) return 490; // Default 8:10
+            const parts = paceStr.split(':');
+            if (parts.length !== 2) return 490;
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+
+        function updatePaceChart(data) {
+            if (!data) return;
+            const canvas = document.getElementById('pace-chart');
+            if (!canvas) return;
+
+            // Set Goal Target display text
+            const goalDisplay = document.getElementById('goal-pace-display');
+            if (goalDisplay) {
+                goalDisplay.innerText = `${data.activeAdjustedGoal || "-"} / mi`;
+            }
+
+            const startSec = paceStringToSeconds(data.baseline5k || "8:10");
+            const goalSec = paceStringToSeconds(data.activeAdjustedGoal || "6:26");
+
+            // 1. Construct Projected Line (linear interpolation)
+            const projectedData = [];
+            for (let i = 0; i <= 7; i++) {
+                const sec = startSec - (i * (startSec - goalSec) / 7);
+                projectedData.push(sec / 60);
+            }
+
+            // 2. Construct Actual Line (mapped checkpoints)
+            const actualData = Array(8).fill(null);
+            actualData[0] = startSec / 60; // Start point
+
+            let maxPopulatedIdx = 0;
+            if (data.paceHistory && Array.isArray(data.paceHistory)) {
+                data.paceHistory.forEach(item => {
+                    let idx = item.index;
+                    if (idx === undefined) {
+                        idx = getCheckpointIndex(item.phase, item.activityId || '');
+                    }
+                    if (idx >= 0 && idx <= 7) {
+                        actualData[idx] = paceStringToSeconds(item.pace) / 60;
+                        if (idx > maxPopulatedIdx) maxPopulatedIdx = idx;
+                    }
+                });
+            }
+
+            // Trim actual data tail containing nulls so the line stops at the last logged point
+            const trimmedActualData = actualData.map((val, idx) => {
+                return idx <= maxPopulatedIdx ? val : null;
+            });
+
+            const labels = generateTimelineDates(data.journeyStartDate, data.targetDate);
+
+            // Check if chart instance exists
+            if (paceChartInstance) {
+                paceChartInstance.data.labels = labels;
+                paceChartInstance.data.datasets[0].data = trimmedActualData;
+                paceChartInstance.data.datasets[1].data = projectedData;
+                paceChartInstance.update();
+            } else {
+                const ctx = canvas.getContext('2d');
+                paceChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Actual Pace',
+                                data: trimmedActualData,
+                                borderColor: '#6366f1', // Indigo-500
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                borderWidth: 3.5,
+                                pointBackgroundColor: '#6366f1',
+                                pointBorderColor: '#fff',
+                                pointHoverRadius: 6,
+                                tension: 0.15,
+                                spanGaps: true
+                            },
+                            {
+                                label: 'Projected Pace',
+                                data: projectedData,
+                                borderColor: '#94a3b8', // Slate-400
+                                borderDash: [6, 6],
+                                borderWidth: 1.5,
+                                pointBackgroundColor: '#94a3b8',
+                                pointHoverRadius: 4,
+                                tension: 0.1,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    color: '#94a3b8',
+                                    font: {
+                                        family: 'Plus Jakarta Sans',
+                                        weight: '600',
+                                        size: 11
+                                    },
+                                    boxWidth: 12,
+                                    boxHeight: 12,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                borderColor: '#334155',
+                                borderWidth: 1,
+                                titleColor: '#fff',
+                                titleFont: {
+                                    family: 'Plus Jakarta Sans',
+                                    weight: 'bold'
+                                },
+                                bodyColor: '#94a3b8',
+                                bodyFont: {
+                                    family: 'Plus Jakarta Sans'
+                                },
+                                callbacks: {
+                                    label: function (context) {
+                                        const val = context.raw;
+                                        if (val === null || val === undefined) return '';
+                                        const mins = Math.floor(val);
+                                        const secs = Math.round((val - mins) * 60);
+                                        const label = context.dataset.label || '';
+                                        return `${label}: ${mins}:${secs < 10 ? '0' : ''}${secs} /mi`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#64748b',
+                                    font: {
+                                        family: 'Plus Jakarta Sans',
+                                        weight: '600',
+                                        size: 10
+                                    }
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(51, 65, 85, 0.3)'
+                                },
+                                ticks: {
+                                    color: '#64748b',
+                                    font: {
+                                        family: 'Plus Jakarta Sans',
+                                        weight: '600',
+                                        size: 10
+                                    },
+                                    callback: function (value) {
+                                        const mins = Math.floor(value);
+                                        const secs = Math.round((value - mins) * 60);
+                                        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function formatPace(totalMinutes) {
+            const mins = Math.floor(totalMinutes);
+            const secs = Math.round((totalMinutes - mins) * 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function calculateTargetPaces() {
+            const currentMins = parseFloat(document.getElementById('input-min').value) || 8;
+            const currentSecs = parseFloat(document.getElementById('input-sec').value) || 10;
+            const decimalPace = currentMins + (currentSecs / 60);
+
+            const easyMin = decimalPace + (65 / 60);
+            const easyMax = decimalPace + (95 / 60);
+            const longMin = decimalPace + (40 / 60);
+            const longMax = decimalPace + (70 / 60);
+            const tempoMin = decimalPace - (70 / 60);
+            const tempoMax = decimalPace - (45 / 60);
+
+            const easyEl = document.getElementById('pace-easy');
+            if (easyEl) easyEl.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+            const longEl = document.getElementById('pace-long');
+            if (longEl) longEl.innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+            const tempoEl = document.getElementById('pace-tempo');
+            if (tempoEl) tempoEl.innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+
+            updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax);
+        }
+
+        function updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, tempoMax) {
+            const allPaceLabels = document.querySelectorAll('.dynamic-pace-hint');
+            allPaceLabels.forEach(label => {
+                const type = label.dataset.type;
+                if (type === 'easy') {
+                    label.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+                } else if (type === 'long') {
+                    label.innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+                } else if (type === 'tempo') {
+                    label.innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+                } else if (type === 'goal') {
+                    label.innerText = `${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                } else if (type === 'race') {
+                    label.innerText = `LFG: Target Sub-20 (6:25/mi or faster)`;
+                }
+            });
+        }
+
+        function updateOverallProgressMeter() {
+            if (activePhaseWorkouts.length === 0) return;
+            const completedCount = activePhaseWorkouts.filter(w => w.completed).length;
+            const currentPhase = userProfileData ? (userProfileData.currentPhaseIndex || 1) : 1;
+            const totalCompleted = ((currentPhase - 1) * 7) + completedCount;
+            const totalWorkouts = 21; // 3 phases * 7 workouts
+
+            const percent = Math.min(100, Math.round((totalCompleted / totalWorkouts) * 100));
+            const completionText = document.getElementById('overall-completion-text');
+            const completionBar = document.getElementById('overall-completion-bar');
+            if (completionText) completionText.innerText = `${percent}%`;
+            if (completionBar) completionBar.style.width = `${percent}%`;
+        }
+
+        // 6. Phase Transition Gateway & E-Stop Buttons
+        function checkPhaseCompletion() {
+            if (activePhaseWorkouts.length === 0) return;
+            const allDone = activePhaseWorkouts.every(w => w.completed);
+            if (allDone) {
+                document.getElementById('checkout-gateway-modal').classList.remove('hidden');
+            } else {
+                document.getElementById('checkout-gateway-modal').classList.add('hidden');
+            }
+        }
+
+        function triggerEmergencyAdaptation() {
+            document.getElementById('emergency-adapt-modal').classList.remove('hidden');
+            document.getElementById('emergency-override-notes').value = "";
+        }
+
+        function closeEmergencyModal() {
+            document.getElementById('emergency-adapt-modal').classList.add('hidden');
+        }
+
+        async function submitEmergencyAdaptation() {
+            const notes = document.getElementById('emergency-override-notes').value.trim();
+            closeEmergencyModal();
+            showAutopilotLoader();
+
+            const userDocRef = db.collection("users").doc(userId);
+
+            try {
+                // Delete current subphase workouts
+                const batchDelete = db.batch();
+                activePhaseWorkouts.forEach((w) => {
+                    batchDelete.delete(userDocRef.collection("active_phase").doc(w.id));
+                });
+                await batchDelete.commit();
+
+                // Regenerate Phase 1 default workouts as reset
+                const p1Workouts = getPhase1DefaultWorkouts();
+                const batchWrite = db.batch();
+                p1Workouts.forEach((w) => {
+                    batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
+                });
+                await batchWrite.commit();
+
+                // Update root user profile document
+                const baseline = (userProfileData && userProfileData.baseline5k) || "8:10";
+                const todayStr = new Date().toISOString().split('T')[0];
+                await userDocRef.update({
+                    currentPhaseIndex: 1,
+                    emergencyOverrideNotes: notes,
+                    journeyComments: `Emergency adaptation: "${notes}". Your active phase workouts have been reset.`,
+                    paceHistory: [
+                        { phase: 1, pace: baseline, date: todayStr, label: "Start", index: 0 }
+                    ]
+                });
+
+                console.log("Emergency adaptation applied.");
+                setTimeout(() => {
+                    hideAutopilotLoader();
+                }, 3000);
+
+            } catch (err) {
+                console.error("Emergency adaptation failure: ", err);
+                hideAutopilotLoader();
+                alert("Firestore sync error during adaptation.");
+            }
+        }
+
+        async function proceedToNextPhase() {
+            try {
+                if (firebase.auth().currentUser) {
+                    await firebase.auth().currentUser.getIdToken(true); // Force token refresh if backgrounded overnight
+                }
+            } catch (e) {
+                console.warn("Token refresh failed:", e);
+            }
+
+            const notes = document.getElementById('gateway-override-notes').value.trim();
+            const newWeightStr = document.getElementById('gateway-weight').value;
+            let newWeight = parseFloat(newWeightStr);
+            let bmiHistoryUpdate = null;
+            if (newWeight && !isNaN(newWeight) && userProfileData && userProfileData.heightInches) {
+                const bmi = (newWeight / (userProfileData.heightInches * userProfileData.heightInches)) * 703;
+                userProfileData.weight = newWeight;
+                bmiHistoryUpdate = firebase.firestore.FieldValue.arrayUnion({
+                    date: new Date().toISOString(),
+                    weight: newWeight,
+                    bmi: parseFloat(bmi.toFixed(1))
+                });
+            } else if (newWeight && !isNaN(newWeight)) {
+                userProfileData.weight = newWeight;
+            }
+
+            document.getElementById('checkout-gateway-modal').classList.add('hidden');
+            showAutopilotLoader();
+
+            // Do not advance phase. Generate a new block in the CURRENT phase.
+            const nextPhaseIndex = userProfileData.currentPhaseIndex || 1;
+            const userDocRef = db.collection("users").doc(userId);
+
+            document.getElementById('jit-checklist-container').innerHTML = `
+                <div class="text-center py-8 text-slate-500 text-xs">
+                    <i class="fa-solid fa-circle-notch animate-spin text-lg mb-2 block text-indigo-500"></i>
+                    Generating next block of workouts via Coach Autopilot...
+                </div>`;
+
+            try {
+                // Compute average RPE score of this phase block to show token optimization
+                const completedWithRPE = activePhaseWorkouts.filter(w => w.completed && w.rpeScore);
+                const avgRpe = completedWithRPE.length ? (completedWithRPE.reduce((sum, w) => sum + w.rpeScore, 0) / completedWithRPE.length).toFixed(1) : null;
+
+                // Prioritize the most recent GPX file from the latest completed speed workout in the active phase
+                const workoutsWithFiles = activePhaseWorkouts
+                    .filter(w => w.completed && w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgCadence)
+                    .sort((a, b) => {
+                        if (a.dateExecuted && b.dateExecuted) {
+                            return new Date(b.dateExecuted) - new Date(a.dateExecuted);
+                        }
+                        return b.sequenceOrder - a.sequenceOrder;
+                    });
+
+                let sourceLabel = "";
+                let targetCadence = null;
+
+                if (workoutsWithFiles.length > 0) {
+                    const latestWorkout = workoutsWithFiles[0];
+                    targetCadence = latestWorkout.uploadedWorkoutFile.avgCadence;
+                    sourceLabel = `your latest speed workout (${latestWorkout.uploadedWorkoutFile.fileName})`;
+                } else if (userProfileData && userProfileData.parsedBaselineWorkout && userProfileData.parsedBaselineWorkout.avgCadence) {
+                    targetCadence = userProfileData.parsedBaselineWorkout.avgCadence;
+                    sourceLabel = `your baseline workout file (${userProfileData.parsedBaselineWorkout.fileName})`;
+                }
+
+                // Personalize journey comments based on cadence analysis
+                let coachComments = notes ? `Next block overrides: "${notes}". ` : "";
+                if (targetCadence) {
+                    coachComments += `Coach Autopilot analyzed ${sourceLabel}. Your cadence was ${targetCadence} spm. We've customized your Phase ${nextPhaseIndex} workouts to build on this, helping you scale up cadence toward 170-180 spm for your sub-20 minute run.`;
+                } else {
+                    coachComments += `Generating a new block for Phase ${nextPhaseIndex}. Keep executing your sequential workouts with steady pacing.`;
+                }
+
+                // Update profile details
+                let updateData = {
+                    currentPhaseIndex: nextPhaseIndex,
+                    lastPhaseComments: notes,
+                    lastPhaseAverageRPE: avgRpe ? parseFloat(avgRpe) : null,
+                    journeyComments: coachComments
+                };
+                if (newWeight && !isNaN(newWeight)) {
+                    updateData.weight = newWeight;
+                }
+                if (bmiHistoryUpdate) {
+                    updateData.bmiHistory = bmiHistoryUpdate;
+                }
+                
+                try {
+                    await userDocRef.update(updateData);
+                } catch(e) {
+                    throw new Error("Profile Update Error: " + e.message);
+                }
+
+                // Archive active phase to history, then clear active_phase
+                const batchArchive = db.batch();
+                activePhaseWorkouts.forEach((w) => {
+                    if (w.completed) {
+                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                    }
+                    batchArchive.delete(userDocRef.collection("active_phase").doc(w.id));
+                });
+                
+                try {
+                    await batchArchive.commit();
+                } catch(e) {
+                    throw new Error("Batch Archive Error: " + e.message);
+                }
+
+                // Fetch recent history (up to last 14 workouts)
+                let historySnapshot;
+                try {
+                    historySnapshot = await userDocRef.collection("history")
+                        .orderBy("dateExecuted", "desc")
+                        .limit(14)
+                        .get();
+                } catch(e) {
+                    throw new Error("History Fetch Error: " + e.message);
+                }
+
+                const recentHistory = [];
+                historySnapshot.forEach(doc => {
+                    recentHistory.push(doc.data());
+                });
+
+                const cleanProfile = JSON.parse(JSON.stringify(userProfileData));
+                const cleanHistory = JSON.parse(JSON.stringify(recentHistory));
+
+                // Call Firebase Cloud Function to generate AI workouts
+                let nextWorkouts = [];
+                try {
+                    const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                    const aiResult = await generateWorkoutBlock({
+                        phaseIndex: nextPhaseIndex,
+                        profile: cleanProfile,
+                        history: cleanHistory
+                    });
+                    nextWorkouts = aiResult.data.workouts || [];
+                    const strengthGuides = aiResult.data.strengthGuides || [];
+                    const healthInsights = aiResult.data.healthInsights || null;
+                    let profileUpdates = {};
+                    if (strengthGuides.length > 0) {
+                        profileUpdates.currentStrengthGuides = strengthGuides;
+                        profileUpdates.simpleStrengthGuides = firebase.firestore.FieldValue.delete();
+                        const simpleToggle = document.getElementById('simple-mode-toggle');
+                        if (simpleToggle) simpleToggle.checked = false;
+                    }
+                    if (healthInsights) {
+                        profileUpdates.healthInsights = healthInsights;
+                    }
+                    if (Object.keys(profileUpdates).length > 0) {
+                        await userDocRef.update(profileUpdates);
+                    }
+                } catch (error) {
+                    console.error("Failed to generate AI workouts, falling back to defaults.", error);
+                    alert("AI Generation Error: " + error.message + "\n\nFalling back to default workouts instead.");
+                    nextWorkouts = getPhase1DefaultWorkouts();
+                }
+
+                const batchWrite = db.batch();
+                nextWorkouts.forEach((w) => {
+                    batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
+                });
+                
+                try {
+                    await batchWrite.commit();
+                } catch(e) {
+                    throw new Error("Batch Write Next Workouts Error: " + e.message);
+                }
+
+                console.log(`Successfully advanced to Phase ${nextPhaseIndex}`);
+                setTimeout(() => {
+                    hideAutopilotLoader();
+                }, 3000);
+
+            } catch (err) {
+                console.error("Gateway transition failure: ", err);
+                hideAutopilotLoader();
+                alert("Checkout Failed: " + err.message);
+            }
+        }
+        function retryAIBlockGeneration() {
+            const confirmed = window.confirm("Are you sure you want to regenerate this block? This will replace your current workouts with a new AI-generated plan.");
+            if (!confirmed) return;
+            
+            const notesEl = document.getElementById('gateway-override-notes');
+            if (notesEl) notesEl.value = "";
+            const weightEl = document.getElementById('gateway-weight');
+            if (weightEl) weightEl.value = "";
+
+            showAutopilotLoader();
+            
+            proceedToNextPhase().catch(err => {
+                console.error(err);
+                alert("Failed to regenerate block.");
+                hideAutopilotLoader();
+            });
+        }
+
+        // 7. Pulse Heartbeat Status Marquee (Latency Masking) & 15-Second Timeout
+        function showAutopilotLoader(customMessage) {
+            document.getElementById('autopilot-loading-screen').classList.remove('hidden');
+            const tickerEl = document.getElementById('autopilot-loading-ticker');
+
+            if (window.tickerInterval) {
+                clearInterval(window.tickerInterval);
+            }
+
+            if (customMessage) {
+                tickerEl.innerText = customMessage;
+            } else {
+                const tickers = [
+                    "Analyzing your consistency curve...",
+                    "Calculating fatigue curves and RPE ratios...",
+                    "Adapting pace targets to your heart rate variance...",
+                    "Seeding next 7-activity JIT block...",
+                    "Syncing updates to Firestore databases..."
+                ];
+                let tickerIdx = 0;
+                tickerEl.innerText = tickers[0];
+
+                window.tickerInterval = setInterval(() => {
+                    tickerIdx = (tickerIdx + 1) % tickers.length;
+                    tickerEl.innerText = tickers[tickerIdx];
+                }, 2000);
+            }
+
+            // 120-second abort interceptor
+            syncTimeoutHandle = setTimeout(() => {
+                hideAutopilotLoader();
+                document.getElementById('timeout-error-modal').classList.remove('hidden');
+            }, 120000);
+        }
+
+        function hideAutopilotLoader() {
+            document.getElementById('autopilot-loading-screen').classList.add('hidden');
+            if (window.tickerInterval) {
+                clearInterval(window.tickerInterval);
+            }
+            if (syncTimeoutHandle) {
+                clearTimeout(syncTimeoutHandle);
+                syncTimeoutHandle = null;
+            }
+        }
+
+        function retrySyncAfterTimeout() {
+            document.getElementById('timeout-error-modal').classList.add('hidden');
+            setupProfileSync(userId);
+        }
+
+        // 8. General Helpers & Timers
+        function switchStrength(routineId) {
+            const contentDiv = document.getElementById('strength-guide-content');
+            if (contentDiv) {
+                Array.from(contentDiv.children).forEach(child => {
+                    child.classList.add('hidden');
+                });
+            }
+            const targetDetails = document.getElementById(`r-details-${routineId}`);
+            if (targetDetails) targetDetails.classList.remove('hidden');
+
+            const tabsDiv = document.getElementById('strength-guide-tabs');
+            if (tabsDiv) {
+                Array.from(tabsDiv.children).forEach(tab => {
+                    tab.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                });
+            }
+            const activeBtn = document.getElementById(`btn-s${routineId.toLowerCase()}`);
+            if (activeBtn) activeBtn.className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-violet-600 text-white transition-all";
+        }
+
+        function renderStrengthGuides(guides) {
+            const tabsDiv = document.getElementById('strength-guide-tabs');
+            const contentDiv = document.getElementById('strength-guide-content');
+            if (!tabsDiv || !contentDiv) return;
+
+            tabsDiv.innerHTML = '';
+            contentDiv.innerHTML = '';
+
+            if (!guides || guides.length === 0) {
+                tabsDiv.classList.add('hidden');
+                contentDiv.innerHTML = '<p class="text-xs text-slate-500 italic mt-4">No strength routines assigned for this block.</p>';
+                return;
+            }
+
+            tabsDiv.classList.remove('hidden');
+            const letters = ['A', 'B', 'C', 'D', 'E'];
+
+            guides.forEach((guide, index) => {
+                const id = letters[index] || `G${index}`;
+
+                // Button
+                const btn = document.createElement('button');
+                btn.id = `btn-s${id.toLowerCase()}`;
+                btn.className = index === 0
+                    ? "px-2.5 py-1 text-xs font-bold rounded-lg bg-violet-600 text-white transition-all"
+                    : "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                btn.onclick = () => switchStrength(id);
+                btn.innerText = id;
+                tabsDiv.appendChild(btn);
+
+                // Content
+                const wrapper = document.createElement('div');
+                wrapper.id = `r-details-${id}`;
+                wrapper.className = index === 0 ? "space-y-4 animate-fade-in" : "space-y-4 hidden";
+
+                const titleParts = guide.title.split(':');
+                const cleanTitle = titleParts.length > 1 ? titleParts[1].trim() : guide.title;
+
+                const isSimple = (userProfileData && userProfileData.simpleStrengthGuides && userProfileData.simpleStrengthGuides === guides);
+
+                let html = `
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider">${cleanTitle}</h3>
+                        <select onchange="adaptSimpleMode(this)" class="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] uppercase font-bold tracking-wider rounded-lg focus:outline-none focus:border-indigo-500 px-2 py-1 cursor-pointer">
+                            <option value="normal" ${!isSimple ? 'selected' : ''}>Normal</option>
+                            <option value="simple" ${isSimple ? 'selected' : ''}>Simple</option>
+                        </select>
+                    </div>
+                `;
+                html += `<div class="grid grid-cols-1 gap-4">`;
+
+                (guide.exercises || []).forEach((ex, exIdx) => {
+                    html += `
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <h4 class="text-xs font-bold text-slate-300">${exIdx + 1}. ${ex.name}</h4>
+                            <p class="text-[11px] text-slate-500 mt-1">${ex.setsReps}. ${ex.description}</p>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                wrapper.innerHTML = html;
+                contentDiv.appendChild(wrapper);
+            });
+        }
+
+        async function adaptSimpleMode(selectEl) {
+            if (!db || !userId || !userProfileData) return;
+            let isSimple = false;
+            if (selectEl) {
+                isSimple = selectEl.value === 'simple';
+            }
+
+            const userDocRef = db.collection("users").doc(userId);
+
+            if (isSimple) {
+                // If we already have simple guides cached, just use them
+                if (userProfileData.simpleStrengthGuides && userProfileData.simpleStrengthGuides.length > 0) {
+                    renderStrengthGuides(userProfileData.simpleStrengthGuides);
+                    if (userProfileData.simpleStrengthGuides.length > 0) switchStrength('A');
+                    return;
+                }
+
+                showAutopilotLoader("Generating Simplified workouts.");
+                try {
+                    const generateStrengthGuidesOnly = firebase.functions().httpsCallable('generateStrengthGuidesOnly');
+                    const cleanProfile = JSON.parse(JSON.stringify(userProfileData));
+                    const aiResult = await generateStrengthGuidesOnly({
+                        phaseIndex: userProfileData.currentPhaseIndex || 1,
+                        profile: cleanProfile,
+                        history: [],
+                        simpleMode: true
+                    });
+
+                    const newGuides = aiResult.data.strengthGuides || [];
+                    if (newGuides.length > 0) {
+                        await userDocRef.update({ simpleStrengthGuides: newGuides });
+                        // Update in-memory userProfileData so next render knows it's simple mode
+                        userProfileData.simpleStrengthGuides = newGuides;
+                        renderStrengthGuides(newGuides);
+                        if (newGuides.length > 0) switchStrength('A');
+                    }
+                    setTimeout(() => { hideAutopilotLoader(); }, 1000);
+                } catch (err) {
+                    console.error("Simple mode adapt failure:", err);
+                    hideAutopilotLoader();
+                    alert("Failed to adapt plan to Simple Mode.");
+                    if (selectEl) selectEl.value = 'normal';
+                }
+            } else {
+                // Revert to original
+                let guidesToRender = userProfileData.currentStrengthGuides;
+                if (!guidesToRender || guidesToRender.length === 0) {
+                    guidesToRender = getDefaultStrengthGuides();
+                }
+                if (guidesToRender) {
+                    renderStrengthGuides(guidesToRender);
+                    if (guidesToRender.length > 0) switchStrength('A');
+                }
+            }
+        }
+
+        let mainTimerInterval = null;
+        let isTimerRunning = false;
+        let totalTimeRemaining = 30 * 60;
+
+        function toggleTimer() {
+            if (isTimerRunning) {
+                clearInterval(mainTimerInterval);
+                isTimerRunning = false;
+                document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+            } else {
+                isTimerRunning = true;
+                document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-pause"></i> Pause`;
+
+                mainTimerInterval = setInterval(() => {
+                    if (totalTimeRemaining > 0) {
+                        totalTimeRemaining--;
+                        const minutes = Math.floor(totalTimeRemaining / 60);
+                        const seconds = totalTimeRemaining % 60;
+                        document.getElementById('timer-display-time').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                    } else {
+                        clearInterval(mainTimerInterval);
+                        isTimerRunning = false;
+                        document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+                        document.getElementById('timer-display-time').innerText = "Done!";
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(mainTimerInterval);
+            isTimerRunning = false;
+            totalTimeRemaining = 30 * 60;
+            document.getElementById('timer-display-time').innerText = "30:00";
+            document.getElementById('btn-timer-primary').innerHTML = `<i class="fa-solid fa-play"></i> Start`;
+        }
+
+        // default generators for Phase 1/2/3 workouts
+        function getDefaultStrengthGuides() {
+            return [
+                {
+                    title: "Hip Stability & Single-Leg Ground Force",
+                    exercises: [
+                        { name: "DB Reverse Lunges", setsReps: "3 Sets x 10/leg", description: "Load front heel dynamically. Builds specific push power." },
+                        { name: "Banded Monster Walks", setsReps: "3 Sets x 40s", description: "Band around shins. Step wide laterally to strengthen hips." },
+                        { name: "DB Goblet Squats", setsReps: "3 Sets x 12", description: "Heavy DB at chest. Focus on deep glute and core control." },
+                        { name: "Banded Clamshells", setsReps: "3 Sets x 15/side", description: "Strengthens Gluteus Medius to keep knee track aligned." }
+                    ]
+                },
+                {
+                    title: "Posterior Propulsion & Rotational Core",
+                    exercises: [
+                        { name: "DB Romanian Deadlifts", setsReps: "3 Sets x 12", description: "Keep spine neutral. Focuses heavily on hamstrings & glutes." },
+                        { name: "Banded Pallof Press", setsReps: "3 Sets x 12/side", description: "Resisting rotation builds powerful torso stiffness." },
+                        { name: "Single-Leg DB RDL", setsReps: "3 Sets x 8/leg", description: "Imparts great single-leg balance and hamstring depth." },
+                        { name: "Banded Glute Bridges", setsReps: "3 Sets x 15", description: "Band above knees. Drive hips up, pushing knees apart." }
+                    ]
+                },
+                {
+                    title: "Stride Elasticity & Ankle/Foot Rigidity",
+                    exercises: [
+                        { name: "Single-Leg Calf Raises", setsReps: "3 Sets x 15", description: "Hold DB on active side. Toughens Achilles for high bounce." },
+                        { name: "Banded Toe Hip-Pull", setsReps: "3 Sets x 12", description: "Band around toes. Raise knee up to build hip-flexor snap." },
+                        { name: "DB Bulgarian Split Squats", setsReps: "3 Sets x 8/leg", description: "Quad power and deep knee flex reinforcement." },
+                        { name: "Banded Pull-Aparts", setsReps: "3 Sets x 15", description: "Strengthens posterior shoulders for deep arm drive." }
+                    ]
+                }
+            ];
+        }
+
+        function getPhase1DefaultWorkouts() {
+            return [
+                { id: "act-1", phaseNumber: 1, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Highly relaxed base building. Keep your breathing perfectly controlled.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability and front heel lunge force from your strength library.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-3", phaseNumber: 1, sequenceOrder: 3, workoutTitle: "Easy Base Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Smooth and steady. Focus on keeping contact time on ground minimal.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                { id: "act-4", phaseNumber: 1, sequenceOrder: 4, workoutTitle: "Speed Session: 8 x 400m", type: "fast", distanceDuration: "30 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "8x400m intervals on Track (90s rest). Strive for a steady cadence of ~170 spm.", targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                { id: "act-5", phaseNumber: 1, sequenceOrder: 5, workoutTitle: "Active Recovery Rest Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Recommended rest to allow muscle fibers to adapt and rebuild.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Stride elasticity and Achilles tendon rigidity. Use bands/calf raises.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-7", phaseNumber: 1, sequenceOrder: 7, workoutTitle: "Threshold Tempo Run", type: "fast", distanceDuration: "2 Miles", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "2 Miles at threshold tempo. Comfortably hard effort.", targetPaceZone: "tempo", actualLoggedPace: null, rpeScore: null }
+            ];
+        }
+
+        function getPhase2DefaultWorkouts(avgCadence) {
+            const cadHint = avgCadence ? `Focus on sustaining your speed cadence of ${avgCadence} spm.` : "Focus on flat footstrike and high cadence.";
+            return [
+                { id: "act-1", phaseNumber: 2, sequenceOrder: 1, workoutTitle: "Easy Run + Strides", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Relaxed easy run. Add 4 x 100m light strides at the end.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                { id: "act-2", phaseNumber: 2, sequenceOrder: 2, workoutTitle: "Strength Workout B", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Posterior engine and hamstring loading. RDLs and clamshells.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-3", phaseNumber: 2, sequenceOrder: 3, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete rest. Stay hydrated and stretch.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-4", phaseNumber: 2, sequenceOrder: 4, workoutTitle: "Intervals: 5 x 1000m", type: "fast", distanceDuration: "40 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 repetitions at goal 5K speed with 2.5 min walking rests. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                { id: "act-5", phaseNumber: 2, sequenceOrder: 5, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability, single-leg reverse lunges, and plank sets.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-6", phaseNumber: 2, sequenceOrder: 6, workoutTitle: "Long Aerobic Base Run", type: "easy", distanceDuration: "6 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Build cardiovascular volume. Keep the pace conversational.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null },
+                { id: "act-7", phaseNumber: 2, sequenceOrder: 7, workoutTitle: "Speed Capacity Check", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 x 1000m intervals on Track. Focus on flat footstrike and high cadence. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null }
+            ];
+        }
+
+        function getPhase3DefaultWorkouts(avgCadence) {
+            const cadHint = avgCadence ? `Focus on maintaining your stride rate of ${avgCadence} spm under fatigue.` : "Focus on flat footstrike and high cadence.";
+            return [
+                { id: "act-1", phaseNumber: 3, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Slow restorative recovery jog. Keep effort very low.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                { id: "act-2", phaseNumber: 3, sequenceOrder: 2, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Heel tendon stiffness, calf raises, and mobility stretches.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-3", phaseNumber: 3, sequenceOrder: 3, workoutTitle: "Speed Test: 3 x 1.5 Miles", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1.5 Miles at goal pace with 3 min walking recovery. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                { id: "act-4", phaseNumber: 3, sequenceOrder: 4, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete restorative rest. Rehydrate and foam roll.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-5", phaseNumber: 3, sequenceOrder: 5, workoutTitle: "Goal Benchmark: 3 x 1 Mile", type: "fast", distanceDuration: "35 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1 Mile at goal 5K pace with 3min rest. Sub-20 test day. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+                { id: "act-6", phaseNumber: 3, sequenceOrder: 6, workoutTitle: "Easy Jog + Strides", type: "easy", distanceDuration: "2.5 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Light taper jog. Keep legs fresh and loose with 3 strides.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+                { id: "act-7", phaseNumber: 3, sequenceOrder: 7, workoutTitle: "GOAL DAY: THANKSGIVING 5K", type: "fast", distanceDuration: "3.1 Miles", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "GOAL: BREAK 20 MINUTES (Pace: 6:25/mi or faster!) LFG!", targetPaceZone: "race", actualLoggedPace: null, rpeScore: null }
+            ];
+        }
+
+        // Modern Progress Timeline controller
+        function updateTimelineView(phaseIndex) {
+            const phase = parseInt(phaseIndex) || 1;
+            const container = document.getElementById('timeline-3d-container');
+            const pagination = document.getElementById('timeline-pagination');
+            if (!container || !pagination) return;
+
+            // Default phases if none provided
+            let plan = [];
+            if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0) {
+                plan = userProfileData.macrocyclePlan;
+            } else {
+                plan = [
+                    { theme: "Speed Induction", description: "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability." },
+                    { theme: "Speed Endurance", description: "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts." },
+                    { theme: "Peak & Taper", description: "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation." }
+                ];
+            }
+
+            const N = plan.length;
+            container.innerHTML = '';
+            pagination.innerHTML = '';
+
+            // Generate Pagination Bubbles
+            for (let i = 1; i <= N; i++) {
+                const bubble = document.createElement('div');
+                if (i < phase) {
+                    bubble.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50";
+                } else if (i === phase) {
+                    bubble.className = "w-3 h-3 rounded-full bg-indigo-400 shadow-md shadow-indigo-500 ring-2 ring-indigo-500/30 scale-110 transition-transform";
+                } else {
+                    bubble.className = "w-2 h-2 rounded-full bg-slate-700 self-center opacity-50";
+                }
+                pagination.appendChild(bubble);
+            }
+
+            // Generate 3D Cards
+            // Previous Phase (Left)
+            if (phase > 1) {
+                const prev = plan[phase - 2];
+                const prevHtml = `
+                    <div class="absolute left-[2%] md:left-[10%] w-1/3 max-w-[180px] flex flex-col items-center select-none z-0 opacity-40 transition-all duration-700" style="transform: scale(0.75) translateZ(-150px) rotateY(25deg);">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-500/10 shadow-md shadow-emerald-500/10 mb-2">
+                            <i class="fa-solid fa-check text-[10px] text-emerald-400"></i>
+                        </div>
+                        <span class="text-[9px] md:text-[10px] font-bold text-emerald-400 block tracking-tight text-center uppercase leading-snug">${prev?.theme || 'Phase ' + (phase - 1)}</span>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', prevHtml);
+            }
+
+            // Active Phase (Center)
+            const current = plan[phase - 1];
+            const activeHtml = `
+                <div class="absolute w-3/4 md:w-1/2 max-w-[340px] flex flex-col items-center select-none z-10 transition-all duration-700" style="transform: scale(1.05) translateZ(50px);">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-indigo-400 bg-indigo-950 shadow-[0_0_15px_rgba(99,102,241,0.5)] ring-4 ring-indigo-500/20 mb-3">
+                        <span class="text-sm font-black text-indigo-300">${phase}</span>
+                    </div>
+                    <span class="text-[11px] md:text-xs font-black text-indigo-300 block tracking-wider text-center uppercase drop-shadow-md leading-tight">${current?.theme || 'Phase ' + phase}</span>
+                    <p class="text-[10px] md:text-xs text-indigo-100/80 mt-3 leading-relaxed text-center p-4 rounded-3xl border border-indigo-500/30 bg-indigo-950/40 backdrop-blur-sm shadow-xl w-full">
+                        ${current?.simpleDescription || current?.description || ''}
+                    </p>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', activeHtml);
+
+            // Next Phase (Right)
+            if (phase < N) {
+                const next = plan[phase];
+                const nextHtml = `
+                    <div class="absolute right-[2%] md:right-[10%] w-1/3 max-w-[180px] flex flex-col items-center select-none z-0 opacity-40 transition-all duration-700" style="transform: scale(0.75) translateZ(-150px) rotateY(-25deg);">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-slate-700 bg-slate-900 mb-2">
+                            <span class="text-[10px] font-black text-slate-500">${phase + 1}</span>
+                        </div>
+                        <span class="text-[9px] md:text-[10px] font-semibold text-slate-500 block tracking-tight text-center uppercase leading-snug">${next?.theme || 'Phase ' + (phase + 1)}</span>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', nextHtml);
+            }
+        }
+
+        function openDetailedPlanModal() {
+            const modal = document.getElementById('detailed-plan-modal');
+            if (!modal) return;
+            renderDetailedPlanStages();
+            modal.classList.remove('hidden');
+        }
+
+        function renderDetailedPlanStages() {
+            const container = document.getElementById('detailed-plan-stages');
+            const toggle = document.getElementById('detailed-plan-toggle');
+            if (!container) return;
+
+            const isDetailed = toggle ? toggle.checked : true;
+            container.innerHTML = '';
+
+            let plan = [];
+            if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0) {
+                plan = userProfileData.macrocyclePlan;
+            } else {
+                plan = [
+                    { theme: "Speed Induction", simpleDescription: "Neuromuscular speed coordination.", detailedDescription: "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability." },
+                    { theme: "Speed Endurance", simpleDescription: "Aerobic threshold development.", detailedDescription: "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts." },
+                    { theme: "Peak & Taper", simpleDescription: "Maximum capacity and recovery.", detailedDescription: "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation." }
+                ];
+            }
+
+            let currentAccumulatedDate = userProfileData && userProfileData.journeyStartDate ? new Date(userProfileData.journeyStartDate) : new Date();
+
+            plan.forEach((stage, idx) => {
+                let dateBadge = '';
+                if (stage.expectedDurationWeeks) {
+                    currentAccumulatedDate.setDate(currentAccumulatedDate.getDate() + (stage.expectedDurationWeeks * 7));
+                    const options = { month: 'short', day: 'numeric' };
+                    dateBadge = `<span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] px-2 py-0.5 rounded-md whitespace-nowrap">Target: ${currentAccumulatedDate.toLocaleDateString(undefined, options)}</span>`;
+                }
+
+                const descToShow = isDetailed
+                    ? (stage.detailedDescription || stage.description || 'No detailed description available.')
+                    : (stage.simpleDescription || stage.description || 'No description available.');
+
+                container.innerHTML += `
+                    <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800 flex items-start gap-3 text-left">
+                        <div class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-slate-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                            ${idx + 1}
+                        </div>
+                        <div class="w-full">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="text-sm font-bold text-slate-200">${stage.theme || 'Phase ' + (idx + 1)}</h4>
+                                ${dateBadge}
+                            </div>
+                            <p class="text-xs text-slate-500 leading-relaxed mt-1">${descToShow}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function closeDetailedPlanModal() {
+            const modal = document.getElementById('detailed-plan-modal');
+            if (modal) modal.classList.add('hidden');
+
+            // Force redraw of the timeline to prevent browser rendering bugs or missing states
+            if (typeof userProfileData !== 'undefined' && userProfileData) {
+                updateTimelineView(userProfileData.currentPhaseIndex || 1);
+            } else {
+                updateTimelineView(1);
+            }
+        }
+
+        // Modern Calendar Selector Dropdown Logic
+        let calSelectedDate = null;
+        let calCurrentDate = new Date();
+
+        function initCalendar() {
+            const dateInput = document.getElementById('intake-date');
+            const dropdown = document.getElementById('calendar-dropdown');
+            const prevBtn = document.getElementById('cal-prev');
+            const nextBtn = document.getElementById('cal-next');
+
+            if (!dateInput || !dropdown) return;
+
+            // Open/close toggle
+            dateInput.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+                if (!dropdown.classList.contains('hidden')) {
+                    // Reset grid to current selected or today
+                    if (dateInput.value) {
+                        const parsed = new Date(dateInput.value + 'T00:00:00');
+                        if (!isNaN(parsed.getTime())) {
+                            calCurrentDate = parsed;
+                            calSelectedDate = parsed;
+                        }
+                    } else {
+                        calCurrentDate = new Date();
+                    }
+                    renderCalendarGrid();
+                }
+            });
+
+            // Prev month button
+            prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                calCurrentDate.setMonth(calCurrentDate.getMonth() - 1);
+                renderCalendarGrid();
+            });
+
+            // Next month button
+            nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                calCurrentDate.setMonth(calCurrentDate.getMonth() + 1);
+                renderCalendarGrid();
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!dropdown.classList.contains('hidden')) {
+                    const wrapper = document.getElementById('intake-date-wrapper');
+                    if (wrapper && !wrapper.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        function renderCalendarGrid() {
+            const dropdown = document.getElementById('calendar-dropdown');
+            const monthYearEl = document.getElementById('cal-month-year');
+            const daysGrid = document.getElementById('cal-days-grid');
+            const dateInput = document.getElementById('intake-date');
+
+            if (!monthYearEl || !daysGrid || !dateInput) return;
+
+            const year = calCurrentDate.getFullYear();
+            const month = calCurrentDate.getMonth();
+
+            // Set Header Month Year
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            monthYearEl.innerText = `${monthNames[month]} ${year}`;
+
+            daysGrid.innerHTML = "";
+
+            // Start of current month
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const lastDayDate = new Date(year, month + 1, 0).getDate();
+
+            // Prev month buffer days
+            const prevMonthLastDate = new Date(year, month, 0).getDate();
+            for (let i = firstDayIndex; i > 0; i--) {
+                const prevDay = prevMonthLastDate - i + 1;
+                const cell = document.createElement('div');
+                cell.className = "p-2 text-slate-700/40 select-none font-medium cursor-not-allowed text-center";
+                cell.innerText = prevDay;
+                daysGrid.appendChild(cell);
+            }
+
+            // Current month days
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (let d = 1; d <= lastDayDate; d++) {
+                const cellDate = new Date(year, month, d);
+                cellDate.setHours(0, 0, 0, 0);
+
+                const cell = document.createElement('div');
+                cell.className = "p-2 rounded-xl text-center cursor-pointer transition-all relative font-medium";
+                cell.innerText = d;
+
+                // Check if in the past
+                const isPast = cellDate < today;
+
+                // Highlight today
+                const isToday = cellDate.getTime() === today.getTime();
+
+                // Highlight selected date
+                let isSelected = false;
+                if (dateInput.value) {
+                    const activeValDate = new Date(dateInput.value + 'T00:00:00');
+                    activeValDate.setHours(0, 0, 0, 0);
+                    isSelected = cellDate.getTime() === activeValDate.getTime();
+                }
+
+                if (isPast) {
+                    cell.className += " text-slate-700 cursor-not-allowed";
+                } else {
+                    if (isSelected) {
+                        cell.className += " bg-indigo-600 text-white font-extrabold shadow-md shadow-indigo-500/20";
+                    } else {
+                        cell.className += " text-slate-200 hover:bg-indigo-500/20 hover:text-white";
+                    }
+
+                    if (isToday && !isSelected) {
+                        cell.className += " border border-indigo-500/40";
+                        const dot = document.createElement('span');
+                        dot.className = "absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-indigo-400";
+                        cell.appendChild(dot);
+                    }
+
+                    // Click handler
+                    cell.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const padMonth = String(month + 1).padStart(2, '0');
+                        const padDay = String(d).padStart(2, '0');
+                        const dateStr = `${year}-${padMonth}-${padDay}`;
+
+                        dateInput.value = dateStr;
+                        calSelectedDate = cellDate;
+
+                        // Close dropdown
+                        dropdown.classList.add('hidden');
+                    });
+                }
+
+                daysGrid.appendChild(cell);
+            }
+
+            // Next month buffer days to complete 6-row grid (42 cells)
+            const totalCellsUsed = firstDayIndex + lastDayDate;
+            const remainingCells = 42 - totalCellsUsed;
+            for (let i = 1; i <= remainingCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = "p-2 text-slate-700/40 select-none font-medium cursor-not-allowed text-center";
+                cell.innerText = i;
+                daysGrid.appendChild(cell);
+            }
+        }
+
+        let tempModalGPXData = null;
+        let modalGPXCleared = false;
+
+        function clearModalGPX() {
+            modalGPXCleared = true;
+            tempModalGPXData = null;
+            const statusEl = document.getElementById('modal-gpx-status');
+            if (statusEl) {
+                statusEl.className = "text-[10px] text-slate-500 italic";
+                statusEl.innerText = "File removed (click save to apply)";
+            }
+            const clearBtn = document.getElementById('modal-gpx-clear-btn');
+            if (clearBtn) clearBtn.classList.add('hidden');
+        }
+
+        async function handleModalGPXUpload(input) {
+            const statusEl = document.getElementById('modal-gpx-status');
+            const clearBtn = document.getElementById('modal-gpx-clear-btn');
+            if (!input.files || input.files.length === 0) {
+                tempModalGPXData = null;
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-slate-500 italic";
+                    statusEl.innerText = "No file uploaded";
+                }
+                if (clearBtn) clearBtn.classList.add('hidden');
+                return;
+            }
+
+            const file = input.files[0];
+            if (statusEl) {
+                statusEl.className = "text-[10px] text-amber-400 font-semibold italic animate-pulse";
+                statusEl.innerText = "Parsing...";
+            }
+
+            try {
+                const parsed = await parseWorkoutFile(file);
+                tempModalGPXData = {
+                    fileName: parsed.fileName,
+                    format: parsed.format,
+                    distance: parsed.distance,
+                    duration: parsed.duration,
+                    pace: parsed.pace,
+                    avgCadence: parsed.avgCadence,
+                    avgHeartRate: parsed.avgHeartRate,
+                    maxHeartRate: parsed.maxHeartRate,
+                    elevationGain: parsed.elevationGain,
+                    avgGradient: parsed.avgGradient,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                modalGPXCleared = false;
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-emerald-450 font-bold";
+                    statusEl.innerText = `Parsed: ${parsed.fileName}`;
+                }
+                if (clearBtn) clearBtn.classList.remove('hidden');
+            } catch (err) {
+                console.error("Modal GPX upload error:", err);
+                tempModalGPXData = null;
+                if (statusEl) {
+                    statusEl.className = "text-[10px] text-rose-450 font-bold";
+                    statusEl.innerText = `Error: ${err.message}`;
+                }
+                if (clearBtn) clearBtn.classList.add('hidden');
+            }
+        }
+
+        function openProfileModal() {
+            if (userProfileData) {
+                if (userProfileData.birthYear) {
+                    document.getElementById('modal-birthyear').value = userProfileData.birthYear;
+                } else if (userProfileData.age) {
+                    document.getElementById('modal-birthyear').value = new Date().getFullYear() - userProfileData.age;
+                } else {
+                    document.getElementById('modal-birthyear').value = "";
+                }
+                document.getElementById('modal-weight').value = userProfileData.weight || "";
+                document.getElementById('modal-target-weight').value = userProfileData.targetWeight || "";
+                document.getElementById('modal-sex').value = userProfileData.sex || "male";
+                if (userProfileData.heightInches) {
+                    document.getElementById('modal-height-ft').value = Math.floor(userProfileData.heightInches / 12);
+                    document.getElementById('modal-height-in').value = userProfileData.heightInches % 12;
+                } else {
+                    document.getElementById('modal-height-ft').value = "";
+                    document.getElementById('modal-height-in').value = "";
+                }
+                document.getElementById('modal-workout-length').value = userProfileData.desiredWorkoutLength || 45;
+                document.getElementById('modal-days-available').value = userProfileData.daysAvailable || 4;
+                document.getElementById('modal-include-strength').value = userProfileData.strengthType || "runner_specific";
+                document.getElementById('modal-why-notes').value = userProfileData.why || "";
+                document.getElementById('modal-baseline-notes').value = userProfileData.userBaselineNotes || "";
+
+                const hwChecked = userProfileData.equipmentList || [];
+                const checkboxes = document.querySelectorAll('input[name="modal-hardware"]');
+                checkboxes.forEach(cb => {
+                    cb.checked = hwChecked.includes(cb.value);
+                });
+
+                modalGPXCleared = false;
+                const statusEl = document.getElementById('modal-gpx-status');
+                const clearBtn = document.getElementById('modal-gpx-clear-btn');
+                if (statusEl) {
+                    if (userProfileData.parsedBaselineWorkout) {
+                        statusEl.className = "text-[10px] text-indigo-400 font-bold";
+                        statusEl.innerText = `Current: ${userProfileData.parsedBaselineWorkout.fileName}`;
+                        if (clearBtn) clearBtn.classList.remove('hidden');
+                    } else {
+                        statusEl.className = "text-[10px] text-slate-500 italic";
+                        statusEl.innerText = "No file uploaded";
+                        if (clearBtn) clearBtn.classList.add('hidden');
+                    }
+                }
+                tempModalGPXData = null;
+
+                // Check if user is missing AI Insights or Journey Blueprint
+                const refreshBtn = document.getElementById('btn-refresh-insights');
+                if (refreshBtn) {
+                    const hasInsights = userProfileData && userProfileData.healthInsights;
+                    const hasEnrichedMacrocyclePlan = userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0 && userProfileData.macrocyclePlan[0].expectedDurationWeeks;
+                    const hasTips = typeof activePhaseWorkouts !== 'undefined' && activePhaseWorkouts.length > 0 && activePhaseWorkouts.every(w => w.jitPreparationTip);
+                    if (hasInsights && hasTips && hasEnrichedMacrocyclePlan) {
+                        refreshBtn.classList.add('hidden');
+                        refreshBtn.classList.remove('flex');
+                    } else {
+                        refreshBtn.classList.remove('hidden');
+                        refreshBtn.classList.add('flex');
+                    }
+                }
+
+                if (typeof window.validateTargetWeight === 'function') {
+                    window.validateTargetWeight();
+                }
+            }
+            document.getElementById('profile-edit-modal').classList.remove('hidden');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profile-edit-modal').classList.add('hidden');
+        }
+
+        async function refreshAIInsights() {
+            try {
+                const btn = document.getElementById('btn-refresh-insights');
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Refreshing...`;
+                    btn.disabled = true;
+                }
+                const backfillAIInsights = firebase.functions().httpsCallable('backfillAIInsights');
+                const cleanProfile = JSON.parse(JSON.stringify(userProfileData));
+                const result = await backfillAIInsights({
+                    profile: cleanProfile,
+                    history: [],
+                    activeWorkouts: activePhaseWorkouts
+                });
+
+                const data = result.data;
+                if (!data || !data.healthInsights) throw new Error("Invalid response from AI");
+
+                // Batch write to Firestore
+                const batch = db.batch();
+
+                // 1. Update Profile (Non-Destructive Enrichment)
+                const profileRef = db.collection("users").doc(userId);
+                let profileUpdates = {
+                    healthInsights: data.healthInsights
+                };
+                if (data.macrocyclePlan) profileUpdates.macrocyclePlan = data.macrocyclePlan;
+                batch.update(profileRef, profileUpdates);
+
+                // Update local memory so we don't need a hard refresh
+                if (data.macrocyclePlan) userProfileData.macrocyclePlan = data.macrocyclePlan;
+                if (data.workoutTips && Array.isArray(data.workoutTips)) {
+                    data.workoutTips.forEach(tip => {
+                        if (tip.id && tip.jitPreparationTip) {
+                            const workoutRef = db.collection("users").doc(userId).collection("active_phase").doc(tip.id);
+                            batch.update(workoutRef, {
+                                jitPreparationTip: tip.jitPreparationTip
+                            });
+                        }
+                    });
+                }
+
+                await batch.commit();
+
+                closeProfileModal();
+                alert("AI Insights successfully refreshed! Loading latest data...");
+                location.reload();
+            } catch (err) {
+                console.error("Failed to refresh AI Insights:", err);
+                alert("Failed to refresh AI Insights.");
+                const btn = document.getElementById('btn-refresh-insights');
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Refresh AI Insights`;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        async function refreshAITimelineDetails() {
+            try {
+                const btn = document.getElementById('btn-refresh-timeline');
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Refreshing...`;
+                    btn.disabled = true;
+                }
+                const upgradeMacrocycleDescriptions = firebase.functions().httpsCallable('upgradeMacrocycleDescriptions');
+
+                let planToUpgrade = [];
+                if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0) {
+                    planToUpgrade = userProfileData.macrocyclePlan;
+                } else {
+                    throw new Error("No macrocycle plan exists to upgrade.");
+                }
+
+                const result = await upgradeMacrocycleDescriptions({
+                    macrocyclePlan: planToUpgrade
+                });
+
+                const data = result.data;
+                if (!data || !data.macrocyclePlan) throw new Error("Invalid response from AI");
+
+                const profileRef = db.collection("users").doc(userId);
+                await profileRef.update({
+                    macrocyclePlan: data.macrocyclePlan
+                });
+
+                userProfileData.macrocyclePlan = data.macrocyclePlan;
+                updateTimelineView(userProfileData.currentPhaseIndex || 1);
+
+                closeProfileModal();
+                alert("AI Timeline Details successfully refreshed!");
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-timeline"></i> Refresh AI Timeline Details`;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Failed to refresh AI Timeline Details:", err);
+                alert("Failed to refresh AI Timeline Details.");
+                const btn = document.getElementById('btn-refresh-timeline');
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-timeline"></i> Refresh AI Timeline Details`;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function saveProfileModal() {
+            const lengthVal = parseInt(document.getElementById('modal-workout-length').value) || 45;
+            const weightVal = parseFloat(document.getElementById('modal-weight').value) || null;
+            const targetWeightVal = parseFloat(document.getElementById('modal-target-weight').value) || null;
+            const ftVal = parseInt(document.getElementById('modal-height-ft').value) || 0;
+            const inVal = parseInt(document.getElementById('modal-height-in').value) || 0;
+            const heightInchesVal = (ftVal * 12) + inVal > 0 ? (ftVal * 12) + inVal : null;
+            const daysAvailableVal = parseInt(document.getElementById('modal-days-available').value) || 4;
+            const strengthTypeVal = document.getElementById('modal-include-strength').value;
+            const whyNotesVal = document.getElementById('modal-why-notes').value.trim();
+            const notesVal = document.getElementById('modal-baseline-notes').value.trim();
+
+            const checkboxes = document.querySelectorAll('input[name="modal-hardware"]:checked');
+            const hardwareList = Array.from(checkboxes).map(cb => cb.value);
+
+            if (db && userId) {
+                const updates = {
+                    desiredWorkoutLength: lengthVal,
+                    userBaselineNotes: notesVal,
+                    weight: weightVal,
+                    heightInches: heightInchesVal,
+                    daysAvailable: daysAvailableVal,
+                    includeStrength: strengthTypeVal !== 'none',
+                    strengthType: strengthTypeVal,
+                    why: whyNotesVal,
+                    equipmentList: hardwareList
+                };
+                if (targetWeightVal) updates.targetWeight = targetWeightVal;
+
+                if (userProfileData && userProfileData.weight !== weightVal) {
+                    let historyUpdate = userProfileData.bmiHistory || [];
+                    if (historyUpdate.length === 0 && userProfileData.weight) {
+                        historyUpdate.push({
+                            date: userProfileData.journeyStartDate || new Date().toISOString(),
+                            weight: userProfileData.weight
+                        });
+                    }
+                    historyUpdate.push({
+                        date: new Date().toISOString(),
+                        weight: weightVal
+                    });
+                    updates.bmiHistory = historyUpdate;
+                }
+
+                if (modalGPXCleared) {
+                    updates.parsedBaselineWorkout = firebase.firestore.FieldValue.delete();
+                } else if (tempModalGPXData) {
+                    updates.parsedBaselineWorkout = tempModalGPXData;
+                    // Auto-adjust baseline parameters
+                    updates.baseline5k = tempModalGPXData.pace;
+                    updates.currentEstimated5k = tempModalGPXData.pace;
+
+                    const minSec = tempModalGPXData.pace.split(':');
+                    if (minSec.length === 2) {
+                        document.getElementById('input-min').value = parseInt(minSec[0]);
+                        document.getElementById('input-sec').value = parseInt(minSec[1]);
+                    }
+                }
+
+                db.collection("users").doc(userId).update(updates).then(() => {
+                    console.log("Profile updated successfully in Firestore.");
+                    tempModalGPXData = null;
+                    calculateTargetPaces();
+                    closeProfileModal();
+                }).catch(err => {
+                    console.error("Failed to update profile constraints:", err);
+                    alert("Error saving updates to Firestore.");
+                });
+            } else {
+                closeProfileModal();
+            }
+        }
+
+        function renderGPXBaselineCard(data) {
+            // Samsung Health Baseline has been removed
+            return;
+        }
+
+        async function handleDirectGPXUpload(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            showAutopilotLoader();
+            try {
+                const parsed = await parseWorkoutFile(file);
+                const userDocRef = db.collection("users").doc(userId);
+
+                await userDocRef.update({
+                    parsedBaselineWorkout: {
+                        fileName: parsed.fileName,
+                        format: parsed.format,
+                        distance: parsed.distance,
+                        duration: parsed.duration,
+                        pace: parsed.pace,
+                        avgCadence: parsed.avgCadence,
+                        avgHeartRate: parsed.avgHeartRate,
+                        maxHeartRate: parsed.maxHeartRate,
+                        elevationGain: parsed.elevationGain,
+                        avgGradient: parsed.avgGradient,
+                        uploadedAt: new Date().toISOString()
+                    },
+                    baseline5k: parsed.pace,
+                    currentEstimated5k: parsed.pace,
+                    journeyComments: `Coach Autopilot has analyzed your uploaded workout file (${parsed.fileName}). Your cadence was ${parsed.avgCadence || 'N/A'} spm. Pacing guidelines adjusted.`
+                });
+
+                console.log("Successfully uploaded direct GPX baseline.");
+                const minSec = parsed.pace.split(':');
+                if (minSec.length === 2) {
+                    document.getElementById('input-min').value = parseInt(minSec[0]);
+                    document.getElementById('input-sec').value = parseInt(minSec[1]);
+                }
+
+                setTimeout(() => {
+                    hideAutopilotLoader();
+                    calculateTargetPaces();
+                }, 1500);
+            } catch (err) {
+                console.error("Direct GPX upload error:", err);
+                hideAutopilotLoader();
+                alert("Error parsing workout file: " + err.message);
+            }
+        }
+
+        async function clearGPXBaseline() {
+            if (!db || !userId) return;
+            if (!confirm("Are you sure you want to remove your GPX baseline file?")) return;
+            showAutopilotLoader();
+            try {
+                const userDocRef = db.collection("users").doc(userId);
+                await userDocRef.update({
+                    parsedBaselineWorkout: firebase.firestore.FieldValue.delete()
+                });
+                setTimeout(() => {
+                    hideAutopilotLoader();
+                }, 1000);
+            } catch (err) {
+                console.error("Error clearing GPX baseline:", err);
+                hideAutopilotLoader();
+                alert("Error removing file from Firestore.");
+            }
+        }
+
+        // Initialize sync on window load
+        window.addEventListener('load', () => {
+            initCalendar();
+
+            // Removed broken auto-revert script
+
+            // Setup inline editing for plan title and description
+            const planTitle = document.getElementById('plan-title');
+            const planDesc = document.getElementById('plan-desc');
+
+            if (planTitle) {
+                planTitle.addEventListener('blur', async () => {
+                    const newTitle = planTitle.innerText.trim();
+                    if (newTitle && db && userId) {
+                        try {
+                            await db.collection("users").doc(userId).update({
+                                journeyTitle: newTitle
+                            });
+                            console.log("Updated journey title in cloud.");
+                        } catch (err) {
+                            console.error("Failed to update title: ", err);
+                        }
+                    }
+                });
+                planTitle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        planTitle.blur();
+                    }
+                });
+            }
+
+            if (planDesc) {
+                planDesc.addEventListener('blur', async () => {
+                    const newDesc = planDesc.innerText.trim();
+                    if (db && userId) {
+                        try {
+                            await db.collection("users").doc(userId).update({
+                                journeyDescription: newDesc
+                            });
+                            console.log("Updated journey description in cloud.");
+                        } catch (err) {
+                            console.error("Failed to update description: ", err);
+                        }
+                    }
+                });
+                planDesc.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        planDesc.blur();
+                    }
+                });
+            }
+
+            // (Removed Profile Switcher JS bindings)
+
+            // Read last active profile from cache
+            const savedProfile = localStorage.getItem('yf_active_profile');
+            if (savedProfile) {
+                userId = savedProfile;
+                setupProfileSync(userId);
+            } else {
+                userId = "";
+                showProfileLookupPanel();
+            }
+            function updateBMIVisual() {
+                const weight = parseFloat(document.getElementById('intake-weight').value);
+                const ft = parseInt(document.getElementById('intake-height-ft').value) || 0;
+                const inch = parseInt(document.getElementById('intake-height-in').value) || 0;
+                const container = document.getElementById('bmi-visual-container');
+                const display = document.getElementById('bmi-value-display');
+                const marker = document.getElementById('bmi-marker');
+                const textRange = document.getElementById('bmi-healthy-range-text');
+
+                if (!weight || (ft === 0 && inch === 0)) {
+                    container.classList.add('hidden');
+                    return;
+                }
+
+                const totalInches = (ft * 12) + inch;
+                if (totalInches === 0) return;
+
+                const bmi = (weight / (totalInches * totalInches)) * 703;
+
+                let percent = 0;
+                if (bmi < 18.5) {
+                    const clamped = Math.max(12, bmi);
+                    percent = ((clamped - 12) / 6.5) * 25;
+                } else if (bmi < 25) {
+                    percent = 25 + ((bmi - 18.5) / 6.5) * 25;
+                } else if (bmi < 30) {
+                    percent = 50 + ((bmi - 25) / 5) * 25;
+                } else {
+                    const clamped = Math.min(40, bmi);
+                    percent = 75 + ((clamped - 30) / 10) * 25;
+                }
+
+                container.classList.remove('hidden');
+                display.innerText = bmi.toFixed(1);
+                marker.style.left = `${Math.max(0, Math.min(100, percent))}%`;
+
+                const minHealthy = Math.round((18.5 * totalInches * totalInches) / 703);
+                const maxHealthy = Math.round((24.9 * totalInches * totalInches) / 703);
+                textRange.innerText = `Healthy weight range for your height: ${minHealthy} - ${maxHealthy} lbs`;
+            }
+
+            window.enforceMinimumWeight = function (el) {
+                const ft = parseInt(document.getElementById('intake-height-ft')?.value) || (typeof userProfileData !== 'undefined' && userProfileData?.heightInches ? Math.floor(userProfileData.heightInches / 12) : 0);
+                const inch = parseInt(document.getElementById('intake-height-in')?.value) || (typeof userProfileData !== 'undefined' && userProfileData?.heightInches ? userProfileData.heightInches % 12 : 0);
+                const totalInches = (ft * 12) + inch;
+
+                if (totalInches > 0) {
+                    const minHealthy = Math.round((18.5 * totalInches * totalInches) / 703);
+                    const val = parseFloat(el.value);
+                    if (val && val < minHealthy) {
+                        el.value = minHealthy;
+
+                        const container = el.parentElement;
+                        const bubble = container.querySelector('.min-weight-bubble');
+                        if (bubble) {
+                            bubble.querySelector('.min-val').innerText = minHealthy;
+                            bubble.classList.remove('hidden');
+
+                            el.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-500/10');
+                            setTimeout(() => {
+                                bubble.classList.add('hidden');
+                                el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-500/10');
+                            }, 4000);
+                        }
+                    }
+                }
+            };
+
+            window.validateTargetWeight = function () {
+                // enforceMinimumWeight handles the correction and bubble on blur.
+            };
+
+            window.switchNutritionTab = function (tier) {
+                const tabs = ['rest', 'light', 'hard'];
+                tabs.forEach(t => {
+                    const tabEl = document.getElementById(`tab-nut-${t}`);
+                    const insightEl = document.getElementById(`insight-nut-${t}`);
+                    if (tabEl && insightEl) {
+                        tabEl.className = t === tier ?
+                            "px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-white transition-all" :
+                            "px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                        insightEl.className = t === tier ? "block" : "hidden";
+                    }
+                });
+            };
+
+            window.openWeightHistoryModal = function () {
+                document.getElementById('weight-history-modal').classList.remove('hidden');
+                document.getElementById('weight-history-modal').classList.add('flex');
+
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('history-new-date').value = today;
+                document.getElementById('history-new-weight').value = '';
+
+                // Limit date to current journey stage elapsed days
+                let minDate = new Date();
+                if (userProfileData) {
+                    const startD = userProfileData.journeyStartDate ? new Date(userProfileData.journeyStartDate) : new Date();
+                    const phaseIndex = userProfileData.currentPhaseIndex || 1;
+                    const macroPlan = userProfileData.macrocyclePlan || [];
+
+                    let phaseStart = new Date(startD);
+                    for (let i = 0; i < phaseIndex - 1; i++) {
+                        if (macroPlan[i]) {
+                            phaseStart.setDate(phaseStart.getDate() + ((macroPlan[i].expectedDurationWeeks || 4) * 7));
+                        }
+                    }
+                    minDate = phaseStart;
+                }
+                document.getElementById('history-new-date').min = minDate.toISOString().split('T')[0];
+                document.getElementById('history-new-date').max = today;
+
+                renderWeightHistoryList();
+            };
+
+            window.closeWeightHistoryModal = function () {
+                document.getElementById('weight-history-modal').classList.add('hidden');
+                document.getElementById('weight-history-modal').classList.remove('flex');
+            };
+
+            window.renderWeightHistoryList = function () {
+                const listEl = document.getElementById('weight-history-list');
+                listEl.innerHTML = '';
+
+                if (!userProfileData || !userProfileData.bmiHistory || userProfileData.bmiHistory.length === 0) {
+                    listEl.innerHTML = `<div class="text-center text-slate-500 text-xs py-4">No history recorded yet.</div>`;
+                    return;
+                }
+
+                const sortedHistory = [...userProfileData.bmiHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                sortedHistory.forEach((entry, index) => {
+                    const d = new Date(entry.date);
+                    const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                    const trueIndex = userProfileData.bmiHistory.indexOf(entry);
+
+                    listEl.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                            <div>
+                                <div class="text-white font-bold text-sm">${entry.weight} lbs</div>
+                                <div class="text-slate-500 text-[10px]">${dateStr}</div>
+                            </div>
+                            <button onclick="removeWeightHistoryEntry(${trueIndex})" class="text-slate-500 hover:text-rose-400 transition-colors p-2">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+            };
+
+            window.addWeightHistoryEntry = function () {
+                const dateVal = document.getElementById('history-new-date').value;
+                const weightVal = parseFloat(document.getElementById('history-new-weight').value);
+
+                if (!dateVal || isNaN(weightVal)) {
+                    alert("Please provide both a valid date and weight.");
+                    return;
+                }
+
+                if (!userProfileData) return;
+
+                const d = new Date(dateVal);
+                d.setHours(12, 0, 0, 0);
+
+                let history = userProfileData.bmiHistory || [];
+                if (history.length === 0 && userProfileData.weight) {
+                    history.push({
+                        date: userProfileData.journeyStartDate || new Date().toISOString(),
+                        weight: userProfileData.weight
+                    });
+                }
+
+                history.push({
+                    date: d.toISOString(),
+                    weight: weightVal
+                });
+
+                userProfileData.bmiHistory = history;
+                const latest = [...history].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight;
+                userProfileData.weight = latest;
+
+                db.collection("users").doc(userId).update({
+                    bmiHistory: history,
+                    weight: latest
+                }).then(() => {
+                    renderWeightHistoryList();
+                    document.getElementById('modal-weight').value = latest;
+                    if (window.updateDashboardBMI) window.updateDashboardBMI(userProfileData, false);
+                }).catch(err => {
+                    console.error("Error saving weight history:", err);
+                    alert("Failed to save.");
+                });
+            };
+
+            window.removeWeightHistoryEntry = function (index) {
+                if (!confirm("Are you sure you want to delete this log?")) return;
+                if (!userProfileData || !userProfileData.bmiHistory) return;
+
+                let history = [...userProfileData.bmiHistory];
+                history.splice(index, 1);
+
+                userProfileData.bmiHistory = history;
+                const latest = history.length > 0 ? [...history].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight : (userProfileData.weight || null);
+                userProfileData.weight = latest;
+
+                db.collection("users").doc(userId).update({
+                    bmiHistory: history,
+                    weight: latest
+                }).then(() => {
+                    renderWeightHistoryList();
+                    document.getElementById('modal-weight').value = latest || "";
+                    if (window.updateDashboardBMI) window.updateDashboardBMI(userProfileData, false);
+                }).catch(err => {
+                    console.error("Error deleting weight history:", err);
+                    alert("Failed to delete.");
+                });
+            };
+
+            window.openFullJourneyModal = function () {
+                document.getElementById('full-journey-modal').classList.remove('hidden');
+                if (userProfileData) {
+                    // Triggers the chart to draw in the full-journey-chart context
+                    console.log("openFullJourneyModal clicked!", userProfileData);
+                    setTimeout(() => {
+                        try {
+                            updateDashboardBMI(userProfileData, true);
+                        } catch (e) {
+                            console.error("Crash in updateDashboardBMI:", e);
+                            alert("Chart Error: " + e.message);
+                        }
+                    }, 100); // Wait for modal layout to render before initializing chart
+                } else {
+                    console.warn("userProfileData is undefined!");
+                }
+            };
+
+            window.closeFullJourneyModal = function () {
+                document.getElementById('full-journey-modal').classList.add('hidden');
+                // Re-draw normal dashboard chart
+                if (userProfileData) updateDashboardBMI(userProfileData, false);
+            };
+
+            window.updateDashboardBMI = function (data, isFullJourney = false) {
+                console.log(`[BMI Chart Debug] Starting updateDashboardBMI (isFullJourney: ${isFullJourney})`);
+                const card = document.getElementById('dashboard-bmi-card');
+                if (!card) {
+                    console.log("[BMI Chart Debug] dashboard-bmi-card not found!");
+                    return;
+                }
+                if (!data.weight || !data.heightInches) {
+                    console.log("[BMI Chart Debug] Missing weight or heightInches");
+                    card.style.display = 'none';
+                    return;
+                }
+
+                const weight = data.weight;
+                const totalInches = data.heightInches;
+                const minHealthyWeight = Math.round((18.5 * totalInches * totalInches) / 703);
+                const maxHealthyWeight = Math.round((24.9 * totalInches * totalInches) / 703);
+                const obeseThresholdWeight = Math.round((29.9 * totalInches * totalInches) / 703);
+
+                // Consistency HUD
+                if (typeof activePhaseWorkouts !== 'undefined' && activePhaseWorkouts.length > 0) {
+                    const completed = activePhaseWorkouts.filter(w => w.completed).length;
+                    const total = activePhaseWorkouts.length;
+                    document.getElementById('consistency-score').innerText = `${Math.round((completed / total) * 100)}%`;
+
+                    const completedDates = activePhaseWorkouts.filter(w => w.completed && w.dateExecuted).map(w => new Date(w.dateExecuted).getTime());
+                    if (completedDates.length > 0) {
+                        const minDate = Math.min(...completedDates);
+                        const days = Math.floor((new Date().getTime() - minDate) / (1000 * 3600 * 24)) + 1;
+                        document.getElementById('consistency-days-phase').innerText = `${days} Days`;
+                    } else {
+                        document.getElementById('consistency-days-phase').innerText = "Day 1";
+                    }
+                }
+
+                // AI Insights
+                const insightsContainer = document.getElementById('ai-health-insights-container');
+                const insightsEmpty = document.getElementById('ai-health-empty');
+
+                if (data.healthInsights) {
+                    insightsContainer.classList.remove('hidden');
+                    insightsContainer.classList.add('flex');
+                    insightsEmpty.classList.add('hidden');
+
+                    document.getElementById('insight-movement').innerText = data.healthInsights.movementTip || "Keep moving!";
+                    document.getElementById('insight-hydration').innerText = data.healthInsights.hydrationRecovery || "Stay hydrated!";
+
+                    if (data.healthInsights.nutritionHeuristics) {
+                        document.getElementById('insight-nut-rest').innerText = data.healthInsights.nutritionHeuristics.restDay || "";
+                        document.getElementById('insight-nut-light').innerText = data.healthInsights.nutritionHeuristics.lightActivity || "";
+                        document.getElementById('insight-nut-hard').innerText = data.healthInsights.nutritionHeuristics.hardActivity || "";
+                    }
+                } else {
+                    insightsContainer.classList.add('hidden');
+                    insightsContainer.classList.remove('flex');
+                    insightsEmpty.classList.remove('hidden');
+                }
+
+                // Chart.js
+                const chartId = isFullJourney ? 'full-journey-chart' : 'bmi-history-chart';
+                const ctx = document.getElementById(chartId);
+                if (ctx && (data.bmiHistory || data.weight)) {
+                    let history = [];
+                    if (data.bmiHistory && data.bmiHistory.length > 0) {
+                        history = [...data.bmiHistory];
+                    } else if (data.weight) {
+                        history = [{ date: data.journeyStartDate || new Date().toISOString(), weight: data.weight }];
+                    }
+
+                    // Ensure there's a starting dot at journeyStartDate if missing
+                    if (data.journeyStartDate && history.length > 0) {
+                        history.sort((a, b) => new Date(a.date) - new Date(b.date));
+                        const journeyStartTime = new Date(data.journeyStartDate).getTime();
+                        const earliestLogTime = new Date(history[0].date).getTime();
+                        // If earliest log is missing the start of the journey (e.g. > 7 days gap)
+                        if (earliestLogTime - journeyStartTime > 7 * 24 * 60 * 60 * 1000) {
+                            history.unshift({ date: data.journeyStartDate, weight: history[0].weight }); // Fallback to earliest known weight
+                        }
+                    }
+
+                    // If they updated their weight in the profile, make sure it's plotted as 'today'
+                    if (data.weight && history.length > 0) {
+                        history.sort((a, b) => new Date(a.date) - new Date(b.date));
+                        const lastLog = history[history.length - 1];
+                        // If the current profile weight differs from the last logged history weight, plot it today
+                        if (lastLog.weight !== data.weight) {
+                            history.push({ date: new Date().toISOString(), weight: data.weight });
+                        }
+                    }
+                    history.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    const pad = n => n.toString().padStart(2, '0');
+
+                    let labels = [];
+                    let fullDates = [];
+                    let weeklyPoints = [];
+
+                    const userTargetWeight = data.targetWeight ? parseFloat(data.targetWeight) : maxHealthyWeight; // Fallback to max healthy if unset
+
+                    const journeyStart = data.journeyStartDate ? new Date(data.journeyStartDate) : new Date(history[0].date);
+                    const lastHistoryDate = new Date(history[history.length - 1].date);
+
+                    let startD = new Date(journeyStart);
+                    let endD;
+
+                    // Always default to a sensible fallback
+                    let fallbackEndD = new Date(startD);
+                    fallbackEndD.setDate(fallbackEndD.getDate() + 182); // 6 months
+
+                    if (isFullJourney) {
+                        // Full Journey: Try targetDate first, then full macrocyclePlan, then fallback
+                        if (data.targetDate && new Date(data.targetDate) > startD) {
+                            endD = new Date(data.targetDate);
+                        } else if (data.macrocyclePlan && data.macrocyclePlan.length > 0) {
+                            let accumulatedEndD = new Date(startD);
+                            for (let i = 0; i < data.macrocyclePlan.length; i++) {
+                                const weeks = data.macrocyclePlan[i].expectedDurationWeeks || 4;
+                                accumulatedEndD.setDate(accumulatedEndD.getDate() + (weeks * 7));
+                            }
+                            endD = accumulatedEndD > startD ? accumulatedEndD : fallbackEndD;
+                        } else {
+                            endD = fallbackEndD;
+                        }
+                    } else {
+                        // Stage View: Dynamically calculate current phase end date based on macrocyclePlan
+                        const phaseIndex = data.currentPhaseIndex || 1;
+                        const macroPlan = data.macrocyclePlan || [];
+
+                        let accumulatedEndD = new Date(startD);
+                        let validPlanFound = false;
+
+                        for (let i = 0; i < phaseIndex; i++) {
+                            if (macroPlan[i]) {
+                                const weeks = macroPlan[i].expectedDurationWeeks || 4;
+                                accumulatedEndD.setDate(accumulatedEndD.getDate() + (weeks * 7));
+                                validPlanFound = true;
+                            }
+                        }
+
+                        if (validPlanFound && accumulatedEndD > startD) {
+                            endD = accumulatedEndD;
+                        } else if (data.currentPhaseEndDate && new Date(data.currentPhaseEndDate) > startD) {
+                            endD = new Date(data.currentPhaseEndDate);
+                        } else {
+                            // Fallback: From start to 2 weeks past the last history point or today
+                            const today = new Date();
+                            endD = lastHistoryDate > today ? new Date(lastHistoryDate) : new Date(today);
+                            endD.setDate(endD.getDate() + 14);
+                            if (endD < startD) {
+                                endD = new Date(startD);
+                                endD.setDate(endD.getDate() + 14);
+                            }
+                        }
+                    }
+
+                    let curr = new Date(startD);
+                    curr.setHours(0, 0, 0, 0);
+                    endD.setHours(23, 59, 59, 999);
+
+                    // Failsafe in case endD somehow became invalid or before startD
+                    if (isNaN(endD) || endD <= curr) {
+                        endD = new Date(curr);
+                        endD.setDate(endD.getDate() + 182);
+                        endD.setHours(23, 59, 59, 999);
+                    }
+
+                    while (curr <= endD) {
+                        labels.push(`${pad(curr.getMonth() + 1)}/${pad(curr.getDate())}`);
+                        fullDates.push(new Date(curr));
+
+                        // Find if we have a weight recorded for this week (closest date on or after)
+                        let w = null;
+                        let minDiff = Infinity;
+                        let wDate = null;
+                        for (let h of history) {
+                            let hd = new Date(h.date);
+                            let diff = hd - curr;
+                            if (diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000 && diff < minDiff) {
+                                w = h.weight;
+                                minDiff = diff;
+                                wDate = hd;
+                            }
+                        }
+                        if (w !== null) {
+                            let fractionalWeeks = (wDate - startD) / (7 * 24 * 60 * 60 * 1000);
+                            weeklyPoints.push({ x: fractionalWeeks, y: w });
+                        }
+                        curr.setDate(curr.getDate() + 7); // weekly steps
+                    }
+
+                    // Generate all points at their exact fractional X location for the continuous line
+                    let allPoints = [];
+                    for (let h of history) {
+                        let hd = new Date(h.date);
+                        let fractionalWeeks = (hd - startD) / (7 * 24 * 60 * 60 * 1000);
+                        // Only add points that fall within or slightly after the chart boundary
+                        if (fractionalWeeks >= 0 && fractionalWeeks <= labels.length) {
+                            allPoints.push({ x: fractionalWeeks, y: h.weight });
+                        }
+                    }
+                    allPoints.sort((a, b) => a.x - b.x);
+
+                    // The starting weight for the trajectory and loss calculation
+                    const startWeight = history.length > 0 ? history[0].weight : 0;
+
+                    // Generate target trajectory using Exponential Decay
+                    // To maintain the correct curve on the Stage view, we must calculate the true journey length
+                    let trueEndD = new Date(startD);
+                    if (data.targetDate && new Date(data.targetDate) > startD) {
+                        trueEndD = new Date(data.targetDate);
+                    } else if (data.macrocyclePlan && data.macrocyclePlan.length > 0) {
+                        for (let i = 0; i < data.macrocyclePlan.length; i++) {
+                            const weeks = data.macrocyclePlan[i].expectedDurationWeeks || 4;
+                            trueEndD.setDate(trueEndD.getDate() + (weeks * 7));
+                        }
+                    } else {
+                        trueEndD.setDate(trueEndD.getDate() + 182);
+                    }
+
+                    const trueTotalWeeks = Math.max(1, Math.round((trueEndD - startD) / (1000 * 60 * 60 * 24 * 7)));
+
+                    // k factor: We want to be 95% of the way there at the end of the full journey
+                    // e^(-k * trueTotalWeeks) = 0.05 => k = -ln(0.05) / trueTotalWeeks
+                    const k = 2.9957 / Math.max(1, trueTotalWeeks);
+
+                    const journeyStartDateTime = fullDates.length > 0 ? fullDates[0].getTime() : new Date().getTime();
+
+                    const targetPoints = [];
+                    for (let i = 0; i < fullDates.length; i++) {
+                        const d = fullDates[i];
+                        let weeksElapsed = Math.max(0, (d.getTime() - journeyStartDateTime) / (1000 * 60 * 60 * 24 * 7));
+                        // Decay formula: TargetWeight + (StartWeight - TargetWeight) * e^(-k * t)
+                        const projectedWeight = userTargetWeight + (startWeight - userTargetWeight) * Math.exp(-k * weeksElapsed);
+                        targetPoints.push({ x: i, y: projectedWeight });
+                    }
+
+                    // Labels Update
+                    card.style.display = '';
+
+                    const currentBmi = (weight / (totalInches * totalInches)) * 703;
+                    const targetBmi = (userTargetWeight / (totalInches * totalInches)) * 703;
+
+                    let stageTargetWeight = targetPoints.length > 0 ? targetPoints[targetPoints.length - 1].y : userTargetWeight;
+                    const stageTargetBmi = (stageTargetWeight / (totalInches * totalInches)) * 703;
+
+                    if (!isFullJourney) {
+                        const lblCurr = document.getElementById('bmi-label-current');
+                        const lblTarg = document.getElementById('bmi-label-target');
+                        if (lblCurr) lblCurr.innerText = `Current: ${weight} lbs (${currentBmi.toFixed(1)} BMI)`;
+                        if (lblTarg) lblTarg.innerText = `Stage Target: ${stageTargetWeight.toFixed(1)} lbs (${stageTargetBmi.toFixed(1)} BMI)`;
+                    } else {
+                        const modCurr = document.getElementById('modal-bmi-label-current');
+                        const modTarg = document.getElementById('modal-bmi-label-target');
+                        if (modCurr) modCurr.innerText = `Current: ${weight} lbs (${currentBmi.toFixed(1)} BMI)`;
+                        if (modTarg) modTarg.innerText = `Target: ${userTargetWeight.toFixed(1)} lbs (${targetBmi.toFixed(1)} BMI)`;
+                    }
+
+                    // Clean up specific instance depending on which chart we are drawing
+                    if (isFullJourney) {
+                        if (window.fullBmiChartInstance) window.fullBmiChartInstance.destroy();
+                    } else {
+                        if (window.bmiChartInstance) window.bmiChartInstance.destroy();
+                    }
+
+                    const customBmiPlugin = {
+                        id: 'customBmiVisuals',
+                        beforeDraw: (chart) => {
+                            const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart;
+
+                            const minH = minHealthyWeight;
+                            const maxH = maxHealthyWeight;
+                            const obese = obeseThresholdWeight;
+
+                            const colors = {
+                                obese: { bg: 'rgba(239, 68, 68, 0.1)', bar: '#b91c1c' }, // Red
+                                overweight: { bg: 'rgba(249, 115, 22, 0.15)', bar: '#c2410c' }, // Orange
+                                healthy: { bg: 'rgba(34, 197, 94, 0.15)', bar: '#15803d' }, // Green
+                                underweight: { bg: 'rgba(148, 163, 184, 0.15)', bar: '#475569' } // Gray
+                            };
+
+                            const barWidth = 20;
+                            const chartRight = right; // Padding provides space for the bar
+
+                            ctx.save();
+
+                            const drawBand = (minYVal, maxYVal, bgCol, barCol) => {
+                                const yTop = Math.max(top, Math.min(bottom, y.getPixelForValue(maxYVal)));
+                                const yBottom = Math.min(bottom, Math.max(top, y.getPixelForValue(minYVal)));
+                                const height = yBottom - yTop;
+
+                                if (height > 0) {
+                                    // Background
+                                    ctx.fillStyle = bgCol;
+                                    ctx.fillRect(left, yTop, chartRight - left, height);
+                                    // Stacked Bar
+                                    ctx.fillStyle = barCol;
+                                    ctx.fillRect(chartRight, yTop, barWidth, height);
+                                }
+                            };
+
+                            drawBand(obese, y.max + 500, colors.obese.bg, colors.obese.bar);
+                            drawBand(maxH, obese, colors.overweight.bg, colors.overweight.bar);
+                            drawBand(minH, maxH, colors.healthy.bg, colors.healthy.bar);
+                            drawBand(y.min - 500, minH, colors.underweight.bg, colors.underweight.bar);
+
+
+                            // Draw Final Target Bullseye on the right side Stacked Bar
+                            if (y.min !== undefined && y.max !== undefined) {
+                                const finalTargetY = y.getPixelForValue(userTargetWeight);
+                                if (finalTargetY >= top && finalTargetY <= bottom) {
+                                    ctx.beginPath();
+                                    ctx.arc(chartRight + (barWidth / 2), finalTargetY, 6, 0, 2 * Math.PI);
+                                    ctx.fillStyle = '#a855f7'; // Purple for final end target
+                                    ctx.fill();
+                                    ctx.lineWidth = 2;
+                                    ctx.strokeStyle = '#ffffff';
+                                    ctx.stroke();
+
+                                    // Small line connecting chart to bullseye
+                                    ctx.beginPath();
+                                    ctx.moveTo(chartRight, finalTargetY);
+                                    ctx.lineTo(chartRight + (barWidth / 2) - 6, finalTargetY);
+                                    ctx.strokeStyle = '#a855f7';
+                                    ctx.lineWidth = 2;
+                                    ctx.stroke();
+                                }
+                            }
+
+                            ctx.restore();
+                        },
+                        afterDatasetsDraw: (chart) => {
+                            const { ctx } = chart;
+                            ctx.save();
+                            ctx.font = '10px "Plus Jakarta Sans", sans-serif';
+                            ctx.textAlign = 'center';
+
+                            // User weights labels (dataset 1 - weekly bubbles)
+                            const meta1 = chart.getDatasetMeta(1);
+                            if (meta1 && meta1.data) {
+                                meta1.data.forEach((point, index) => {
+                                    const valObj = weeklyPoints[index];
+                                    if (valObj) {
+                                        const numVal = parseFloat(valObj.y);
+                                        const numStart = parseFloat(startWeight);
+                                        const loss = (numVal - numStart).toFixed(1);
+                                        const lossText = numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`);
+                                        ctx.fillStyle = '#ea580c'; // Orange
+                                        ctx.textBaseline = 'bottom';
+
+                                        if (lossText) {
+                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y - 18);
+                                            ctx.font = '9px "Plus Jakarta Sans", sans-serif';
+                                            ctx.fillText(lossText, point.x, point.y - 7);
+                                            ctx.font = '10px "Plus Jakarta Sans", sans-serif';
+                                        } else {
+                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y - 10);
+                                        }
+                                    }
+                                });
+                            }
+
+                            // Target labels (dataset 2)
+                            const meta2 = chart.getDatasetMeta(2);
+                            if (meta2 && meta2.data) {
+                                for (let i = 0; i < targetPoints.length; i++) {
+                                    const valObj = targetPoints[i];
+                                    const point = meta2.data[i];
+
+                                    let hasUserPoint = weeklyPoints.some(wp => Math.abs(wp.x - i) < 0.5);
+
+                                    if (point && valObj && !hasUserPoint) {
+                                        const numVal = parseFloat(valObj.y);
+                                        const numStart = parseFloat(startWeight);
+                                        const loss = (numVal - numStart).toFixed(1);
+                                        const lossText = numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`);
+                                        ctx.fillStyle = '#0ea5e9'; // Blue
+                                        ctx.textBaseline = 'top';
+
+                                        if (lossText) {
+                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y + 15);
+                                            ctx.font = '9px "Plus Jakarta Sans", sans-serif';
+                                            ctx.fillText(lossText, point.x, point.y + 26);
+                                            ctx.font = '10px "Plus Jakarta Sans", sans-serif';
+                                        } else {
+                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y + 15);
+                                        }
+                                    }
+                                }
+                            }
+                            ctx.restore();
+                        },
+                        afterDraw: (chart) => {
+                            const { ctx } = chart;
+                            const datasetMeta = chart.getDatasetMeta(2); // Target dataset
+                            if (!datasetMeta || !datasetMeta.data || datasetMeta.data.length === 0) return;
+
+                            // Point the bullseye at the very last point of the target line (Stage or Full Target)
+                            const lastPoint = datasetMeta.data[datasetMeta.data.length - 1];
+                            if (!lastPoint) return;
+
+                            const px = lastPoint.x;
+                            const py = lastPoint.y;
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.arc(px, py, 6, 0, 2 * Math.PI);
+                            ctx.fillStyle = isFullJourney ? '#a855f7' : '#0ea5e9'; // Purple if full journey, blue if stage
+                            ctx.fill();
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    };
+
+                    // Calculate dynamic min and max based on visible points
+                    const validWeights = allPoints.map(p => p.y);
+                    const allVisibleValues = [...validWeights, ...targetPoints.map(p => p.y)].filter(v => v !== null && v !== undefined && !isNaN(v));
+                    if (userTargetWeight) allVisibleValues.push(userTargetWeight);
+
+                    const dynamicMin = Math.floor(Math.min(...allVisibleValues)) - 5;
+                    const dynamicMax = Math.ceil(Math.max(...allVisibleValues)) + 5;
+
+                    const chartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            datasets: [
+                                {
+                                    label: 'Your Trend',
+                                    data: allPoints,
+                                    borderColor: '#f97316', // Orange
+                                    backgroundColor: '#f97316',
+                                    borderWidth: 3,
+                                    fill: false,
+                                    tension: 0.3,
+                                    pointBackgroundColor: '#ea580c',
+                                    pointBorderColor: '#ffffff',
+                                    pointBorderWidth: 1,
+                                    pointRadius: 2, // Very small dot, slightly bigger than line
+                                    pointHoverRadius: 4,
+                                    z: 10
+                                },
+                                {
+                                    label: 'Weekly Markers',
+                                    data: weeklyPoints,
+                                    borderColor: '#ea580c',
+                                    backgroundColor: '#ea580c',
+                                    borderWidth: 0,
+                                    fill: false,
+                                    showLine: false, // Bubbles only
+                                    pointBackgroundColor: '#ea580c',
+                                    pointBorderColor: '#ffffff',
+                                    pointBorderWidth: 2,
+                                    pointRadius: 6, // Big bubbles
+                                    pointHoverRadius: 8,
+                                    z: 11
+                                },
+                                {
+                                    label: 'Healthy Target',
+                                    data: targetPoints,
+                                    borderColor: 'rgba(14, 165, 233, 0.4)', // Light blue thick band
+                                    backgroundColor: 'transparent',
+                                    borderWidth: 24, // Thick transparent line
+                                    fill: false,
+                                    tension: 0.3,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 0,
+                                    borderCapStyle: 'round',
+                                    z: 5
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            layout: {
+                                padding: { left: 20, right: 20, top: 10, bottom: 10 }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false,
+                                    position: 'bottom',
+                                    labels: {
+                                        usePointStyle: true,
+                                        boxWidth: 8,
+                                        font: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: '500' }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        title: function (context) {
+                                            if (!context || !context.length) return '';
+                                            const rawX = context[0].raw.x;
+                                            const d = new Date(startD.getTime() + rawX * 7 * 24 * 60 * 60 * 1000);
+                                            // Handle edge case of timezones by ensuring we use UTC or simply using locale string
+                                            return `${d.getMonth() + 1}/${d.getDate()}`;
+                                        },
+                                        label: function (context) {
+                                            const numVal = parseFloat(context.raw.y);
+                                            const numStart = parseFloat(startWeight);
+                                            const loss = (numVal - numStart).toFixed(1);
+                                            const lossText = numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`);
+                                            if (context.dataset.label === 'Healthy Target') {
+                                                return `Target: ${numVal.toFixed(1)} ${lossText}`.trim();
+                                            }
+                                            return `${numVal.toFixed(1)} ${lossText}`.trim();
+                                        }
+                                    },
+                                    displayColors: true,
+                                    bodyFont: { family: "'Plus Jakarta Sans', sans-serif", size: 12, weight: '600' },
+                                    titleFont: { family: "'Plus Jakarta Sans', sans-serif", size: 11, weight: '400' }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    min: dynamicMin,
+                                    max: dynamicMax,
+                                    grid: { display: false },
+                                    ticks: { color: '#64748b', font: { family: "'Plus Jakarta Sans', sans-serif" } },
+                                    border: { display: false }
+                                },
+                                x: {
+                                    type: 'linear',
+                                    min: 0,
+                                    max: labels.length - 1,
+                                    grid: { display: false },
+                                    ticks: {
+                                        color: '#64748b',
+                                        font: { family: "'Plus Jakarta Sans', sans-serif" },
+                                        maxRotation: 0,
+                                        minRotation: 0,
+                                        stepSize: 1,
+                                        callback: function (value, index, values) {
+                                            // Only show the label if it exactly matches our week boundaries
+                                            if (Math.floor(value) === value && labels[value]) {
+                                                return labels[value];
+                                            }
+                                            return '';
+                                        }
+                                    },
+                                    border: { display: false }
+                                }
+                            }
+                        },
+                        plugins: [customBmiPlugin]
+                    });
+
+                    console.log("BMI Chart Debug:", {
+                        history, labels, startD, endD, validWeights, dynamicMin, dynamicMax
+                    });
+
+                    if (isFullJourney) window.fullBmiChartInstance = chartInstance;
+                    else window.bmiChartInstance = chartInstance;
+                }
+            };
+
+        });
+    
