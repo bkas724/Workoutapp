@@ -184,6 +184,7 @@ Set the 'strengthGuideReference' of the strength workout to match the guide you 
 
 3. Internally calculate their BMR using the Mifflin-St Jeor formula and formulate a daily calorie goal that supports steady progress. IMPORTANT: Stick to these maximum weight loss guardrails: If weight >= 250 lbs, max loss is 1.0%-1.5% (2.5-3.5 lbs/week). If weight 180-240 lbs, max loss is 0.5%-1.0% (1.0-2.0 lbs/week). If weight < 180 lbs, max loss is 0.25%-0.5% (0.5-1.0 lbs/week). Do not exceed these rates when formulating the daily calorie goal. Generate simple meal examples categorized into 'restDay', 'lightActivity', and 'hardActivity'. If the user provided custom notes ('gatewayOverrideNotes'), heavily adapt the upcoming workouts.
 4. Evaluate their recent history and determine if they missed days/took extra rest. Use this context to scale intensity or volume for the new block.
+5. CRITICAL: For any "work" activities (especially Strength Circuits or Intervals), ensure the "sets" property is explicitly defined as a Number. Determine the optimal number of sets (whether 1 set for active recovery/beginners, or 3-5 sets for advanced/hypertrophy) based carefully on the user's fitness level, goals, and history. Be intentional and consistent with this prescription.
 
 Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
 {
