@@ -232,6 +232,42 @@
 </head>
 
 <body class="bg-slate-900 text-slate-100 min-h-screen relative overflow-x-hidden selection:bg-indigo-500/30">
+    <!-- Motivation block replacing Overall Completion -->
+    <div id="motivation-block-container" style="display: none;"
+        class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] w-[90%] max-w-md bg-slate-900/95 bg-gradient-to-r from-indigo-500/20 to-emerald-500/20 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 items-start gap-4 shadow-2xl transition-all duration-300">
+        <button
+            onclick="document.getElementById('motivation-block-container').style.opacity='0'; setTimeout(() => document.getElementById('motivation-block-container').style.display='none', 300)"
+            class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors"
+            aria-label="Close">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div
+            class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shrink-0 mt-1">
+            <i class="fa-solid fa-quote-left text-lg"></i>
+        </div>
+        <div class="space-y-1 pr-6">
+            <span
+                class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest block">Daily
+                Mindset</span>
+            <p id="motivation-text" class="text-xs text-slate-300 leading-relaxed italic">
+                "Your training is a sequence, not a calendar. Trust the process, embrace the JIT
+                flow, and focus on today's stride."
+            </p>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const container = document.getElementById('motivation-block-container');
+            const lastShown = localStorage.getItem('motivationLastShown');
+            const now = Date.now();
+            const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
+            if (!lastShown || now - parseInt(lastShown, 10) > oneWeek) {
+                container.style.display = 'flex';
+                localStorage.setItem('motivationLastShown', now.toString());
+            }
+        })();
+    </script>
 
 
 
@@ -316,43 +352,6 @@
                                 Break a 20 Minute 5k by thanksgiving
                             </p>
                         </div>
-
-                        <!-- Motivation block replacing Overall Completion -->
-                        <div id="motivation-block-container" style="display: none;"
-                            class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-md bg-slate-900/95 bg-gradient-to-r from-indigo-500/20 to-emerald-500/20 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 items-start gap-4 shadow-2xl transition-all duration-300">
-                            <button
-                                onclick="document.getElementById('motivation-block-container').style.opacity='0'; setTimeout(() => document.getElementById('motivation-block-container').style.display='none', 300)"
-                                class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors"
-                                aria-label="Close">
-                                <i class="fa-solid fa-times"></i>
-                            </button>
-                            <div
-                                class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shrink-0 mt-1">
-                                <i class="fa-solid fa-quote-left text-lg"></i>
-                            </div>
-                            <div class="space-y-1 pr-6">
-                                <span
-                                    class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest block">Daily
-                                    Mindset</span>
-                                <p id="motivation-text" class="text-xs text-slate-300 leading-relaxed italic">
-                                    "Your training is a sequence, not a calendar. Trust the process, embrace the JIT
-                                    flow, and focus on today's stride."
-                                </p>
-                            </div>
-                        </div>
-                        <script>
-                            (function () {
-                                const container = document.getElementById('motivation-block-container');
-                                const lastShown = localStorage.getItem('motivationLastShown');
-                                const now = Date.now();
-                                const oneWeek = 7 * 24 * 60 * 60 * 1000;
-
-                                if (!lastShown || now - parseInt(lastShown, 10) > oneWeek) {
-                                    container.style.display = 'flex';
-                                    localStorage.setItem('motivationLastShown', now.toString());
-                                }
-                            })();
-                        </script>
                     </div>
 
                 </div>
