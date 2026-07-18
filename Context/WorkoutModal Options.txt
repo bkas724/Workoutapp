@@ -1,0 +1,30 @@
+UI/UX Analysis: Why it feels heavy
+
+ Overload: Before the user has even committed to doing the workout, they are hit with the JIT Fueling Tip, the Warm-up, the detailed instructions, the Target Pace, the set-tracking bubbles, and the Cool-down.
+
+Competing Elements: The JIT Preparation tip in the header is quite large and detailed. It competes visually with the main workout title.
+Premature Actionability: The check-bubbles for tracking sets are exposed immediately. A user might feel overwhelmed seeing a checklist of 8 intervals right when they open the app over morning coffee, hours before their workout.
+
+3 Options to Streamline the Experience
+Here are a few ways we can solve this using progressive disclosure (hiding details until they are needed):
+
+Option 1: The "Start Workout" Modal (Highly Recommended)
+
+The Card: Becomes a sleek, minimalist summary. It shows the Icon, Title, Time, and perhaps just the Prep & Fueling tip (since that's what they need to know before the workout). The main CTA button says View Workout or Start Activity.
+The Modal/Sheet: Clicking the button slides up a modal. This is where the Warm-up, detailed Work instructions, Target Pace, and set-tracking bubbles live.
+Why it works: It perfectly separates the "planning/prep" phase from the "execution" phase. This is how Apple Fitness, Peloton, and Strava handle workouts.
+
+Option 2: Expandable Accordions
+
+The Card: Displays the header as normal. The body just shows a sleek, 3-line list:
+🏃 Warm Up (5 mins)
+🔥 Speed Intervals (8 sets) [+] Expand
+🚶 Cool Down (5 mins)
+The Interaction: Tapping the main workout block expands it downwards to reveal the instructions, pace, and bubbles.
+Why it works: Keeps the user on the primary dashboard but hides the intimidating "wall of text" until they specifically ask for it.
+
+Option 3: In-Card Tabs
+
+The Card: Underneath the header, we add three pill-shaped tabs: [ Prep & Fuel ], [ Workout Details ], [ Logging ].
+The Interaction: The user toggles between seeing their JIT tips, the actual workout instructions/bubbles, and the final logging button.
+Why it works: It dramatically cuts down the vertical height of the card and groups the information logically based on when the user needs it.

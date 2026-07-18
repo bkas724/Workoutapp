@@ -237,17 +237,14 @@
         class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] w-[90%] max-w-md bg-slate-900/95 bg-gradient-to-r from-indigo-500/20 to-emerald-500/20 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 items-start gap-4 shadow-2xl transition-all duration-300">
         <button
             onclick="document.getElementById('motivation-block-container').style.opacity='0'; setTimeout(() => document.getElementById('motivation-block-container').style.display='none', 300)"
-            class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors"
-            aria-label="Close">
+            class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors" aria-label="Close">
             <i class="fa-solid fa-times"></i>
         </button>
-        <div
-            class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shrink-0 mt-1">
+        <div class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shrink-0 mt-1">
             <i class="fa-solid fa-quote-left text-lg"></i>
         </div>
         <div class="space-y-1 pr-6">
-            <span
-                class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest block">Daily
+            <span class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest block">Daily
                 Mindset</span>
             <p id="motivation-text" class="text-xs text-slate-300 leading-relaxed italic">
                 "Your training is a sequence, not a calendar. Trust the process, embrace the JIT
@@ -3246,7 +3243,6 @@
                 }
             } catch (err) {
                 console.error("Workout file parsing error:", err);
-                lastUploadedWorkoutFile = null;
                 if (statusEl) {
                     statusEl.className = "text-[10px] text-rose-450 font-bold ml-1";
                     statusEl.innerText = "Error parsing file: " + err.message;
@@ -3259,11 +3255,13 @@
             const rightCol = document.getElementById(`gatekeeper-form-container-${id}`);
             const card = document.getElementById(`focus-card-${id}`);
             const prepTip = document.getElementById(`prep-tip-${id}`);
+            const cardBody = document.getElementById(`card-body-${id}`);
 
             if (show) {
-                leftCol.classList.add('hidden');
-                rightCol.classList.remove('hidden');
+                if (leftCol) leftCol.classList.add('hidden');
+                if (rightCol) rightCol.classList.remove('hidden');
                 if (prepTip) prepTip.classList.add('hidden');
+                if (cardBody) cardBody.classList.remove('hidden');
 
                 if (card) {
                     setTimeout(() => {
@@ -3271,15 +3269,10 @@
                     }, 50);
                 }
             } else {
-                leftCol.classList.remove('hidden');
-                rightCol.classList.add('hidden');
+                if (leftCol) leftCol.classList.remove('hidden');
+                if (rightCol) rightCol.classList.add('hidden');
                 if (prepTip) prepTip.classList.remove('hidden');
-
-                if (card) {
-                    setTimeout(() => {
-                        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 50);
-                }
+                if (cardBody) cardBody.classList.add('hidden');
             }
         }
 
@@ -3348,6 +3341,7 @@
                     </span>
                 </div>
                 <div class="space-y-8">`;
+            let modalsAccumulator = '';
 
             for (let i = 0; i < dailySlate.length; i++) {
                 const nextStep = dailySlate[i];
@@ -3412,7 +3406,6 @@
                                         <div class="w-6 h-6 shrink-0 text-slate-400">${iconSVG}</div>
                                         <h2 class="text-base md:text-lg font-bold text-white tracking-tight flex items-baseline gap-2">
                                             ${nextStep.workoutTitle}
-                                            <span class="text-xs italic font-normal text-slate-500">(${nextStep.distanceDuration})</span>
                                         </h2>
                                         ${isBenchmark ? `<span class="text-[9px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-500/30 pulse-slow ml-2">Benchmark</span>` : ''}
                                     </div>
@@ -3438,7 +3431,7 @@
                             ` : `
                             <!-- NORMAL UNCOMPLETED STATE -->
                             <!-- Top Header: Title and Prep Tip -->
-                            <div class="p-5 md:p-6 bg-slate-900 border-b border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-6">
+                            <div onclick="if(!event.target.closest('details') && !event.target.closest('input') && !event.target.closest('button') && !event.target.closest('label')) document.getElementById('workout-modal-${nextStep.id}').classList.remove('hidden')" class="p-4 md:p-5 bg-slate-900 border-b border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-4 cursor-pointer hover:bg-slate-800/80 transition-colors">
                                 <!-- Left 40%: Identity -->
                                 <div class="w-full md:w-2/5 shrink-0">
                                     ${(nextStep.completed || isBenchmark) ? `
@@ -3447,13 +3440,13 @@
                                         ${isBenchmark ? `<span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-3 py-1 rounded-full border border-amber-500/30 pulse-slow">Fitness Milestone Benchmark</span>` : ''}
                                     </div>
                                     ` : ''}
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-10 h-10 shrink-0 text-slate-300 opacity-90 mt-1">${iconSVG}</div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 shrink-0 text-slate-300 opacity-90 mt-0.5">${iconSVG}</div>
                                         <div class="flex flex-col">
-                                            <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                                            <h2 class="text-xl md:text-2xl font-extrabold text-white tracking-tight leading-none">
                                                 ${nextStep.workoutTitle}
                                             </h2>
-                                            <span class="text-sm font-medium text-slate-400 mt-1 flex items-center gap-1.5"><i class="fa-regular fa-clock text-xs"></i> ${nextStep.distanceDuration}</span>
+                                            <span class="text-xs font-medium text-slate-400 mt-1 flex items-center gap-1.5"><i class="fa-regular fa-clock text-[10px]"></i> ${nextStep.distanceDuration}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -3461,93 +3454,31 @@
                                 <!-- Right 60%: Prep Tip -->
                                 <div class="w-full md:w-3/5">
                                     ${nextStep.jitPreparationTip && !nextStep.completed ? `
-                                    <div id="prep-tip-${nextStep.id}" class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 relative overflow-hidden h-full items-center">
-                                        <div class="absolute -left-2 -top-2 opacity-10 pointer-events-none"><i class="fa-solid fa-fire text-4xl text-amber-500"></i></div>
-                                        <div class="text-amber-400 z-10 shrink-0 text-xl"><i class="fa-solid fa-lightbulb"></i></div>
-                                        <div class="z-10">
-                                            <span class="block text-[10px] text-amber-400 uppercase tracking-wider font-bold mb-0.5">Preparation & Fueling</span>
-                                            <p class="text-xs text-slate-300 leading-relaxed">${nextStep.jitPreparationTip}</p>
+                                    <details id="prep-tip-${nextStep.id}" class="bg-amber-500/10 border border-amber-500/20 rounded-lg overflow-hidden group cursor-pointer transition-all">
+                                        <summary class="px-3 py-2 flex gap-2 relative items-center list-none outline-none">
+                                            <div class="absolute -left-2 -top-2 opacity-10 pointer-events-none"><i class="fa-solid fa-fire text-2xl text-amber-500"></i></div>
+                                            <div class="text-amber-400 z-10 shrink-0 text-base"><i class="fa-solid fa-lightbulb"></i></div>
+                                            <div class="z-10 flex-1 flex justify-between items-center">
+                                                <span class="block text-[9px] text-amber-400 uppercase tracking-wider font-bold">Preparation & Fueling</span>
+                                                <i class="fa-solid fa-chevron-down text-amber-400 text-[10px] transition-transform duration-300 group-open:-rotate-180"></i>
+                                            </div>
+                                        </summary>
+                                        <div class="px-3 pb-3 pt-0 z-10 relative">
+                                            <p class="text-[11px] text-slate-300 leading-relaxed pl-[28px]">${nextStep.jitPreparationTip}</p>
                                         </div>
-                                    </div>
+                                    </details>
                                     ` : ''}
                                 </div>
                             </div>
 
                             <!-- Body: Details and Logging -->
-                            <div class="p-5 md:p-6">
+                            <div id="card-body-${nextStep.id}" class="p-4 md:p-5 hidden">
                                 <div class="flex flex-col md:flex-row gap-8 items-start relative w-full">
-                                    <!-- Left Column: Instructions and Pace -->
-                                    <div id="activity-details-${nextStep.id}" class="flex flex-col gap-4 w-full">
-                                        <div class="flex flex-col gap-4">
-                                            ${nextStep.activities && Array.isArray(nextStep.activities) && nextStep.activities.length > 0 ? `
-                                            <div class="mt-2">
-                                                <div class="flex flex-col gap-3">
-                                                    ${nextStep.activities.map((act, actIdx) => {
-                    const hideBubble = nextStep.activities.length === 1 && (act.sets === 1 || !act.sets);
-                    if (act.type === 'work') {
-                        return `
-                                                            <div class="flex flex-col gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 relative">
-                                                                ${nextStep.strengthGuideReference ? `
-                                                                <button onclick="switchTab('strength'); setTimeout(() => switchStrength('${nextStep.strengthGuideReference}'), 100);" class="absolute top-3 right-3 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 hover:border-violet-500/50 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer z-10" title="View Details in Strength Guide ${nextStep.strengthGuideReference}">
-                                                                    <i class="fa-solid fa-dumbbell text-xs"></i>
-                                                                </button>
-                                                                ` : ''}
-                                                                <div class="flex flex-row items-center justify-between gap-3">
-                                                                    <div class="flex-1 leading-tight pr-10">
-                                                                        <span class="text-xs font-bold text-slate-200 block">Workout - ${act.name}</span>
-                                                                        <span class="text-[10px] text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
-                                                                    </div>
-                                                                </div>
-                                                                
-                                                                <div class="mt-2">
-                                                                    <p class="text-sm text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
-                                                                    ${paceHtml ? `<div class="mt-3">${paceHtml.replace('mt-4', 'mt-0')}</div>` : ''}
-                                                                </div>
-                                                                
-                                                                ${!hideBubble ? `
-                                                                <div class="flex items-center gap-3 mt-1 pt-3 border-t border-slate-800/50">
-                                                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sets:</span>
-                                                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                                                        ${Array.from({ length: act.sets || 1 }).map((_, s) => `
-                                                                        <button id="bubble-${nextStep.id}-${actIdx}-${s}" onclick="this.classList.toggle('bg-teal-500'); this.classList.toggle('border-teal-500'); this.classList.toggle('bg-slate-800'); this.classList.toggle('border-slate-700')" class="w-6 h-6 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center transition-all focus:outline-none hover:border-teal-400/50 group shrink-0" title="Set ${s + 1}">
-                                                                            <i class="fa-solid fa-check text-[10px] text-white opacity-0 group-[.bg-teal-500]:opacity-100 transition-opacity"></i>
-                                                                        </button>
-                                                                        `).join('')}
-                                                                    </div>
-                                                                </div>
-                                                                ` : ''}
-                                                            </div>
-                                                            `;
-                    } else {
-                        return `
-                                                            <div class="flex flex-col gap-1 bg-slate-950/30 p-3 rounded-xl border border-slate-800/30 border-dashed">
-                                                                <div class="flex items-center gap-2">
-                                                                    <span class="text-[9px] font-bold uppercase tracking-wider ${act.type === 'prep' ? 'text-amber-500' : 'text-sky-400'}">${act.type === 'prep' ? 'Warm Up' : 'Cool Down'}</span>
-                                                                    <span class="text-xs font-bold text-slate-300">${act.name}</span>
-                                                                </div>
-                                                                <span class="text-[10px] text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
-                                                            </div>
-                                                            `;
-                    }
-                }).join('')}
-                                                </div>
-                                            </div>
-                                            ` : `
-                                            <div class="flex items-start gap-3 mt-2">
-                                                <div>
-                                                    <p class="text-sm text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
-                                                </div>
-                                            </div>
-                                            ${paceHtml ? `<div>${paceHtml}</div>` : ''}
-                                            `}
-                                        </div>
-                                        <div class="mt-6 flex justify-end">
-                                            <button onclick="toggleGatekeeper('${nextStep.id}', true)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all">
-                                                Log Activity <i class="fa-solid fa-arrow-right ml-2"></i>
-                                            </button>
-                                        </div>
+                                    <!-- Left Column: Instructions and Pace (Empty since modal is triggered by card) -->
+                                    <div id="activity-details-${nextStep.id}" class="w-full">
                                     </div>
-
+                                    
+                                    <!-- Modal removed from here -->
                                     <!-- Right Column: Gatekeeper Validation Box -->
                                     <div id="gatekeeper-form-container-${nextStep.id}" class="flex flex-col w-full hidden">
                                         <div id="gatekeeper-form-${nextStep.id}" class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col gap-4 relative">
@@ -3646,6 +3577,96 @@
                         </div>
                     </div>
                 `;
+
+                modalsAccumulator += `
+                <!-- FULL SCREEN MODAL FOR WORKOUT DETAILS -->
+                <div id="workout-modal-${nextStep.id}" class="fixed inset-0 z-[9999] hidden bg-slate-950 flex flex-col overflow-y-auto">
+                    <!-- Modal Header -->
+                    <div class="sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 md:p-6 flex items-center justify-between z-50">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 shrink-0 text-slate-300 opacity-90 flex items-center justify-center">${iconSVG}</div>
+                            <h2 class="text-lg md:text-xl font-extrabold text-white tracking-tight">${nextStep.workoutTitle}</h2>
+                        </div>
+                        <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700">
+                            <i class="fa-solid fa-times text-lg"></i>
+                        </button>
+                    </div>
+                
+                <!-- Modal Body (The original detailed view) -->
+                <div class="p-5 md:p-8 max-w-3xl mx-auto w-full flex-1">
+                    <div class="flex flex-col gap-6 w-full pb-10">
+                        <div class="flex flex-col gap-4">
+                            ${nextStep.activities && Array.isArray(nextStep.activities) && nextStep.activities.length > 0 ? `
+                            <div class="mt-2">
+                                <div class="flex flex-col gap-4">
+                                    ${nextStep.activities.map((act, actIdx) => {
+                    const hideBubble = nextStep.activities.length === 1 && (act.sets === 1 || !act.sets);
+                    if (act.type === 'work') {
+                        return `
+                                            <div class="flex flex-col gap-3 bg-slate-900 border border-indigo-500/30 p-5 rounded-2xl relative shadow-[0_0_15px_rgba(79,70,229,0.1)]">
+                                                ${nextStep.strengthGuideReference ? `
+                                                <button onclick="switchTab('strength'); setTimeout(() => switchStrength('${nextStep.strengthGuideReference}'), 100);" class="absolute top-4 right-4 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 hover:border-violet-500/50 w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer z-10" title="View Details in Strength Guide ${nextStep.strengthGuideReference}">
+                                                    <i class="fa-solid fa-dumbbell text-sm"></i>
+                                                </button>
+                                                ` : ''}
+                                                <div class="flex flex-row items-center justify-between gap-3">
+                                                    <div class="flex-1 leading-tight pr-12">
+                                                        <span class="text-sm font-bold text-slate-200 block">Workout - ${act.name}</span>
+                                                        <span class="text-xs text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="mt-2">
+                                                    <p class="text-base text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
+                                                    ${paceHtml ? `<div class="mt-4">${paceHtml.replace('mt-4', 'mt-0')}</div>` : ''}
+                                                </div>
+                                                
+                                                ${!hideBubble ? `
+                                                <div class="flex items-center gap-4 mt-3 pt-4 border-t border-slate-800/80">
+                                                    <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Sets:</span>
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        ${Array.from({ length: act.sets || 1 }).map((_, s) => `
+                                                        <button id="bubble-${nextStep.id}-${actIdx}-${s}" onclick="this.classList.toggle('bg-teal-500'); this.classList.toggle('border-teal-500'); this.classList.toggle('bg-slate-800'); this.classList.toggle('border-slate-700')" class="w-8 h-8 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center transition-all focus:outline-none hover:border-teal-400/50 group shrink-0" title="Set ${s + 1}">
+                                                            <i class="fa-solid fa-check text-xs text-white opacity-0 group-[.bg-teal-500]:opacity-100 transition-opacity"></i>
+                                                        </button>
+                                                        `).join('')}
+                                                    </div>
+                                                </div>
+                                                ` : ''}
+                                            </div>
+                                            `;
+                    } else {
+                        return `
+                                            <div class="flex flex-col gap-1 bg-slate-900/50 p-4 rounded-xl border border-slate-800/50 border-dashed">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-[10px] font-bold uppercase tracking-wider ${act.type === 'prep' ? 'text-amber-500' : 'text-sky-400'}">${act.type === 'prep' ? 'Warm Up' : 'Cool Down'}</span>
+                                                    <span class="text-sm font-bold text-slate-300">${act.name}</span>
+                                                </div>
+                                                <span class="text-xs text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
+                                            </div>
+                                            `;
+                    }
+                }).join('')}
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="flex items-start gap-3 mt-2">
+                                <div>
+                                    <p class="text-base text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
+                                </div>
+                            </div>
+                            ${paceHtml ? `<div>${paceHtml}</div>` : ''}
+                            `}
+                        </div>
+                        <div class="mt-8 flex justify-center pb-8">
+                            <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden'); toggleGatekeeper('${nextStep.id}', true)" class="w-full sm:w-auto min-w-[250px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-8 rounded-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-all flex items-center justify-center gap-3 text-lg">
+                                Log Activity <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                `;
             }
 
             const isSlateFullyCompleted = dailySlate.every(w => w.completed);
@@ -3690,6 +3711,14 @@
 
             htmlAccumulator += `</div>`;
             container.innerHTML = htmlAccumulator;
+
+            let modalsRoot = document.getElementById('modals-root');
+            if (!modalsRoot) {
+                modalsRoot = document.createElement('div');
+                modalsRoot.id = 'modals-root';
+                document.body.appendChild(modalsRoot);
+            }
+            modalsRoot.innerHTML = modalsAccumulator;
 
             // Set default date values dynamically for all generated cards
             for (let i = 0; i < dailySlate.length; i++) {
