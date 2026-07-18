@@ -276,18 +276,17 @@
 
             <!-- Profile Switcher & Sync Badge -->
             <div class="absolute top-4 left-4 z-20 flex items-center gap-2 pointer-events-auto">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Athlete:</span>
                 <span id="active-athlete-id-display"
                     class="bg-slate-950/80 border border-slate-800 text-slate-105 text-xs font-bold px-3 py-1 rounded-full transition-colors font-mono"></span>
-                <button onclick="signOut()"
-                    class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 cursor-pointer flex items-center gap-1"
-                    title="Sign Out">
-                    <i class="fa-solid fa-sign-out-alt text-[9px]"></i> Sign Out
-                </button>
                 <button id="profile-edit-btn" onclick="openProfileModal()"
                     class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 cursor-pointer flex items-center gap-1"
                     title="Edit Athlete Profile">
                     <i class="fa-solid fa-pen text-[9px]"></i> Edit
+                </button>
+                <button onclick="signOut()"
+                    class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 cursor-pointer flex items-center gap-1"
+                    title="Sign Out">
+                    <i class="fa-solid fa-sign-out-alt text-[9px]"></i> Sign Out
                 </button>
                 <button id="regenerate-block-btn" onclick="retryAIBlockGeneration()"
                     class="text-[10px] font-bold text-amber-400 hover:text-amber-300 transition-colors uppercase tracking-wider bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20 cursor-pointer flex items-center gap-1 hidden"
@@ -319,12 +318,19 @@
                         </div>
 
                         <!-- Motivation block replacing Overall Completion -->
-                        <div id="motivation-block-container"
-                            class="w-full lg:w-96 bg-gradient-to-r from-indigo-500/10 to-emerald-500/10 backdrop-blur-sm border border-indigo-500/20 rounded-2xl p-4 flex items-start gap-4 shadow-xl shrink-0">
-                            <div class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                        <div id="motivation-block-container" style="display: none;"
+                            class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-md bg-slate-900/95 bg-gradient-to-r from-indigo-500/20 to-emerald-500/20 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-4 items-start gap-4 shadow-2xl transition-all duration-300">
+                            <button
+                                onclick="document.getElementById('motivation-block-container').style.opacity='0'; setTimeout(() => document.getElementById('motivation-block-container').style.display='none', 300)"
+                                class="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors"
+                                aria-label="Close">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                            <div
+                                class="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shrink-0 mt-1">
                                 <i class="fa-solid fa-quote-left text-lg"></i>
                             </div>
-                            <div class="space-y-1">
+                            <div class="space-y-1 pr-6">
                                 <span
                                     class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest block">Daily
                                     Mindset</span>
@@ -334,6 +340,19 @@
                                 </p>
                             </div>
                         </div>
+                        <script>
+                            (function () {
+                                const container = document.getElementById('motivation-block-container');
+                                const lastShown = localStorage.getItem('motivationLastShown');
+                                const now = Date.now();
+                                const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
+                                if (!lastShown || now - parseInt(lastShown, 10) > oneWeek) {
+                                    container.style.display = 'flex';
+                                    localStorage.setItem('motivationLastShown', now.toString());
+                                }
+                            })();
+                        </script>
                     </div>
 
                 </div>
@@ -943,13 +962,18 @@
                     </div>
 
                     <div class="space-y-1">
-                        <label class="block font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <label
+                            class="block font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                             <span>Personal Notes (Constraints)</span>
                             <div class="group relative cursor-help">
-                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                <i
+                                    class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div
+                                    class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
                                     <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                    Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It uses this context to automatically adjust your workout types, intensities, and schedules to perfectly fit your life.
+                                    Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It
+                                    uses this context to automatically adjust your workout types, intensities, and
+                                    schedules to perfectly fit your life.
                                 </div>
                             </div>
                         </label>
@@ -1462,17 +1486,22 @@
                     </div>
                 </div>
                 <div class="col-span-2 border-t border-slate-800/60 pt-2">
-                        <label class="flex items-center justify-between">
-                            <span class="text-slate-500 block">Personal Notes (Constraints):</span>
-                            <div class="group relative cursor-help">
-                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
-                                    <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                    Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It uses this context to automatically adjust your workout types, intensities, and schedules to perfectly fit your life.
-                                </div>
+                    <label class="flex items-center justify-between">
+                        <span class="text-slate-500 block">Personal Notes (Constraints):</span>
+                        <div class="group relative cursor-help">
+                            <i
+                                class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                            <div
+                                class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                                Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It
+                                uses this context to automatically adjust your workout types, intensities, and schedules
+                                to perfectly fit your life.
                             </div>
-                        </label>
-                    <textarea id="modal-baseline-notes" placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts. Also, I have a history of shin splints, so please ease me into high-impact running."
+                        </div>
+                    </label>
+                    <textarea id="modal-baseline-notes"
+                        placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts. Also, I have a history of shin splints, so please ease me into high-impact running."
                         class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
                 </div>
                 <div class="col-span-2 border-t border-slate-800/60 pt-2.5">
@@ -2750,10 +2779,10 @@
 
             try {
                 const proposeGoalPaces = firebase.functions().httpsCallable('proposeGoalPaces');
-                
+
                 let birthYearVal = parseInt(document.getElementById('intake-birthyear').value);
                 let ageVal = isNaN(birthYearVal) ? null : new Date().getFullYear() - birthYearVal;
-                
+
                 const result = await proposeGoalPaces({
                     age: ageVal,
                     weight: document.getElementById('intake-weight').value || null,
@@ -3231,12 +3260,12 @@
             const rightCol = document.getElementById(`gatekeeper-form-container-${id}`);
             const card = document.getElementById(`focus-card-${id}`);
             const prepTip = document.getElementById(`prep-tip-${id}`);
-            
+
             if (show) {
                 leftCol.classList.add('hidden');
                 rightCol.classList.remove('hidden');
                 if (prepTip) prepTip.classList.add('hidden');
-                
+
                 if (card) {
                     setTimeout(() => {
                         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3246,7 +3275,7 @@
                 leftCol.classList.remove('hidden');
                 rightCol.classList.add('hidden');
                 if (prepTip) prepTip.classList.remove('hidden');
-                
+
                 if (card) {
                     setTimeout(() => {
                         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3419,12 +3448,14 @@
                                         ${isBenchmark ? `<span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-3 py-1 rounded-full border border-amber-500/30 pulse-slow">Fitness Milestone Benchmark</span>` : ''}
                                     </div>
                                     ` : ''}
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 shrink-0 text-slate-300 opacity-90">${iconSVG}</div>
-                                        <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-baseline flex-wrap gap-2">
-                                            ${nextStep.workoutTitle}
-                                            <span class="text-lg md:text-xl italic font-normal text-slate-400">(${nextStep.distanceDuration})</span>
-                                        </h2>
+                                    <div class="flex items-start gap-4">
+                                        <div class="w-10 h-10 shrink-0 text-slate-300 opacity-90 mt-1">${iconSVG}</div>
+                                        <div class="flex flex-col">
+                                            <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                                                ${nextStep.workoutTitle}
+                                            </h2>
+                                            <span class="text-sm font-medium text-slate-400 mt-1 flex items-center gap-1.5"><i class="fa-regular fa-clock text-xs"></i> ${nextStep.distanceDuration}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -3453,9 +3484,9 @@
                                             <div class="mt-2">
                                                 <div class="flex flex-col gap-3">
                                                     ${nextStep.activities.map((act, actIdx) => {
-                                                        const hideBubble = nextStep.activities.length === 1 && (act.sets === 1 || !act.sets);
-                                                        if (act.type === 'work') {
-                                                            return `
+                    const hideBubble = nextStep.activities.length === 1 && (act.sets === 1 || !act.sets);
+                    if (act.type === 'work') {
+                        return `
                                                             <div class="flex flex-col gap-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 relative">
                                                                 ${nextStep.strengthGuideReference ? `
                                                                 <button onclick="switchTab('strength'); setTimeout(() => switchStrength('${nextStep.strengthGuideReference}'), 100);" class="absolute top-3 right-3 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 hover:border-violet-500/50 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer z-10" title="View Details in Strength Guide ${nextStep.strengthGuideReference}">
@@ -3478,8 +3509,8 @@
                                                                 <div class="flex items-center gap-3 mt-1 pt-3 border-t border-slate-800/50">
                                                                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sets:</span>
                                                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                                                        ${Array.from({length: act.sets || 1}).map((_, s) => `
-                                                                        <button id="bubble-${nextStep.id}-${actIdx}-${s}" onclick="this.classList.toggle('bg-teal-500'); this.classList.toggle('border-teal-500'); this.classList.toggle('bg-slate-800'); this.classList.toggle('border-slate-700')" class="w-6 h-6 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center transition-all focus:outline-none hover:border-teal-400/50 group shrink-0" title="Set ${s+1}">
+                                                                        ${Array.from({ length: act.sets || 1 }).map((_, s) => `
+                                                                        <button id="bubble-${nextStep.id}-${actIdx}-${s}" onclick="this.classList.toggle('bg-teal-500'); this.classList.toggle('border-teal-500'); this.classList.toggle('bg-slate-800'); this.classList.toggle('border-slate-700')" class="w-6 h-6 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center transition-all focus:outline-none hover:border-teal-400/50 group shrink-0" title="Set ${s + 1}">
                                                                             <i class="fa-solid fa-check text-[10px] text-white opacity-0 group-[.bg-teal-500]:opacity-100 transition-opacity"></i>
                                                                         </button>
                                                                         `).join('')}
@@ -3488,8 +3519,8 @@
                                                                 ` : ''}
                                                             </div>
                                                             `;
-                                                        } else {
-                                                            return `
+                    } else {
+                        return `
                                                             <div class="flex flex-col gap-1 bg-slate-950/30 p-3 rounded-xl border border-slate-800/30 border-dashed">
                                                                 <div class="flex items-center gap-2">
                                                                     <span class="text-[9px] font-bold uppercase tracking-wider ${act.type === 'prep' ? 'text-amber-500' : 'text-sky-400'}">${act.type === 'prep' ? 'Warm Up' : 'Cool Down'}</span>
@@ -3498,8 +3529,8 @@
                                                                 <span class="text-[10px] text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
                                                             </div>
                                                             `;
-                                                        }
-                                                    }).join('')}
+                    }
+                }).join('')}
                                                 </div>
                                             </div>
                                             ` : `
@@ -4365,10 +4396,10 @@
                 if (bmiHistoryUpdate) {
                     updateData.bmiHistory = bmiHistoryUpdate;
                 }
-                
+
                 try {
                     await userDocRef.update(updateData);
-                } catch(e) {
+                } catch (e) {
                     throw new Error("Profile Update Error: " + e.message);
                 }
 
@@ -4380,10 +4411,10 @@
                     }
                     batchArchive.delete(userDocRef.collection("active_phase").doc(w.id));
                 });
-                
+
                 try {
                     await batchArchive.commit();
-                } catch(e) {
+                } catch (e) {
                     throw new Error("Batch Archive Error: " + e.message);
                 }
 
@@ -4394,7 +4425,7 @@
                         .orderBy("dateExecuted", "desc")
                         .limit(14)
                         .get();
-                } catch(e) {
+                } catch (e) {
                     throw new Error("History Fetch Error: " + e.message);
                 }
 
@@ -4441,10 +4472,10 @@
                 nextWorkouts.forEach((w) => {
                     batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
                 });
-                
+
                 try {
                     await batchWrite.commit();
-                } catch(e) {
+                } catch (e) {
                     throw new Error("Batch Write Next Workouts Error: " + e.message);
                 }
 
@@ -4462,14 +4493,14 @@
         function retryAIBlockGeneration() {
             const confirmed = window.confirm("Are you sure you want to regenerate this block? This will replace your current workouts with a new AI-generated plan.");
             if (!confirmed) return;
-            
+
             const notesEl = document.getElementById('gateway-override-notes');
             if (notesEl) notesEl.value = "";
             const weightEl = document.getElementById('gateway-weight');
             if (weightEl) weightEl.value = "";
 
             showAutopilotLoader();
-            
+
             proceedToNextPhase().catch(err => {
                 console.error(err);
                 alert("Failed to regenerate block.");
