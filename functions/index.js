@@ -185,6 +185,7 @@ Set the 'strengthGuideReference' of the strength workout to match the guide you 
 3. Internally calculate their BMR using the Mifflin-St Jeor formula and formulate a daily calorie goal that supports steady progress. IMPORTANT: Stick to these maximum weight loss guardrails: If weight >= 250 lbs, max loss is 1.0%-1.5% (2.5-3.5 lbs/week). If weight 180-240 lbs, max loss is 0.5%-1.0% (1.0-2.0 lbs/week). If weight < 180 lbs, max loss is 0.25%-0.5% (0.5-1.0 lbs/week). Do not exceed these rates when formulating the daily calorie goal. Generate simple meal examples categorized into 'restDay', 'lightActivity', and 'hardActivity'. If the user provided custom notes ('gatewayOverrideNotes'), heavily adapt the upcoming workouts.
 4. Evaluate their recent history and determine if they missed days/took extra rest. Use this context to scale intensity or volume for the new block.
 5. CRITICAL: For any "work" activities (especially Strength Circuits or Intervals), ensure the "sets" property is explicitly defined as a Number. Determine the optimal number of sets (whether 1 set for active recovery/beginners, or 3-5 sets for advanced/hypertrophy) based carefully on the user's fitness level, goals, and history. Be intentional and consistent with this prescription.
+6. If a work activity is a circuit (e.g. Strength Circuit A), explicitly set "isCircuit" to true and specify the number of rounds in "circuitRounds". For non-circuit activities, set them to false and 0.
 
 Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
 {
@@ -195,9 +196,10 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "sequenceOrder": 1,
       "workoutTitle": "String",
       "type": "String (easy, strength, rest, fast)",
-      "distanceDuration": "String (e.g., 3 Miles, 30 mins, Rest Day)",
       "isSpeedWorkout": Boolean,
       "isBenchmark": Boolean,
+      "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
+      "targetDuration": "Number (Target duration in minutes, if applicable, e.g., 45 or 60)",
       "targetInstructions": "String (Keep under 100 characters)",
       "targetPaceZone": "String (easy, goal, tempo, long, or null)",
       "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
@@ -207,7 +209,9 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
           "name": "String (e.g., Warmup, Interval, Squats)",
           "type": "String (prep, work, cool)",
           "sets": Number,
-          "repsDistanceTime": "String (e.g., 10 reps, 400m, 5 mins)"
+          "repsDistanceTime": "String (e.g., 10 reps, 400m, 5 mins)",
+          "isCircuit": Boolean,
+          "circuitRounds": Number
         }
       ]
     }
