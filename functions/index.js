@@ -161,6 +161,7 @@ User Profile:
 - Fitness Level: ${profile?.fitnessLevel || 'Unknown'}
 - Primary Goal: ${profile?.primaryGoal || 'Unknown'}
 - Days Available to Train: ${profile?.daysAvailable || 4}
+- Minutes Available per Day: ${profile?.desiredWorkoutLength || 'Unlimited'}
 - Include Strength Training: ${profile?.includeStrength ? 'Yes' : 'No'}
 - Training Focus (Strength vs Cardio): ${profile?.trainingFocusRatio === 'auto' ? 'Determine optimal ratio based on BMI, weight, and fitness level. (e.g., heavier beginners should focus on walking before loading joints with strength).' : profile?.trainingFocusRatio + '/100 (0=Heavy Strength, 100=Heavy Cardio)'}
 - Available Equipment: ${equipmentString}
@@ -188,6 +189,7 @@ Set the 'strengthGuideReference' of the strength workout to match the EXACT 'id'
 4. Evaluate their recent history and determine if they missed days/took extra rest. Use this context to scale intensity or volume for the new block.
 5. CRITICAL: For any "work" activities (especially Strength Circuits or Intervals), ensure the "sets" property is explicitly defined as a Number. Determine the optimal number of sets (whether 1 set for active recovery/beginners, or 3-5 sets for advanced/hypertrophy) based carefully on the user's fitness level, goals, and history. Be intentional and consistent with this prescription.
 6. If a work activity is a circuit (e.g. Strength Circuit A), explicitly set "isCircuit" to true and specify the number of rounds in "circuitRounds". For non-circuit activities, set them to false and 0.
+7. Time Constraints: The user has a daily time limit of ${profile?.desiredWorkoutLength || 'Unlimited'} minutes. A workout can be significantly shorter if it needs to be, but it should not be excessively longer (keep within ~10% of their limit max). If a single workout (like a long run) significantly exceeds this limit, attempt to break the volume up across multiple days (e.g., breaking a 6-mile run into a 2-mile and 4-mile split on consecutive days) to keep the daily time within ~10% of their available time. However, if you believe a single long continuous session is absolutely necessary to reach the optimal performance for their goal, you may keep the longer workout but explicitly mention this in the 'jitPreparationTip' or 'targetInstructions'.
 
 Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
 {

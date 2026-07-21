@@ -3308,19 +3308,20 @@
 
                 const hasRest = dayWorkouts.some(w => w.type === 'rest');
                 const canAddSecondary = dayWorkouts.length === 1 && !hasRest;
-                
+
                 let dayHTML = `<div class="mb-4">`;
                 dayHTML += `
                 <div class="flex items-center justify-between mb-2">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Day ${day}</h3>
-                    ${canAddSecondary ? `<button onclick="openAddActivityModal(${day})" class="w-11 h-11 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 transition-colors flex items-center justify-center border border-transparent hover:border-indigo-500/30 shadow-sm" title="Add Secondary Workout"><i class="fa-solid fa-plus text-lg"></i></button>` : ''}
+                    ${canAddSecondary ? `<button onclick="openAddActivityModal(${day})" class="w-11 h-11 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 transition-colors flex items-center justify-center border border-transparent hover:border-indigo-500/30 shadow-sm" title="Add Workout"><i class="fa-solid fa-plus text-lg"></i></button>` : ''}
                 </div>`;
                 dayHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
 
                 dayWorkouts.forEach(step => {
                     const colSpan = dayWorkouts.length === 1 ? 'col-span-1 md:col-span-2' : 'col-span-1';
-                    const isCheckedAttr = step.completed ? "checked" : "";
                     const iconSVG = icons[step.type] || icons.easy;
+                    const cardBg = step.completed ? "bg-emerald-900/20 border-emerald-500/30" : "bg-slate-900/30 border-slate-800/55";
+                    const showDeleteButton = dayWorkouts.length > 1 && !step.completed;
 
                     let paceHintText = "";
                     if (step.targetPaceZone) {
@@ -3332,28 +3333,30 @@
                     }
 
                     dayHTML += `
-                        <div class="${colSpan} flex items-start gap-4 p-3.5 rounded-xl bg-slate-900/30 border border-slate-800/55 hover:border-slate-800 transition-all h-full">
-                            <label class="relative flex items-center justify-center cursor-pointer mt-0.5 shrink-0 group">
-                                <input type="checkbox" id="${step.id}" onchange="toggleStepCheckDirect('${step.id}')" class="peer sr-only" ${isCheckedAttr}>
-                                <div class="w-5.5 h-5.5 border-2 border-slate-700 group-hover:border-indigo-400 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 rounded-lg flex items-center justify-center text-slate-950 transition-all">
-                                    <svg class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                </div>
-                            </label>
-
-                            <div class="p-2 bg-slate-950 rounded-lg border border-slate-800/80 shrink-0">
+                        <div class="${colSpan} flex items-start gap-3 p-3.5 rounded-xl ${cardBg} hover:border-slate-700 transition-all h-full relative group">
+                            
+                            <div onclick="toggleStepCheckDirect('${step.id}')" class="relative p-2 bg-slate-950 rounded-lg border border-slate-800/80 shrink-0 cursor-pointer hover:border-emerald-500/50 transition-colors" title="Toggle Completion">
                                 ${iconSVG}
+                                ${step.completed ? `<div class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-slate-950 shadow-sm border-2 border-slate-950 z-10"><i class="fa-solid fa-check text-[9px] font-black"></i></div>` : ''}
                             </div>
 
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-baseline justify-between flex-wrap gap-2">
-                                    <span class="text-xs font-bold text-slate-200 truncate pr-2">${step.workoutTitle} ${getDisplayDuration(step) ? `<span class="text-[10px] text-slate-500 font-normal">(${getDisplayDuration(step)})</span>` : ''}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold text-slate-200 truncate pr-2 ${step.completed ? 'opacity-70' : ''}">${step.workoutTitle} ${getDisplayDuration(step) ? `<span class="text-[10px] text-slate-500 font-normal">(${getDisplayDuration(step)})</span>` : ''}</span>
+                                    </div>
                                     <div class="flex items-center gap-2 shrink-0">
-                                        ${step.targetPaceZone ? `<span class="text-[10px] font-extrabold text-indigo-400 font-mono hidden sm:inline-block">${paceHintText}</span>` : ''}
-                                        ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Logged: ${step.actualLoggedPace}</span>` : ''}
+                                        ${step.targetPaceZone && !step.completed ? `<span class="text-[10px] font-extrabold text-indigo-400 font-mono hidden sm:inline-block">${paceHintText}</span>` : ''}
+                                        ${step.actualLoggedDistance ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">${step.actualLoggedDistance} mi</span>` : ''}
+                                        ${step.actualLoggedDuration ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">${step.actualLoggedDuration} min</span>` : ''}
+                                        ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Pace: ${step.actualLoggedPace}</span>` : ''}
                                         ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">RPE: ${step.rpeScore}</span>` : ''}
                                     </div>
                                 </div>
-                                <p class="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">${step.targetInstructions}</p>
+                                <div class="flex items-start justify-between mt-1 gap-2">
+                                    <p class="text-xs text-slate-400 leading-relaxed line-clamp-2 ${step.completed ? 'opacity-70' : ''}">${step.targetInstructions}</p>
+                                    ${showDeleteButton ? `<button onclick="removeSecondaryWorkout('${step.id}')" class="text-slate-500 hover:text-rose-400 transition-colors shrink-0 ml-2" title="Remove Activity"><i class="fa-solid fa-times"></i></button>` : ''}
+                                </div>
                                 ${step.completed && step.dateExecuted ? `
                                 <div class="flex items-center gap-2 mt-1.5">
                                     <span class="text-[9px] text-slate-500 font-semibold">Completed on:</span>
@@ -3507,16 +3510,17 @@
         }
 
         function toggleStepCheckDirect(stepId) {
-            const cb = document.getElementById(stepId);
             const workout = activePhaseWorkouts.find(w => w.id === stepId);
+            if (!workout) return;
 
-            if (workout && workout.isSpeedWorkout && cb.checked) {
-                cb.checked = false;
+            const willBeCompleted = !workout.completed;
+
+            if (workout.isSpeedWorkout && willBeCompleted) {
                 alert("🔒 Speed & Benchmark workouts require explicit pace metrics validation. Please execute and log this session within the primary 'Up Next' card.");
                 return;
             }
 
-            toggleStepCheck(stepId, cb.checked);
+            toggleStepCheck(stepId, willBeCompleted);
         }
 
         function toggleStepCheck(activityId, completed) {
@@ -4225,7 +4229,7 @@
                 htmlAccumulator += `
                 <div class="mt-4 w-full">
                     <button onclick="openAddActivityModal(${renderSequenceOrder})" class="w-full bg-slate-900 border border-slate-700 border-dashed hover:border-slate-500 hover:bg-slate-800 text-slate-400 hover:text-slate-200 py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-sm">
-                        <i class="fa-solid fa-plus"></i> Add Secondary Workout
+                        <i class="fa-solid fa-plus"></i> Add Workout
                     </button>
                 </div>`;
             }
@@ -7133,19 +7137,25 @@
     </div>
 
     <!-- Add Activity Modal -->
-    <div id="add-activity-modal" class="fixed inset-0 z-[99999] hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target === this) closeAddActivityModal()">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden relative animate-fade-in">
+    <div id="add-activity-modal"
+        class="fixed inset-0 z-[99999] hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+        onclick="if(event.target === this) closeAddActivityModal()">
+        <div
+            class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden relative animate-fade-in">
             <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
-                <h3 class="text-lg font-bold text-white tracking-tight">Add Secondary Workout</h3>
-                <button onclick="closeAddActivityModal()" class="text-slate-500 hover:text-white transition-colors" id="close-add-modal-btn">
+                <h3 class="text-lg font-bold text-white tracking-tight">Add Workout</h3>
+                <button onclick="closeAddActivityModal()" class="text-slate-500 hover:text-white transition-colors"
+                    id="close-add-modal-btn">
                     <i class="fa-solid fa-times text-xl"></i>
                 </button>
             </div>
             <div class="p-6 relative z-10 space-y-6">
                 <!-- Select Type -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Activity Type</label>
-                    <select id="add-activity-type" onchange="handleAddActivityTypeChange()" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Activity
+                        Type</label>
+                    <select id="add-activity-type" onchange="handleAddActivityTypeChange()"
+                        class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
                         <option value="" disabled selected>Select Type...</option>
                         <option value="run">Run</option>
                         <option value="walk">Walk</option>
@@ -7158,51 +7168,69 @@
                         <option value="sport">Sport</option>
                     </select>
                 </div>
-                
+
                 <!-- Dynamic Content Area -->
                 <div id="add-activity-dynamic-area" class="hidden">
                     <!-- Manual Inputs -->
                     <div id="add-activity-manual-form" class="hidden space-y-4">
                         <p class="text-xs text-slate-400">Enter your expected workout metrics.</p>
-                        
+
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Duration (mins)</label>
-                                <input type="number" id="add-activity-duration" placeholder="e.g. 45" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Duration
+                                    (mins)</label>
+                                <input type="number" id="add-activity-duration" placeholder="e.g. 45"
+                                    class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
                             </div>
                             <div id="add-activity-distance-container">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Distance (mi)</label>
-                                <input type="number" step="0.1" id="add-activity-distance" placeholder="e.g. 3.1" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Distance
+                                    (mi)</label>
+                                <input type="number" step="0.1" id="add-activity-distance" placeholder="e.g. 3.1"
+                                    class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Effort / Notes</label>
-                            <input type="text" id="add-activity-notes" placeholder="e.g. Easy effort, recovery" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
+                            <label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Effort
+                                / Notes</label>
+                            <input type="text" id="add-activity-notes" placeholder="e.g. Easy effort, recovery"
+                                class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
                         </div>
-                        <button onclick="submitManualSecondaryWorkout()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] mt-2">
+                        <button onclick="submitManualSecondaryWorkout()"
+                            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] mt-2">
                             Add Workout
                         </button>
                     </div>
 
                     <!-- AI Coach area -->
-                    <div id="add-activity-ai-form" class="hidden space-y-4 flex flex-col items-center justify-center p-4">
-                        <div class="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 text-2xl mb-2">
+                    <div id="add-activity-ai-form"
+                        class="hidden space-y-4 flex flex-col items-center justify-center p-4">
+                        <div
+                            class="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 text-2xl mb-2">
                             <i class="fa-solid fa-wand-magic-sparkles"></i>
                         </div>
-                        <p class="text-sm text-slate-300 text-center font-medium">Ask Coach for a smart recommendation.</p>
-                        <p class="text-[11px] text-slate-500 text-center px-4">Coach will generate a short, complimentary session tailored to this week's active block.</p>
-                        
-                        <button onclick="submitQuickRun()" id="btn-quick-run" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
+                        <p class="text-sm text-slate-300 text-center font-medium">Ask Coach for a smart recommendation.
+                        </p>
+                        <p class="text-[11px] text-slate-500 text-center px-4">Coach will generate a short,
+                            complimentary session tailored to this week's active block.</p>
+
+                        <button onclick="submitQuickRun()" id="btn-quick-run"
+                            class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-person-running"></i> Add Quick Easy Run
                         </button>
-                        <button onclick="submitQuickStrength()" id="btn-quick-strength" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
+                        <button onclick="submitQuickStrength()" id="btn-quick-strength"
+                            class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-dumbbell"></i> Add Bodyweight Routine
                         </button>
-                        <button onclick="submitQuickRoutine()" id="btn-quick-routine" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
+                        <button onclick="submitQuickRoutine()" id="btn-quick-routine"
+                            class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-bolt"></i> <span id="quick-routine-text">Add Basic Routine</span>
                         </button>
 
-                        <button onclick="submitAISecondaryWorkout()" id="btn-ai-generate" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] mt-2 flex items-center justify-center gap-2">
+                        <button onclick="submitAISecondaryWorkout()" id="btn-ai-generate"
+                            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] mt-2 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-bolt"></i> Generate Recommendation
                         </button>
                         <div id="add-activity-loading" class="hidden flex-col items-center justify-center py-4 w-full">
@@ -7222,7 +7250,7 @@
             currentAddActivityDay = dayOrder;
             const modal = document.getElementById('add-activity-modal');
             const typeSelect = document.getElementById('add-activity-type');
-            
+
             // Find existing activity type for this day
             const existingWorkouts = activePhaseWorkouts.filter(w => w.sequenceOrder == dayOrder);
             const existingType = existingWorkouts.length > 0 ? existingWorkouts[0].type : null;
@@ -7233,7 +7261,7 @@
             document.getElementById('add-activity-ai-form').classList.add('hidden');
             document.getElementById('add-activity-ai-form').classList.remove('flex');
             document.getElementById('btn-ai-generate').classList.remove('hidden');
-            
+
             const btnQuickRun = document.getElementById('btn-quick-run');
             const btnQuickStrength = document.getElementById('btn-quick-strength');
             const btnQuickRoutine = document.getElementById('btn-quick-routine');
@@ -7251,10 +7279,10 @@
 
             // Disable the option that is already on this day
             Array.from(typeSelect.options).forEach(opt => {
-                if(opt.value && existingType && opt.value === existingType) {
+                if (opt.value && existingType && opt.value === existingType) {
                     opt.disabled = true;
-                    if(!opt.text.includes('(Already scheduled)')) opt.text = opt.text + ' (Already scheduled)';
-                } else if(opt.value) {
+                    if (!opt.text.includes('(Already scheduled)')) opt.text = opt.text + ' (Already scheduled)';
+                } else if (opt.value) {
                     opt.disabled = false;
                     opt.text = opt.text.replace(' (Already scheduled)', '');
                 }
@@ -7273,7 +7301,7 @@
             const manualForm = document.getElementById('add-activity-manual-form');
             const aiForm = document.getElementById('add-activity-ai-form');
             const distContainer = document.getElementById('add-activity-distance-container');
-            
+
             const btnQuickRun = document.getElementById('btn-quick-run');
             const btnQuickStrength = document.getElementById('btn-quick-strength');
             if (btnQuickRun) btnQuickRun.classList.add('hidden');
@@ -7288,7 +7316,7 @@
                 manualForm.classList.remove('hidden');
                 aiForm.classList.add('hidden');
                 aiForm.classList.remove('flex');
-                
+
                 if (type === 'sport') {
                     distContainer.classList.add('hidden');
                 } else {
@@ -7328,8 +7356,8 @@
             const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
 
             let title = type.charAt(0).toUpperCase() + type.slice(1);
-            if(type === 'sport') title = "Sport Activity";
-            
+            if (type === 'sport') title = "Sport Activity";
+
             let distDur = duration ? `${duration} mins` : '';
             if (distance && (type === 'walk' || type === 'bike' || type === 'swim')) {
                 distDur = `${distance} mi in ${duration} mins`;
@@ -7358,7 +7386,7 @@
         async function submitQuickRun() {
             const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
             const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
-            
+
             const newWorkout = {
                 id: newId,
                 phaseNumber: existingPhase,
@@ -7385,7 +7413,7 @@
         async function submitQuickStrength() {
             const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
             const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
-            
+
             const newWorkout = {
                 id: newId,
                 phaseNumber: existingPhase,
@@ -7417,10 +7445,10 @@
             const type = document.getElementById('add-activity-type').value;
             const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
             const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
-            
+
             let title = "Basic Routine";
             let exerciseName = "Exercises";
-            
+
             if (type === 'core') {
                 title = "Core Workout";
                 exerciseName = "Core Exercises";
@@ -7431,7 +7459,7 @@
                 title = "Stretching Routine";
                 exerciseName = "Stretching Exercises";
             }
-            
+
             const newWorkout = {
                 id: newId,
                 phaseNumber: existingPhase,
@@ -7468,7 +7496,7 @@
             closeBtn.disabled = true;
 
             const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
-            
+
             try {
                 const generateSecondary = firebase.functions().httpsCallable('generateSecondaryWorkout');
                 const response = await generateSecondary({
@@ -7488,7 +7516,7 @@
                     newWorkout.sequenceOrder = Number(currentAddActivityDay);
                     newWorkout.completed = false;
                     newWorkout.dateExecuted = null;
-                    
+
                     await saveSecondaryWorkout(newWorkout);
                 } else {
                     throw new Error("Invalid response from Coach.");
@@ -7505,14 +7533,9 @@
 
         async function saveSecondaryWorkout(newWorkout) {
             try {
+                closeAddActivityModal();
                 const userDocRef = db.collection("users").doc(userId);
                 await userDocRef.collection("active_phase").doc(newWorkout.id).set(newWorkout);
-                
-                activePhaseWorkouts.push(newWorkout);
-                
-                closeAddActivityModal();
-                renderNextActivityCard();
-                buildActivePhaseHTML();
             } catch (err) {
                 console.error("Error saving secondary workout:", err);
                 alert("Failed to save workout.");
@@ -7520,13 +7543,10 @@
         }
 
         async function removeSecondaryWorkout(activityId) {
-            if(!confirm("Are you sure you want to remove this secondary workout?")) return;
-            
+            if (!confirm("Are you sure you want to remove this activity?")) return;
+
             try {
                 await db.collection("users").doc(userId).collection("active_phase").doc(activityId).delete();
-                activePhaseWorkouts = activePhaseWorkouts.filter(w => w.id !== activityId);
-                renderNextActivityCard();
-                buildActivePhaseHTML();
             } catch (err) {
                 console.error("Error removing workout:", err);
                 alert("Failed to remove workout.");
