@@ -1878,9 +1878,16 @@
         const icons = {
             easy: `<div class="w-5 h-5 bg-primary-easy icon-turtle" title="Easy Run"></div>`,
             fast: `<div class="w-5 h-5 bg-primary-speed icon-fast" title="Fast Run"></div>`,
+            run: `<div class="w-5 h-5 bg-primary-easy icon-turtle" title="Run"></div>`,
             strength: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Strength"></div>`,
+            core: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Core"></div>`,
+            yoga: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Yoga"></div>`,
+            stretching: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Stretching"></div>`,
             rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`,
-            walk: `<i class="fa-solid fa-person-walking text-emerald-400 text-lg" title="Walking Activity"></i>`
+            walk: `<i class="fa-solid fa-person-walking text-emerald-400 text-lg" title="Walking Activity"></i>`,
+            bike: `<i class="fa-solid fa-person-biking text-sky-400 text-lg" title="Cycling"></i>`,
+            swim: `<i class="fa-solid fa-person-swimming text-cyan-400 text-lg" title="Swimming"></i>`,
+            sport: `<i class="fa-solid fa-basketball text-orange-400 text-lg" title="Sport"></i>`
         };
 
         // ------------------ WORKOUT FILE PARSER ENGINE ------------------
@@ -3299,8 +3306,15 @@
                     return 0;
                 });
 
+                const hasRest = dayWorkouts.some(w => w.type === 'rest');
+                const canAddSecondary = dayWorkouts.length === 1 && !hasRest;
+                
                 let dayHTML = `<div class="mb-4">`;
-                dayHTML += `<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Day ${day}</h3>`;
+                dayHTML += `
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Day ${day}</h3>
+                    ${canAddSecondary ? `<button onclick="openAddActivityModal(${day})" class="w-11 h-11 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 transition-colors flex items-center justify-center border border-transparent hover:border-indigo-500/30 shadow-sm" title="Add Secondary Workout"><i class="fa-solid fa-plus text-lg"></i></button>` : ''}
+                </div>`;
                 dayHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
 
                 dayWorkouts.forEach(step => {
@@ -3823,7 +3837,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-slate-600 shrink-0">
+                                <div class="text-slate-600 shrink-0 flex items-center gap-2">
+                                    ${(dailySlate.length > 1 && i === 1) ? `<button onclick="event.stopPropagation(); removeSecondaryWorkout('${nextStep.id}')" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors flex items-center justify-center border border-transparent hover:border-rose-500/30" title="Remove Workout"><i class="fa-solid fa-xmark"></i></button>` : ''}
                                     <i class="fa-solid fa-chevron-right text-lg"></i>
                                 </div>
                             </div>
@@ -4202,6 +4217,17 @@
                     }
                     htmlAccumulator += `</div></div>`;
                 }
+            }
+
+            // Add secondary workout button logic
+            const hasRest = dailySlate.some(w => w.type === 'rest');
+            if (dailySlate.length === 1 && !hasRest && !isSlateFullyCompleted) {
+                htmlAccumulator += `
+                <div class="mt-4 w-full">
+                    <button onclick="openAddActivityModal(${renderSequenceOrder})" class="w-full bg-slate-900 border border-slate-700 border-dashed hover:border-slate-500 hover:bg-slate-800 text-slate-400 hover:text-slate-200 py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Add Secondary Workout
+                    </button>
+                </div>`;
             }
 
             htmlAccumulator += `</div>`;
@@ -7105,6 +7131,408 @@
             </div>
         </div>
     </div>
+
+    <!-- Add Activity Modal -->
+    <div id="add-activity-modal" class="fixed inset-0 z-[99999] hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target === this) closeAddActivityModal()">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden relative animate-fade-in">
+            <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white tracking-tight">Add Secondary Workout</h3>
+                <button onclick="closeAddActivityModal()" class="text-slate-500 hover:text-white transition-colors" id="close-add-modal-btn">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 relative z-10 space-y-6">
+                <!-- Select Type -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Activity Type</label>
+                    <select id="add-activity-type" onchange="handleAddActivityTypeChange()" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                        <option value="" disabled selected>Select Type...</option>
+                        <option value="run">Run</option>
+                        <option value="walk">Walk</option>
+                        <option value="bike">Bike</option>
+                        <option value="swim">Swim</option>
+                        <option value="strength">Strength</option>
+                        <option value="core">Core</option>
+                        <option value="yoga">Yoga</option>
+                        <option value="stretching">Stretching</option>
+                        <option value="sport">Sport</option>
+                    </select>
+                </div>
+                
+                <!-- Dynamic Content Area -->
+                <div id="add-activity-dynamic-area" class="hidden">
+                    <!-- Manual Inputs -->
+                    <div id="add-activity-manual-form" class="hidden space-y-4">
+                        <p class="text-xs text-slate-400">Enter your expected workout metrics.</p>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Duration (mins)</label>
+                                <input type="number" id="add-activity-duration" placeholder="e.g. 45" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div id="add-activity-distance-container">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Distance (mi)</label>
+                                <input type="number" step="0.1" id="add-activity-distance" placeholder="e.g. 3.1" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Effort / Notes</label>
+                            <input type="text" id="add-activity-notes" placeholder="e.g. Easy effort, recovery" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm font-bold p-3 rounded-xl focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <button onclick="submitManualSecondaryWorkout()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] mt-2">
+                            Add Workout
+                        </button>
+                    </div>
+
+                    <!-- AI Coach area -->
+                    <div id="add-activity-ai-form" class="hidden space-y-4 flex flex-col items-center justify-center p-4">
+                        <div class="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 text-2xl mb-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <p class="text-sm text-slate-300 text-center font-medium">Ask Coach for a smart recommendation.</p>
+                        <p class="text-[11px] text-slate-500 text-center px-4">Coach will generate a short, complimentary session tailored to this week's active block.</p>
+                        
+                        <button onclick="submitQuickRun()" id="btn-quick-run" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-person-running"></i> Add Quick Easy Run
+                        </button>
+                        <button onclick="submitQuickStrength()" id="btn-quick-strength" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-dumbbell"></i> Add Bodyweight Routine
+                        </button>
+                        <button onclick="submitQuickRoutine()" id="btn-quick-routine" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] mt-2 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> <span id="quick-routine-text">Add Basic Routine</span>
+                        </button>
+
+                        <button onclick="submitAISecondaryWorkout()" id="btn-ai-generate" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] mt-2 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> Generate Recommendation
+                        </button>
+                        <div id="add-activity-loading" class="hidden flex-col items-center justify-center py-4 w-full">
+                            <i class="fa-solid fa-circle-notch animate-spin text-2xl text-indigo-500 mb-3"></i>
+                            <p class="text-slate-400 text-sm font-medium">Coach is building your workout...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAddActivityDay = null;
+
+        function openAddActivityModal(dayOrder) {
+            currentAddActivityDay = dayOrder;
+            const modal = document.getElementById('add-activity-modal');
+            const typeSelect = document.getElementById('add-activity-type');
+            
+            // Find existing activity type for this day
+            const existingWorkouts = activePhaseWorkouts.filter(w => w.sequenceOrder == dayOrder);
+            const existingType = existingWorkouts.length > 0 ? existingWorkouts[0].type : null;
+
+            // Reset UI
+            document.getElementById('add-activity-dynamic-area').classList.add('hidden');
+            document.getElementById('add-activity-manual-form').classList.add('hidden');
+            document.getElementById('add-activity-ai-form').classList.add('hidden');
+            document.getElementById('add-activity-ai-form').classList.remove('flex');
+            document.getElementById('btn-ai-generate').classList.remove('hidden');
+            
+            const btnQuickRun = document.getElementById('btn-quick-run');
+            const btnQuickStrength = document.getElementById('btn-quick-strength');
+            const btnQuickRoutine = document.getElementById('btn-quick-routine');
+            if (btnQuickRun) btnQuickRun.classList.add('hidden');
+            if (btnQuickStrength) btnQuickStrength.classList.add('hidden');
+            if (btnQuickRoutine) btnQuickRoutine.classList.add('hidden');
+
+            document.getElementById('add-activity-loading').classList.add('hidden');
+            document.getElementById('add-activity-loading').classList.remove('flex');
+            document.getElementById('close-add-modal-btn').disabled = false;
+            typeSelect.value = "";
+            document.getElementById('add-activity-duration').value = "";
+            document.getElementById('add-activity-distance').value = "";
+            document.getElementById('add-activity-notes').value = "";
+
+            // Disable the option that is already on this day
+            Array.from(typeSelect.options).forEach(opt => {
+                if(opt.value && existingType && opt.value === existingType) {
+                    opt.disabled = true;
+                    if(!opt.text.includes('(Already scheduled)')) opt.text = opt.text + ' (Already scheduled)';
+                } else if(opt.value) {
+                    opt.disabled = false;
+                    opt.text = opt.text.replace(' (Already scheduled)', '');
+                }
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeAddActivityModal() {
+            document.getElementById('add-activity-modal').classList.add('hidden');
+        }
+
+        function handleAddActivityTypeChange() {
+            const type = document.getElementById('add-activity-type').value;
+            const dynamicArea = document.getElementById('add-activity-dynamic-area');
+            const manualForm = document.getElementById('add-activity-manual-form');
+            const aiForm = document.getElementById('add-activity-ai-form');
+            const distContainer = document.getElementById('add-activity-distance-container');
+            
+            const btnQuickRun = document.getElementById('btn-quick-run');
+            const btnQuickStrength = document.getElementById('btn-quick-strength');
+            if (btnQuickRun) btnQuickRun.classList.add('hidden');
+            if (btnQuickStrength) btnQuickStrength.classList.add('hidden');
+
+            dynamicArea.classList.remove('hidden');
+
+            const manualTypes = ['walk', 'bike', 'swim', 'sport'];
+            const aiTypes = ['run', 'strength', 'core', 'yoga', 'stretching'];
+
+            if (manualTypes.includes(type)) {
+                manualForm.classList.remove('hidden');
+                aiForm.classList.add('hidden');
+                aiForm.classList.remove('flex');
+                
+                if (type === 'sport') {
+                    distContainer.classList.add('hidden');
+                } else {
+                    distContainer.classList.remove('hidden');
+                }
+            } else if (aiTypes.includes(type)) {
+                aiForm.classList.remove('hidden');
+                aiForm.classList.add('flex');
+                manualForm.classList.add('hidden');
+
+                if (type === 'run' && btnQuickRun) {
+                    btnQuickRun.classList.remove('hidden');
+                } else if (type === 'strength' && btnQuickStrength) {
+                    btnQuickStrength.classList.remove('hidden');
+                } else if ((type === 'core' || type === 'yoga' || type === 'stretching') && btnQuickRoutine) {
+                    btnQuickRoutine.classList.remove('hidden');
+                    const textSpan = document.getElementById('quick-routine-text');
+                    if (type === 'core') textSpan.innerText = "Add Basic Core Routine";
+                    else if (type === 'yoga') textSpan.innerText = "Add Basic Yoga Flow";
+                    else if (type === 'stretching') textSpan.innerText = "Add Basic Stretching";
+                }
+            }
+        }
+
+        async function submitManualSecondaryWorkout() {
+            const type = document.getElementById('add-activity-type').value;
+            const duration = document.getElementById('add-activity-duration').value;
+            const distance = document.getElementById('add-activity-distance').value;
+            const notes = document.getElementById('add-activity-notes').value;
+
+            if (!duration) {
+                alert("Please enter a duration.");
+                return;
+            }
+
+            const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
+            const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+            let title = type.charAt(0).toUpperCase() + type.slice(1);
+            if(type === 'sport') title = "Sport Activity";
+            
+            let distDur = duration ? `${duration} mins` : '';
+            if (distance && (type === 'walk' || type === 'bike' || type === 'swim')) {
+                distDur = `${distance} mi in ${duration} mins`;
+            }
+
+            const newWorkout = {
+                id: newId,
+                phaseNumber: existingPhase,
+                sequenceOrder: Number(currentAddActivityDay),
+                workoutTitle: title,
+                type: type,
+                distanceDuration: distDur,
+                isSpeedWorkout: false,
+                isBenchmark: false,
+                completed: false,
+                dateExecuted: null,
+                targetInstructions: notes || "Focus on consistency and feel.",
+                targetPaceZone: null,
+                actualLoggedPace: null,
+                rpeScore: null
+            };
+
+            await saveSecondaryWorkout(newWorkout);
+        }
+
+        async function submitQuickRun() {
+            const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
+            const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+            
+            const newWorkout = {
+                id: newId,
+                phaseNumber: existingPhase,
+                sequenceOrder: Number(currentAddActivityDay),
+                workoutTitle: "Easy Recovery Run",
+                type: "run",
+                distanceDuration: "2.0 mi in 20 mins",
+                targetDistance: 2.0,
+                targetDuration: 20,
+                isSpeedWorkout: false,
+                isBenchmark: false,
+                completed: false,
+                dateExecuted: null,
+                targetInstructions: "2/10 Effort (Very Easy). Focus on keeping heart rate low.",
+                targetPaceZone: "easy",
+                jitPreparationTip: "Hydrate well and keep it light.",
+                actualLoggedPace: null,
+                rpeScore: null
+            };
+
+            await saveSecondaryWorkout(newWorkout);
+        }
+
+        async function submitQuickStrength() {
+            const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
+            const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+            
+            const newWorkout = {
+                id: newId,
+                phaseNumber: existingPhase,
+                sequenceOrder: Number(currentAddActivityDay),
+                workoutTitle: "Full Body Bodyweight",
+                type: "strength",
+                distanceDuration: "15 mins",
+                isSpeedWorkout: false,
+                isBenchmark: false,
+                completed: false,
+                dateExecuted: null,
+                targetInstructions: "Simple bodyweight routine. 3 rounds.",
+                targetPaceZone: null,
+                jitPreparationTip: "Find a clear space on the floor.",
+                activities: [
+                    { name: "Push Ups", type: "work", sets: 3, repsDistanceTime: "10-15 reps", isCircuit: true, circuitRounds: 3 },
+                    { name: "Bodyweight Squats", type: "work", sets: 3, repsDistanceTime: "15-20 reps", isCircuit: true, circuitRounds: 3 },
+                    { name: "Alternating Lunges", type: "work", sets: 3, repsDistanceTime: "10 per leg", isCircuit: true, circuitRounds: 3 },
+                    { name: "Situps", type: "work", sets: 3, repsDistanceTime: "15-20 reps", isCircuit: true, circuitRounds: 3 }
+                ],
+                actualLoggedPace: null,
+                rpeScore: null
+            };
+
+            await saveSecondaryWorkout(newWorkout);
+        }
+
+        async function submitQuickRoutine() {
+            const type = document.getElementById('add-activity-type').value;
+            const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
+            const newId = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+            
+            let title = "Basic Routine";
+            let exerciseName = "Exercises";
+            
+            if (type === 'core') {
+                title = "Core Workout";
+                exerciseName = "Core Exercises";
+            } else if (type === 'yoga') {
+                title = "Yoga Flow";
+                exerciseName = "Yoga Exercises";
+            } else if (type === 'stretching') {
+                title = "Stretching Routine";
+                exerciseName = "Stretching Exercises";
+            }
+            
+            const newWorkout = {
+                id: newId,
+                phaseNumber: existingPhase,
+                sequenceOrder: Number(currentAddActivityDay),
+                workoutTitle: title,
+                type: type,
+                distanceDuration: "15 mins",
+                isSpeedWorkout: false,
+                isBenchmark: false,
+                completed: false,
+                dateExecuted: null,
+                targetInstructions: "Basic routine. Log your specific exercises in the notes.",
+                targetPaceZone: null,
+                jitPreparationTip: "Find a clear space on the floor.",
+                activities: [
+                    { name: exerciseName, type: "work", sets: 1, repsDistanceTime: "15 mins", isCircuit: false, circuitRounds: 0 }
+                ],
+                actualLoggedPace: null,
+                rpeScore: null
+            };
+
+            await saveSecondaryWorkout(newWorkout);
+        }
+
+        async function submitAISecondaryWorkout() {
+            const type = document.getElementById('add-activity-type').value;
+            const generateBtn = document.getElementById('btn-ai-generate');
+            const loadingArea = document.getElementById('add-activity-loading');
+            const closeBtn = document.getElementById('close-add-modal-btn');
+
+            generateBtn.classList.add('hidden');
+            loadingArea.classList.remove('hidden');
+            loadingArea.classList.add('flex');
+            closeBtn.disabled = true;
+
+            const existingPhase = activePhaseWorkouts.length > 0 ? activePhaseWorkouts[0].phaseNumber : 1;
+            
+            try {
+                const generateSecondary = firebase.functions().httpsCallable('generateSecondaryWorkout');
+                const response = await generateSecondary({
+                    targetType: type,
+                    sequenceOrder: currentAddActivityDay,
+                    currentPhaseIndex: existingPhase,
+                    profileContext: {
+                        goal: userProfileData?.activeAdjustedGoal || "general fitness",
+                        currentBlock: activePhaseWorkouts.map(w => ({ type: w.type, title: w.workoutTitle, day: w.sequenceOrder }))
+                    }
+                });
+
+                if (response.data && response.data.workout) {
+                    const newWorkout = response.data.workout;
+                    newWorkout.id = 'sec_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+                    newWorkout.phaseNumber = existingPhase;
+                    newWorkout.sequenceOrder = Number(currentAddActivityDay);
+                    newWorkout.completed = false;
+                    newWorkout.dateExecuted = null;
+                    
+                    await saveSecondaryWorkout(newWorkout);
+                } else {
+                    throw new Error("Invalid response from Coach.");
+                }
+            } catch (err) {
+                console.error("AI Generation failed:", err);
+                alert("Coach couldn't generate a workout right now. Try again later.");
+                generateBtn.classList.remove('hidden');
+                loadingArea.classList.add('hidden');
+                loadingArea.classList.remove('flex');
+                closeBtn.disabled = false;
+            }
+        }
+
+        async function saveSecondaryWorkout(newWorkout) {
+            try {
+                const userDocRef = db.collection("users").doc(userId);
+                await userDocRef.collection("active_phase").doc(newWorkout.id).set(newWorkout);
+                
+                activePhaseWorkouts.push(newWorkout);
+                
+                closeAddActivityModal();
+                renderNextActivityCard();
+                buildActivePhaseHTML();
+            } catch (err) {
+                console.error("Error saving secondary workout:", err);
+                alert("Failed to save workout.");
+            }
+        }
+
+        async function removeSecondaryWorkout(activityId) {
+            if(!confirm("Are you sure you want to remove this secondary workout?")) return;
+            
+            try {
+                await db.collection("users").doc(userId).collection("active_phase").doc(activityId).delete();
+                activePhaseWorkouts = activePhaseWorkouts.filter(w => w.id !== activityId);
+                renderNextActivityCard();
+                buildActivePhaseHTML();
+            } catch (err) {
+                console.error("Error removing workout:", err);
+                alert("Failed to remove workout.");
+            }
+        }
+    </script>
 </body>
 
 </html>

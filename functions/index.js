@@ -463,3 +463,68 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
         throw new HttpsError("internal", "Failed to upgrade macrocycle descriptions.", error.message);
     }
 });
+
+exports.generateSecondaryWorkout = onCall({
+    secrets: [geminiApiKey],
+    cors: true,
+    timeoutSeconds: 60
+}, async (request) => {
+    const { targetType, sequenceOrder, currentPhaseIndex, profileContext } = request.data;
+    
+    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    
+    const prompt = `You are a professional elite running coach AI and health nutritionist.
+The user wants to add a secondary workout to their day today. The requested activity type is: "${targetType}".
+Their current active goal is: ${profileContext?.goal || "general fitness"}.
+Their current block includes the following primary activities:
+${profileContext?.currentBlock ? JSON.stringify(profileContext.currentBlock) : "N/A"}
+
+Please generate a short, complimentary session tailored to this week's active block.
+For example, if the type is "yoga" or "stretching", provide a recovery/mobility flow. If the type is "core", provide a quick core circuit. If the type is "run", provide a very easy recovery or short interval run depending on what they are lacking this week.
+
+Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
+{
+  "workout": {
+    "workoutTitle": "String (e.g. 15-Min Core Blast)",
+    "type": "${targetType}",
+    "isSpeedWorkout": false,
+    "isBenchmark": false,
+    "distanceDuration": "String (e.g., 15 mins, or 2.0 mi in 20 mins)",
+    "targetDistance": "Number (Optional)",
+    "targetDuration": "Number (Optional)",
+    "targetInstructions": "String (Keep under 100 characters)",
+    "targetPaceZone": "String (Optional, for running: easy, goal, tempo, long, or null)",
+    "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
+    "activities": [
+      {
+        "name": "String (e.g., Warmup, Interval, Squats)",
+        "type": "String (prep, work, cool)",
+        "sets": Number,
+        "repsDistanceTime": "String (e.g., 10 reps, 400m, 5 mins)",
+        "isCircuit": Boolean,
+        "circuitRounds": Number
+      }
+    ]
+  }
+}
+CRITICAL: Do not include any text outside of the JSON object. Do not wrap in markdown code blocks.`;
+
+    try {
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        
+        let workoutData;
+        try {
+            workoutData = JSON.parse(responseText);
+        } catch (e) {
+            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+            workoutData = JSON.parse(cleaned);
+        }
+        
+        return workoutData;
+    } catch (error) {
+        console.error("Error generating secondary workout:", error);
+        throw new HttpsError("internal", "Failed to generate secondary workout.", error.message);
+    }
+});
