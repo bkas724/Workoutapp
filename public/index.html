@@ -406,6 +406,23 @@
                 </div>
             </div>
 
+            <!-- Process Goals (Health Track) -->
+            <div id="process-goals-container"
+                class="hidden bg-emerald-950/20 border border-emerald-500/10 p-4 rounded-2xl text-xs mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-emerald-400 block"><i class="fa-solid fa-bullseye"></i> Your Process
+                        Goals</span>
+                    <button onclick="openLetsBeRealModal()"
+                        class="text-[10px] font-bold text-slate-900 bg-emerald-400 hover:bg-emerald-300 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 shadow-md shadow-emerald-500/20">
+                        Let's Be Real
+                    </button>
+                </div>
+                <ul id="process-goals-list"
+                    class="list-disc list-inside text-slate-400 space-y-1.5 marker:text-emerald-500/50">
+                    <!-- Injected via JS -->
+                </ul>
+            </div>
+
             <!-- Coach Journey Strategy (Always visible) -->
             <div class="bg-indigo-950/20 border border-indigo-500/10 p-4 rounded-2xl text-xs">
                 <span class="font-bold text-indigo-300 block mb-1">Coach Journey Strategy</span>
@@ -638,7 +655,10 @@
                     <!-- Swap Days Button -->
                     <button onclick="openSwapDaysModal()"
                         class="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/30 transition-all flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg> Swap Days
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg> Swap Days
                     </button>
                     <!-- Emergency Adapt Plan Button -->
                     <button onclick="triggerEmergencyAdaptation()"
@@ -800,6 +820,42 @@
                             class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-slate-500 font-bold focus:outline-none focus:border-indigo-500/80 font-mono opacity-60 cursor-not-allowed">
                     </div>
 
+                    <!-- PRIMARY GOAL -->
+                    <div class="space-y-2">
+                        <label class="block font-bold text-slate-400 uppercase tracking-wider">Primary Goal</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="primary-goal-selector">
+                            <div onclick="selectGoal('health')" id="goal-health"
+                                class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
+                                <div class="font-bold text-emerald-400 text-sm">Health / General Fitness</div>
+                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">I want to build healthy
+                                    habits, stay active, and feel good.</div>
+                            </div>
+                            <div onclick="selectGoal('race')" id="goal-race"
+                                class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
+                                <div class="font-bold text-amber-400 text-sm">Race / Specific Goal</div>
+                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">Training for a specific
+                                    event, distance, or time.</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="intake-primary-goal" value="">
+                    </div>
+
+                    <div id="dynamic-form-strength"
+                        class="hidden mt-2 p-3 border border-slate-800 bg-slate-900/50 rounded-xl">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-amber-400 uppercase tracking-wider text-[10px]">Pace /
+                                Goal: Strength Focus</label>
+                            <select id="intake-strength"
+                                class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-amber-500/80 cursor-pointer text-center">
+                                <option value="runner_specific">Running Specific</option>
+                                <option value="full_body">Full Body</option>
+                                <option value="none">No Strength Training</option>
+                            </select>
+                        </div>
+                    </div>
+
+
+
                     <!-- PHYSIOLOGICAL INPUTS -->
                     <div class="grid grid-cols-2 gap-2">
                         <div class="space-y-1">
@@ -816,37 +872,58 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
+                        <!-- Weight (Current & Target) -->
                         <div class="space-y-1">
-                            <label class="block font-bold text-slate-400 uppercase tracking-wider">Current Weight
-                                (lbs)</label>
-                            <input type="number" id="intake-weight" step="0.1" placeholder="e.g. 165" min="50" max="400"
-                                class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center"
-                                oninput="updateBMIVisual()">
-                        </div>
-                        <div class="space-y-1 relative">
-                            <label class="block font-bold text-slate-400 uppercase tracking-wider">Target Weight</label>
-                            <input type="number" id="intake-target-weight" step="0.1" placeholder="e.g. 150" min="50"
-                                max="400"
-                                class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center"
-                                onblur="enforceMinimumWeight(this)" oninput="validateTargetWeight()">
-
-                            <div
-                                class="min-weight-bubble hidden absolute -bottom-10 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl whitespace-nowrap z-30 flex items-center gap-1.5">
-                                <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-indigo-600 rotate-45">
+                            <label
+                                class="block font-bold text-slate-400 uppercase tracking-wider text-[10px] truncate">Weight
+                                (Lbs)</label>
+                            <div class="flex gap-1.5">
+                                <div class="w-1/2">
+                                    <label
+                                        class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Current</label>
+                                    <input type="number" id="intake-weight" step="0.1" placeholder="e.g. 165" min="50"
+                                        max="400"
+                                        class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
+                                        oninput="updateBMIVisual()">
                                 </div>
-                                <i class="fa-solid fa-circle-info"></i> Minimum healthy weight is <span
-                                    class="min-val"></span> lbs
+                                <div class="w-1/2 relative">
+                                    <label
+                                        class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Target</label>
+                                    <input type="number" id="intake-target-weight" step="0.1" placeholder="e.g. 150"
+                                        min="50" max="400"
+                                        class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
+                                        onblur="enforceMinimumWeight(this)" oninput="validateTargetWeight()">
+
+                                    <div
+                                        class="min-weight-bubble hidden absolute -bottom-10 right-0 bg-indigo-600 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl whitespace-nowrap z-30 flex items-center gap-1.5">
+                                        <div class="absolute -top-1 right-4 w-3 h-3 bg-indigo-600 rotate-45">
+                                        </div>
+                                        <i class="fa-solid fa-circle-info"></i> Minimum healthy weight is <span
+                                            class="min-val"></span> lbs
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="space-y-1 col-span-2">
-                            <label class="block font-bold text-slate-400 uppercase tracking-wider">Height</label>
-                            <div class="flex gap-2">
-                                <input type="number" id="intake-height-ft" placeholder="ft" min="3" max="8"
-                                    class="w-1/2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center"
-                                    oninput="updateBMIVisual()">
-                                <input type="number" id="intake-height-in" placeholder="in" min="0" max="11"
-                                    class="w-1/2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center"
-                                    oninput="updateBMIVisual()">
+
+                        <!-- Height (Ft & In) -->
+                        <div class="space-y-1">
+                            <label
+                                class="block font-bold text-slate-400 uppercase tracking-wider text-[10px]">Height</label>
+                            <div class="flex gap-1.5">
+                                <div class="w-1/2">
+                                    <label
+                                        class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Ft</label>
+                                    <input type="number" id="intake-height-ft" placeholder="ft" min="3" max="8"
+                                        class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
+                                        oninput="updateBMIVisual()">
+                                </div>
+                                <div class="w-1/2">
+                                    <label
+                                        class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">In</label>
+                                    <input type="number" id="intake-height-in" placeholder="in" min="0" max="11"
+                                        class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
+                                        oninput="updateBMIVisual()">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -887,31 +964,53 @@
                     <div class="space-y-2">
                         <label class="block font-bold text-slate-400 uppercase tracking-wider">Current Fitness
                             Level</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="fitness-level-selector">
-                            <div onclick="selectFitness('beginner')" id="fit-beginner"
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2" id="fitness-level-selector">
+                            <div onclick="selectFitness('brand_new')" id="fit-brand_new"
                                 class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
-                                <div class="font-bold text-green-400 text-sm">Beginner</div>
-                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">New to running or returning
-                                    after a long break.</div>
+                                <div class="font-bold text-green-400 text-sm">Brand New</div>
+                                <div class="text-[10px] text-slate-400 mt-1 leading-tight" id="desc-brand_new">
+                                    Completely new to running. Needs to start with the fundamentals.</div>
+                            </div>
+                            <div onclick="selectFitness('returning')" id="fit-returning"
+                                class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
+                                <div class="font-bold text-teal-400 text-sm">Returning</div>
+                                <div class="text-[10px] text-slate-400 mt-1 leading-tight" id="desc-returning">Returning
+                                    / refresh after a long break.</div>
                             </div>
                             <div onclick="selectFitness('intermediate')" id="fit-intermediate"
                                 class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
                                 <div class="font-bold text-blue-400 text-sm">Intermediate</div>
-                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">Runs regularly, building
-                                    endurance or speed.</div>
+                                <div class="text-[10px] text-slate-400 mt-1 leading-tight" id="desc-intermediate">Runs
+                                    regularly, building endurance or speed.</div>
                             </div>
                             <div onclick="selectFitness('advanced')" id="fit-advanced"
                                 class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
                                 <div class="font-bold text-purple-400 text-sm">Advanced</div>
-                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">High mileage, training for
-                                    specific time goals.</div>
+                                <div class="text-[10px] text-slate-400 mt-1 leading-tight" id="desc-advanced">High
+                                    mileage, training for specific time goals.</div>
                             </div>
                         </div>
                         <input type="hidden" id="intake-fitness-level" value="">
                     </div>
 
+                    <!-- TRAINING FOCUS SLIDER (Progressively Disclosed) -->
+                    <div id="training-focus-container" class="space-y-2 hidden">
+                        <label class="block font-bold text-slate-400 uppercase tracking-wider">Training Focus</label>
+                        <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                            <div
+                                class="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">
+                                <span>Strength Focus</span>
+                                <span>Cardio Focus</span>
+                            </div>
+                            <input type="range" id="intake-training-focus" min="0" max="100" value="50"
+                                class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                            <div class="text-center text-xs text-indigo-400 font-bold mt-2" id="training-focus-label">
+                                Balanced (50/50)</div>
+                        </div>
+                    </div>
+
                     <!-- AVAILABILITY & PREFERENCES -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block font-bold text-slate-400 uppercase tracking-wider">Days
                                 Available</label>
@@ -923,16 +1022,6 @@
                                 Workout</label>
                             <input type="number" id="intake-mins-available" placeholder="e.g. 45" min="15" max="180"
                                 class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block font-bold text-slate-400 uppercase tracking-wider">Strength
-                                Focus</label>
-                            <select id="intake-strength"
-                                class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 cursor-pointer text-center">
-                                <option value="runner_specific">Running Specific</option>
-                                <option value="full_body">Full Body</option>
-                                <option value="none">No Strength Training</option>
-                            </select>
                         </div>
                     </div>
 
@@ -963,25 +1052,56 @@
                         </div>
                     </div>
 
-                    <div class="space-y-1">
-                        <label
-                            class="block font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                            <span>Personal Notes (Constraints)</span>
-                            <div class="group relative cursor-help">
-                                <i
-                                    class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                                <div
-                                    class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
-                                    <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                    Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It
-                                    uses this context to automatically adjust your workout types, intensities, and
-                                    schedules to perfectly fit your life.
+                    <div class="space-y-4">
+                        <div class="space-y-1">
+                            <label
+                                class="block font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                                <span>General Notes</span>
+                                <div class="group relative cursor-help">
+                                    <i
+                                        class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                    <div
+                                        class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                        <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                                        Tell your AI Coach about yourself, your lifestyle, and any general context it
+                                        should keep in mind.
+                                    </div>
                                 </div>
+                            </label>
+                            <textarea id="intake-general"
+                                placeholder="e.g. I work long hours, usually highly stressed. I love to be challenged."
+                                class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/80 resize-none"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="block font-bold text-slate-400 uppercase tracking-wider">Personal
+                                    Goals</label>
+                                <textarea id="intake-goals"
+                                    placeholder="e.g. I want to build consistency and run a 5k without stopping."
+                                    class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/80 resize-none"></textarea>
                             </div>
-                        </label>
-                        <textarea id="intake-notes"
-                            placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts. Also, I have a history of shin splints, so please ease me into high-impact running."
-                            class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/80 resize-none"></textarea>
+                            <div class="space-y-1">
+                                <label
+                                    class="block font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                                    <span>Personal Limitations</span>
+                                    <div class="group relative cursor-help">
+                                        <i
+                                            class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                        <div
+                                            class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                            <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45">
+                                            </div>
+                                            Tell your AI Coach about your lifestyle or past injuries. It uses this
+                                            context to automatically adjust your workout types, intensities, and
+                                            schedules.
+                                        </div>
+                                    </div>
+                                </label>
+                                <textarea id="intake-limitations"
+                                    placeholder="e.g. Recovering from a knee injury. I have young kids so I need morning workouts."
+                                    class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/80 resize-none"></textarea>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="space-y-1">
@@ -997,31 +1117,7 @@
                             class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/80 resize-none"></textarea>
                     </div>
 
-                    <!-- PRIMARY GOAL -->
-                    <div class="space-y-2">
-                        <label class="block font-bold text-slate-400 uppercase tracking-wider">Primary Goal</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="primary-goal-selector">
-                            <div onclick="selectGoal('health')" id="goal-health"
-                                class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
-                                <div class="font-bold text-emerald-400 text-sm">Health / Get Started</div>
-                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">I run to stay active, relieve
-                                    stress, and feel good.</div>
-                            </div>
-                            <div onclick="selectGoal('race')" id="goal-race"
-                                class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
-                                <div class="font-bold text-amber-400 text-sm">Race / Specific Goal</div>
-                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">Training for a specific
-                                    event, distance, or time.</div>
-                            </div>
-                            <div onclick="selectGoal('recovery')" id="goal-recovery"
-                                class="cursor-pointer border border-slate-700 bg-slate-900 hover:bg-slate-800 p-3 rounded-xl transition-all">
-                                <div class="font-bold text-sky-400 text-sm">Recovery & Maint.</div>
-                                <div class="text-[10px] text-slate-400 mt-1 leading-tight">Maintaining my base or
-                                    recovering from injury.</div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="intake-primary-goal" value="">
-                    </div>
+                    <!-- PRIMARY GOAL (Moved to Top) -->
 
                     <!-- DYNAMIC FORMS -->
                     <div id="dynamic-form-race"
@@ -1105,30 +1201,7 @@
                         <div id="goal-pace-proposals" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2"></div>
                     </div>
 
-                    <div id="dynamic-form-recovery"
-                        class="hidden space-y-4 bg-sky-950/10 border border-sky-500/20 p-4 rounded-xl">
-                        <h3 class="text-sky-500 font-bold text-sm border-b border-sky-500/20 pb-2">Recovery & Maint.
-                            Details</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label class="block font-bold text-slate-400 uppercase tracking-wider">Nature of
-                                    Break/Injury</label>
-                                <input type="text" id="intake-recovery-nature"
-                                    placeholder="e.g. Shin Splints, Knee surgery"
-                                    class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-sky-500/80">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="block font-bold text-slate-400 uppercase tracking-wider">Current
-                                    Phase</label>
-                                <select id="intake-recovery-phase"
-                                    class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-sky-500/80 cursor-pointer">
-                                    <option value="Just starting back">Just starting back</option>
-                                    <option value="Building base mileage">Building base mileage</option>
-                                    <option value="Maintaining current fitness">Maintaining current fitness</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <!-- LEGACY FIELDS (Hidden, preserved to avoid JS errors if they are queried elsewhere) -->
                     <div class="hidden">
@@ -1240,6 +1313,35 @@
         </div>
     </div>
 
+    <!-- Let's Be Real Modal -->
+    <div id="lets-be-real-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-md" onclick="closeLetsBeRealModal()"></div>
+        <div
+            class="relative bg-slate-900 border border-slate-700/50 rounded-3xl p-6 max-w-sm w-full shadow-2xl overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-black text-white leading-tight">Let's Be Real.</h3>
+                    <p class="text-xs text-slate-400 font-medium mt-1">No fluff. Just the facts.</p>
+                </div>
+                <button onclick="closeLetsBeRealModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <ul id="lets-be-real-list" class="space-y-3 mb-6">
+                <!-- Injected via JS -->
+            </ul>
+
+            <button onclick="closeLetsBeRealModal()"
+                class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl transition-colors shadow-lg shadow-emerald-500/20 text-sm">
+                Got it. I won't skip.
+            </button>
+        </div>
+    </div>
+
     <!-- Emergency Adapt Modal (E-Stop) -->
     <div id="emergency-adapt-modal"
         class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
@@ -1327,18 +1429,24 @@
     <!-- Swap Days Modal -->
     <div id="swap-days-modal"
         class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300">
+        <div
+            class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300">
             <div class="p-6 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/50">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                    <div
+                        class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
                     </div>
                     <div>
                         <h2 class="text-xl font-black text-slate-100">Swap Days</h2>
                         <p class="text-xs text-slate-400 font-medium mt-0.5">Swap activities between days</p>
                     </div>
                 </div>
-                <button onclick="closeSwapDaysModal()" class="text-slate-500 hover:text-slate-300 transition-colors p-2 hover:bg-slate-800 rounded-xl">
+                <button onclick="closeSwapDaysModal()"
+                    class="text-slate-500 hover:text-slate-300 transition-colors p-2 hover:bg-slate-800 rounded-xl">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -1346,9 +1454,10 @@
             <div class="p-6 max-h-[60vh] overflow-y-auto space-y-3" id="swap-days-list">
                 <!-- Dynamically populated day list -->
             </div>
-            
+
             <div class="p-6 border-t border-slate-800/80 bg-slate-900/50 flex justify-end">
-                <button onclick="closeSwapDaysModal()" class="px-6 py-2.5 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors">
+                <button onclick="closeSwapDaysModal()"
+                    class="px-6 py-2.5 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors">
                     Done
                 </button>
             </div>
@@ -1770,7 +1879,8 @@
             easy: `<div class="w-5 h-5 bg-primary-easy icon-turtle" title="Easy Run"></div>`,
             fast: `<div class="w-5 h-5 bg-primary-speed icon-fast" title="Fast Run"></div>`,
             strength: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Strength"></div>`,
-            rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`
+            rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`,
+            walk: `<i class="fa-solid fa-person-walking text-emerald-400 text-lg" title="Walking Activity"></i>`
         };
 
         // ------------------ WORKOUT FILE PARSER ENGINE ------------------
@@ -2413,7 +2523,27 @@
             if (userProfileData) {
                 document.getElementById('intake-athlete-id').value = userId;
                 document.getElementById('intake-title').value = userProfileData.journeyTitle || "";
-                document.getElementById('intake-notes').value = userProfileData.userBaselineNotes || "";
+                const notesStr = userProfileData.userBaselineNotes || "";
+                document.getElementById('intake-general').value = "";
+                document.getElementById('intake-goals').value = "";
+                document.getElementById('intake-limitations').value = "";
+
+                if (notesStr) {
+                    const sections = notesStr.split(" | ");
+                    sections.forEach(sec => {
+                        if (sec.startsWith("General: ")) {
+                            document.getElementById('intake-general').value = sec.replace("General: ", "").trim();
+                        } else if (sec.startsWith("Goals: ")) {
+                            document.getElementById('intake-goals').value = sec.replace("Goals: ", "").trim();
+                        } else if (sec.startsWith("Limitations: ")) {
+                            document.getElementById('intake-limitations').value = sec.replace("Limitations: ", "").trim();
+                        } else {
+                            // fallback for old legacy string without labels
+                            const current = document.getElementById('intake-general').value;
+                            document.getElementById('intake-general').value = current ? current + " " + sec : sec;
+                        }
+                    });
+                }
 
                 if (userProfileData.birthYear) {
                     document.getElementById('intake-birthyear').value = userProfileData.birthYear;
@@ -2744,23 +2874,32 @@
         function selectFitness(level) {
             document.getElementById('intake-fitness-level').value = level;
 
-            document.getElementById('fit-beginner').classList.remove('border-green-500', 'bg-green-900/50');
+            document.getElementById('fit-brand_new').classList.remove('border-green-500', 'bg-green-900/50');
+            document.getElementById('fit-returning').classList.remove('border-teal-500', 'bg-teal-900/50');
             document.getElementById('fit-intermediate').classList.remove('border-blue-500', 'bg-blue-900/50');
             document.getElementById('fit-advanced').classList.remove('border-purple-500', 'bg-purple-900/50');
 
-            document.getElementById('fit-beginner').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('fit-brand_new').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('fit-returning').classList.add('border-slate-700', 'bg-slate-900');
             document.getElementById('fit-intermediate').classList.add('border-slate-700', 'bg-slate-900');
             document.getElementById('fit-advanced').classList.add('border-slate-700', 'bg-slate-900');
 
-            if (level === 'beginner') {
-                document.getElementById('fit-beginner').classList.remove('border-slate-700', 'bg-slate-900');
-                document.getElementById('fit-beginner').classList.add('border-green-500', 'bg-green-900/50');
+            if (level === 'brand_new') {
+                document.getElementById('fit-brand_new').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('fit-brand_new').classList.add('border-green-500', 'bg-green-900/50');
+                document.getElementById('training-focus-container').classList.add('hidden');
+            } else if (level === 'returning') {
+                document.getElementById('fit-returning').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('fit-returning').classList.add('border-teal-500', 'bg-teal-900/50');
+                document.getElementById('training-focus-container').classList.add('hidden');
             } else if (level === 'intermediate') {
                 document.getElementById('fit-intermediate').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('fit-intermediate').classList.add('border-blue-500', 'bg-blue-900/50');
+                document.getElementById('training-focus-container').classList.remove('hidden');
             } else if (level === 'advanced') {
                 document.getElementById('fit-advanced').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('fit-advanced').classList.add('border-purple-500', 'bg-purple-900/50');
+                document.getElementById('training-focus-container').classList.remove('hidden');
             }
         }
 
@@ -2769,28 +2908,40 @@
 
             document.getElementById('goal-health').classList.remove('border-emerald-500', 'bg-emerald-900/50');
             document.getElementById('goal-race').classList.remove('border-amber-500', 'bg-amber-900/50');
-            document.getElementById('goal-recovery').classList.remove('border-sky-500', 'bg-sky-900/50');
 
             document.getElementById('goal-health').classList.add('border-slate-700', 'bg-slate-900');
             document.getElementById('goal-race').classList.add('border-slate-700', 'bg-slate-900');
-            document.getElementById('goal-recovery').classList.add('border-slate-700', 'bg-slate-900');
 
             document.getElementById('dynamic-form-race').classList.add('hidden');
-            document.getElementById('dynamic-form-recovery').classList.add('hidden');
+            document.getElementById('dynamic-form-strength').classList.add('hidden');
+
+            const descBrandNew = document.getElementById('desc-brand_new');
+            const descReturning = document.getElementById('desc-returning');
+            const descIntermediate = document.getElementById('desc-intermediate');
+            const descAdvanced = document.getElementById('desc-advanced');
 
             if (goal === 'health') {
                 document.getElementById('goal-health').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('goal-health').classList.add('border-emerald-500', 'bg-emerald-900/50');
+
+                if (descBrandNew) descBrandNew.innerText = "Starting fresh. Focusing on building a consistent habit and learning the basics.";
+                if (descReturning) descReturning.innerText = "Returning to build consistency after time off.";
+                if (descIntermediate) descIntermediate.innerText = "Occasionally active. Looking to build strength and improve overall health.";
+                if (descAdvanced) descAdvanced.innerText = "Consistently active. Seeking a balanced, well-rounded fitness regimen.";
+
             } else if (goal === 'race') {
                 document.getElementById('goal-race').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('goal-race').classList.add('border-amber-500', 'bg-amber-900/50');
                 document.getElementById('dynamic-form-race').classList.remove('hidden');
-            } else if (goal === 'recovery') {
-                document.getElementById('goal-recovery').classList.remove('border-slate-700', 'bg-slate-900');
-                document.getElementById('goal-recovery').classList.add('border-sky-500', 'bg-sky-900/50');
-                document.getElementById('dynamic-form-recovery').classList.remove('hidden');
+                document.getElementById('dynamic-form-strength').classList.remove('hidden');
+
+                if (descBrandNew) descBrandNew.innerText = "Completely new to running. Needs to start with the fundamentals.";
+                if (descReturning) descReturning.innerText = "Returning / refresh after a long break.";
+                if (descIntermediate) descIntermediate.innerText = "Runs regularly, building endurance or speed.";
+                if (descAdvanced) descAdvanced.innerText = "High mileage, training for specific time goals.";
             }
         }
+
 
         async function getGoalPaces() {
             const fitness = document.getElementById('intake-fitness-level').value;
@@ -2798,7 +2949,15 @@
             const targetDate = document.getElementById('intake-date').value;
             const currentPace = document.getElementById('intake-current-pace').value;
             const daysAvailable = document.getElementById('intake-days-available').value;
-            const notes = document.getElementById('intake-notes').value;
+            const generalStr = document.getElementById('intake-general').value.trim();
+            const goalsStr = document.getElementById('intake-goals').value.trim();
+            const limStr = document.getElementById('intake-limitations').value.trim();
+
+            let combinedNotes = "";
+            if (generalStr) combinedNotes += `General: ${generalStr}\n`;
+            if (goalsStr) combinedNotes += `Goals: ${goalsStr}\n`;
+            if (limStr) combinedNotes += `Limitations: ${limStr}\n`;
+            const notes = combinedNotes.trim();
             const why = document.getElementById('intake-why').value;
 
             if (!fitness || !targetDate || !currentPace) {
@@ -2859,8 +3018,16 @@
         async function submitOnboardingForm() {
             const intakeAthleteId = document.getElementById('intake-athlete-id').value.trim();
             const title = document.getElementById('intake-title').value.trim();
-            const notes = document.getElementById('intake-notes').value.trim();
             const why = document.getElementById('intake-why').value.trim();
+            const generalStr = document.getElementById('intake-general').value.trim();
+            const goalsStr = document.getElementById('intake-goals').value.trim();
+            const limitationsStr = document.getElementById('intake-limitations').value.trim();
+
+            let notesParts = [];
+            if (generalStr) notesParts.push(`General: ${generalStr}`);
+            if (goalsStr) notesParts.push(`Goals: ${goalsStr}`);
+            if (limitationsStr) notesParts.push(`Limitations: ${limitationsStr}`);
+            const notes = notesParts.join(" | ");
 
             const birthYear = parseInt(document.getElementById('intake-birthyear').value);
             const currentYear = new Date().getFullYear();
@@ -2882,6 +3049,12 @@
 
             const equipmentCheckboxes = document.querySelectorAll('input[name="intake-hardware"]:checked');
             const equipmentList = Array.from(equipmentCheckboxes).map(cb => cb.value);
+
+            let trainingFocusRatio = "auto";
+            if (fitnessLevel !== 'brand_new' && fitnessLevel !== 'returning') {
+                const sliderVal = document.getElementById('intake-training-focus')?.value;
+                if (sliderVal) trainingFocusRatio = parseInt(sliderVal);
+            }
 
             if (!intakeAthleteId) {
                 alert("Please specify a unique Athlete ID.");
@@ -2915,11 +3088,6 @@
                     return;
                 }
                 activeAdjustedGoal = dynamicData.goalPace || dynamicData.currentPace || "10:00";
-            } else if (primaryGoal === 'recovery') {
-                dynamicData = {
-                    natureOfBreak: document.getElementById('intake-recovery-nature').value,
-                    currentPhase: document.getElementById('intake-recovery-phase').value
-                };
             }
 
             showAutopilotLoader();
@@ -2950,6 +3118,7 @@
                 fitnessLevel: fitnessLevel,
                 primaryGoal: primaryGoal,
                 dynamicGoalData: dynamicData,
+                trainingFocusRatio: trainingFocusRatio,
                 daysAvailable: daysAvailable,
                 targetWeight: targetWeight,
                 includeStrength: strength !== 'none',
@@ -3097,7 +3266,7 @@
                             count = 0;
                         }
                         const left = Math.max(0, 3 - count);
-                        regenBtn.innerHTML = `<i class="fa-solid fa-rotate-right"></i> Regenerate AI Block (${left} Left)`;
+                        regenBtn.innerHTML = `<i class="fa-solid fa-rotate-right"></i> Regenerate\n(${left} Left)`;
 
                         if (left === 0) {
                             regenBtn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -3799,9 +3968,38 @@
                                 guidesToSearch = getDefaultStrengthGuides();
                             }
 
+                            const findStrengthGuide = (guides, step, actRef) => {
+                                if (!guides || !step) return null;
+
+                                // Best match: Check for explicit ID match
+                                if (actRef) {
+                                    const exactMatch = guides.find(g => g.id && g.id.toLowerCase() === actRef.toLowerCase());
+                                    if (exactMatch) return exactMatch;
+                                }
+
+                                const ref = (actRef || "").toLowerCase();
+                                const title = (step.workoutTitle || "").toLowerCase();
+
+                                // Fallback: Check for A, B, C specifically (legacy data support)
+                                for (const letter of ['a', 'b', 'c']) {
+                                    if (ref.includes(`workout ${letter}`) || title.includes(`workout ${letter}`)) {
+                                        const guide = guides.find(g => (g.id && g.id.toLowerCase().includes(letter)) || (g.title && g.title.toLowerCase().includes(`workout ${letter}`)));
+                                        if (guide) return guide;
+                                    }
+                                }
+
+                                // Fallback: check if guide title includes ref
+                                let guide = guides.find(g => ref && g.title && g.title.toLowerCase().includes(ref));
+                                if (guide) return guide;
+
+                                // Fallback: check if ref includes guide title or title includes guide title
+                                guide = guides.find(g => g.title && ((ref && ref.includes(g.title.toLowerCase())) || (title && title.includes(g.title.toLowerCase()))));
+                                return guide;
+                            };
+
                             nextStep.activities.forEach(act => {
                                 if (act.type === 'work' && nextStep.strengthGuideReference) {
-                                    const guide = guidesToSearch.find(g => g.title.includes(nextStep.strengthGuideReference));
+                                    const guide = findStrengthGuide(guidesToSearch, nextStep, nextStep.strengthGuideReference);
                                     if (guide && guide.exercises && guide.exercises.length > 0) {
                                         guide.exercises.forEach(ex => {
                                             let sets = 1;
@@ -3881,7 +4079,7 @@
 
                                 let coachTipText = act.description || '';
                                 if (!act.isExpandedStrength && nextStep.strengthGuideReference) {
-                                    const guide = guidesToSearch.find(g => g.title.includes(nextStep.strengthGuideReference));
+                                    const guide = findStrengthGuide(guidesToSearch, nextStep, nextStep.strengthGuideReference);
                                     if (guide && guide.exercises) {
                                         const ex = guide.exercises.find(e => e.name.toLowerCase().includes(act.name.toLowerCase()) || act.name.toLowerCase().includes(e.name.toLowerCase()));
                                         if (ex && ex.description) coachTipText = ex.description;
@@ -5096,6 +5294,7 @@
         function getDefaultStrengthGuides() {
             return [
                 {
+                    id: "A",
                     title: "Hip Stability & Single-Leg Ground Force",
                     exercises: [
                         { name: "DB Reverse Lunges", setsReps: "3 Sets x 10/leg", description: "Load front heel dynamically. Builds specific push power." },
@@ -5105,6 +5304,7 @@
                     ]
                 },
                 {
+                    id: "B",
                     title: "Posterior Propulsion & Rotational Core",
                     exercises: [
                         { name: "DB Romanian Deadlifts", setsReps: "3 Sets x 12", description: "Keep spine neutral. Focuses heavily on hamstrings & glutes." },
@@ -5114,6 +5314,7 @@
                     ]
                 },
                 {
+                    id: "C",
                     title: "Stride Elasticity & Ankle/Foot Rigidity",
                     exercises: [
                         { name: "Single-Leg Calf Raises", setsReps: "3 Sets x 15", description: "Hold DB on active side. Toughens Achilles for high bounce." },
@@ -5128,11 +5329,11 @@
         function getPhase1DefaultWorkouts() {
             return [
                 { id: "act-1", phaseNumber: 1, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Highly relaxed base building. Keep your breathing perfectly controlled.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability and front heel lunge force from your strength library.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability and front heel lunge force from your strength library.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "A" },
                 { id: "act-3", phaseNumber: 1, sequenceOrder: 3, workoutTitle: "Easy Base Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Smooth and steady. Focus on keeping contact time on ground minimal.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
                 { id: "act-4", phaseNumber: 1, sequenceOrder: 4, workoutTitle: "Speed Session: 8 x 400m", type: "fast", distanceDuration: "30 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "8x400m intervals on Track (90s rest). Strive for a steady cadence of ~170 spm.", targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
                 { id: "act-5", phaseNumber: 1, sequenceOrder: 5, workoutTitle: "Active Recovery Rest Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Recommended rest to allow muscle fibers to adapt and rebuild.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
-                { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Stride elasticity and Achilles tendon rigidity. Use bands/calf raises.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Stride elasticity and Achilles tendon rigidity. Use bands/calf raises.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "C" },
                 { id: "act-7", phaseNumber: 1, sequenceOrder: 7, workoutTitle: "Threshold Tempo Run", type: "fast", distanceDuration: "2 Miles", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "2 Miles at threshold tempo. Comfortably hard effort.", targetPaceZone: "tempo", actualLoggedPace: null, rpeScore: null }
             ];
         }
@@ -5141,10 +5342,10 @@
             const cadHint = avgCadence ? `Focus on sustaining your speed cadence of ${avgCadence} spm.` : "Focus on flat footstrike and high cadence.";
             return [
                 { id: "act-1", phaseNumber: 2, sequenceOrder: 1, workoutTitle: "Easy Run + Strides", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Relaxed easy run. Add 4 x 100m light strides at the end.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-2", phaseNumber: 2, sequenceOrder: 2, workoutTitle: "Strength Workout B", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Posterior engine and hamstring loading. RDLs and clamshells.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-2", phaseNumber: 2, sequenceOrder: 2, workoutTitle: "Strength Workout B", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Posterior engine and hamstring loading. RDLs and clamshells.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "B" },
                 { id: "act-3", phaseNumber: 2, sequenceOrder: 3, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete rest. Stay hydrated and stretch.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
                 { id: "act-4", phaseNumber: 2, sequenceOrder: 4, workoutTitle: "Intervals: 5 x 1000m", type: "fast", distanceDuration: "40 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 repetitions at goal 5K speed with 2.5 min walking rests. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
-                { id: "act-5", phaseNumber: 2, sequenceOrder: 5, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability, single-leg reverse lunges, and plank sets.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-5", phaseNumber: 2, sequenceOrder: 5, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability, single-leg reverse lunges, and plank sets.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "A" },
                 { id: "act-6", phaseNumber: 2, sequenceOrder: 6, workoutTitle: "Long Aerobic Base Run", type: "easy", distanceDuration: "6 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Build cardiovascular volume. Keep the pace conversational.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null },
                 { id: "act-7", phaseNumber: 2, sequenceOrder: 7, workoutTitle: "Speed Capacity Check", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 x 1000m intervals on Track. Focus on flat footstrike and high cadence. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null }
             ];
@@ -5154,12 +5355,12 @@
             const cadHint = avgCadence ? `Focus on maintaining your stride rate of ${avgCadence} spm under fatigue.` : "Focus on flat footstrike and high cadence.";
             return [
                 { id: "act-1", phaseNumber: 3, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Slow restorative recovery jog. Keep effort very low.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-2", phaseNumber: 3, sequenceOrder: 2, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Heel tendon stiffness, calf raises, and mobility stretches.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+                { id: "act-2", phaseNumber: 3, sequenceOrder: 2, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Heel tendon stiffness, calf raises, and mobility stretches.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "C" },
                 { id: "act-3", phaseNumber: 3, sequenceOrder: 3, workoutTitle: "Speed Test: 3 x 1.5 Miles", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1.5 Miles at goal pace with 3 min walking recovery. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
                 { id: "act-4", phaseNumber: 3, sequenceOrder: 4, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete restorative rest. Rehydrate and foam roll.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
                 { id: "act-5", phaseNumber: 3, sequenceOrder: 5, workoutTitle: "Goal Benchmark: 3 x 1 Mile", type: "fast", distanceDuration: "35 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1 Mile at goal 5K pace with 3min rest. Sub-20 test day. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
-                { id: "act-6", phaseNumber: 3, sequenceOrder: 6, workoutTitle: "Easy Jog + Strides", type: "easy", distanceDuration: "2.5 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Light taper jog. Keep legs fresh and loose with 3 strides.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-7", phaseNumber: 3, sequenceOrder: 7, workoutTitle: "GOAL DAY: THANKSGIVING 5K", type: "fast", distanceDuration: "3.1 Miles", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "GOAL: BREAK 20 MINUTES (Pace: 6:25/mi or faster!) LFG!", targetPaceZone: "race", actualLoggedPace: null, rpeScore: null }
+                { id: "act-6", phaseNumber: 3, sequenceOrder: 6, workoutTitle: "Strength Workout B", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Deadlifts, single leg balances, and torso rotation resistance.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "B" },
+                { id: "act-7", phaseNumber: 3, sequenceOrder: 7, workoutTitle: "Long Run Simulation", type: "easy", distanceDuration: "7 Miles", isSpeedWorkout: false, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "Treat this as a race rehearsal. Dial in your nutrition.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null }
             ];
         }
 
@@ -5249,7 +5450,7 @@
         function openSwapDaysModal() {
             swapSelectedDay = null;
             renderSwapDaysList();
-            
+
             const modal = document.getElementById('swap-days-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -5297,7 +5498,7 @@
                 const dayWorkouts = groupedWorkouts[day];
                 const activityNames = dayWorkouts.map(w => w.workoutTitle).join(', ');
                 const isSelected = swapSelectedDay === day;
-                
+
                 // Container Styling
                 let containerClass = "p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between gap-4 ";
                 if (isSelected) {
@@ -5345,7 +5546,7 @@
                 // Execute Swap between swapSelectedDay and dayStr
                 const dayA = swapSelectedDay;
                 const dayB = dayStr;
-                
+
                 // Show loading state in modal
                 document.getElementById('swap-days-list').innerHTML = `
                     <div class="flex flex-col items-center justify-center py-8">
@@ -5358,28 +5559,28 @@
                     const batch = db.batch();
                     const userDocRef = db.collection("users").doc(userId);
                     const phaseRef = userDocRef.collection("active_phase");
-                    
+
                     // Identify items
                     const itemsA = activePhaseWorkouts.filter(w => w.sequenceOrder == dayA);
                     const itemsB = activePhaseWorkouts.filter(w => w.sequenceOrder == dayB);
-                    
+
                     // Temp assignment to avoid collisions not strictly necessary in memory/firestore batch, 
                     // but we just assign the new values
                     itemsA.forEach(item => {
                         item.sequenceOrder = Number(dayB); // Update local
                         batch.update(phaseRef.doc(item.id), { sequenceOrder: Number(dayB) });
                     });
-                    
+
                     itemsB.forEach(item => {
                         item.sequenceOrder = Number(dayA); // Update local
                         batch.update(phaseRef.doc(item.id), { sequenceOrder: Number(dayA) });
                     });
-                    
+
                     await batch.commit();
-                    
+
                     // Re-render JIT list
                     buildActivePhaseHTML();
-                    
+
                     // Close modal
                     closeSwapDaysModal();
                 } catch (err) {

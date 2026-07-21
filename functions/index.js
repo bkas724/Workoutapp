@@ -162,6 +162,7 @@ User Profile:
 - Primary Goal: ${profile?.primaryGoal || 'Unknown'}
 - Days Available to Train: ${profile?.daysAvailable || 4}
 - Include Strength Training: ${profile?.includeStrength ? 'Yes' : 'No'}
+- Training Focus (Strength vs Cardio): ${profile?.trainingFocusRatio === 'auto' ? 'Determine optimal ratio based on BMI, weight, and fitness level. (e.g., heavier beginners should focus on walking before loading joints with strength).' : profile?.trainingFocusRatio + '/100 (0=Heavy Strength, 100=Heavy Cardio)'}
 - Available Equipment: ${equipmentString}
 - Deep Motivation (Why?): ${profile?.why || 'N/A'}
 - Additional Notes: ${profile?.notes || 'None'}
@@ -178,7 +179,8 @@ The user is entering Macrocycle Phase ${phaseIndex || 1}.
 If strength training is Yes, include at least 1-2 "strength" workouts.
 You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same 'sequenceOrder' (1 through 7) so that their rest days are truly restorative. IMPORTANT: When stacking, you MUST create two completely separate workout objects in the JSON array (one for the run, one for the strength) with the same sequenceOrder. DO NOT combine a run and a strength routine into a single workout title or object.
 For strength workouts, also generate 1 to 3 specific Strength Guides for the week.
-Set the 'strengthGuideReference' of the strength workout to match the guide you generated (e.g., "A", "B", or "C" corresponding to the 1st, 2nd, or 3rd guide).
+Assign a unique 'id' to each generated strength guide (e.g., "A", "B", "C").
+Set the 'strengthGuideReference' of the strength workout to match the EXACT 'id' of the guide you generated.
 
 2. Attach a 'jitPreparationTip' to EVERY workout object (including rest days). This tip should instruct the user on what to do *the day before* or *the hours leading up to* this specific workout to prepare/fuel/recover.
 
@@ -195,15 +197,15 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "phaseNumber": ${phaseIndex || 1},
       "sequenceOrder": 1,
       "workoutTitle": "String",
-      "type": "String (easy, strength, rest, fast)",
+      "type": "String (walk, easy, strength, rest, fast)",
       "isSpeedWorkout": Boolean,
       "isBenchmark": Boolean,
       "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
       "targetDuration": "Number (Target duration in minutes, if applicable, e.g., 45 or 60)",
       "targetInstructions": "String (Keep under 100 characters)",
-      "targetPaceZone": "String (easy, goal, tempo, long, or null)",
+      "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: easy, goal, tempo, long, or null)",
       "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
-      "strengthGuideReference": "String ('A', 'B', or 'C' if strength workout, else null)",
+      "strengthGuideReference": "String (The exact 'id' of the strength guide, e.g., 'A', else null)",
       "activities": [
         {
           "name": "String (e.g., Warmup, Interval, Squats)",
@@ -218,6 +220,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
   ],
   "strengthGuides": [
     {
+      "id": "String (e.g., 'A', 'B', 'C')",
       "title": "String (e.g. Hip Stability)",
       "exercises": [
         {
@@ -292,10 +295,12 @@ exports.generateMacrocyclePlan = onCall({
             const diffMonths = Math.round(diffDays / 30.44);
             timelineInstruction = `a STRICT ${diffWeeks}-week (${diffMonths}-month) timeline until their race`;
         }
+    } else if (profile?.primaryGoal === 'health') {
+        timelineInstruction = "a STRICT 12-week foundational timeline consisting of exactly three 4-week macrocycles";
     }
 
     const ai = new GoogleGenerativeAI(geminiApiKey.value());
-    const prompt = `You are an elite running coach AI.
+    const prompt = `You are an elite training coach AI.
 The user provides their details:
 - Age: ${profile?.age || 'Unknown'}, Weight: ${profile?.weight || 'Unknown'} lbs, Sex: ${profile?.sex || 'Unknown'}
 - Fitness Level: ${profile?.fitnessLevel || 'Unknown'}
@@ -308,7 +313,12 @@ ${profile?.primaryGoal === 'recovery' ? `- Nature of Break: ${profile?.dynamicGo
 
 Based on their goal, fitness level, and ${timelineInstruction}, design a high-level Macrocycle training plan.
 CRITICAL: The overarching theme and all descriptions MUST explicitly reflect the exact ${timelineInstruction} span. DO NOT generate a plan that spans longer or shorter than this explicit timeline.
-Generate an overarching theme for the entire training block, and an array of 3 to 5 training phases.
+Generate an overarching theme for the entire training block, and an array of training phases.
+
+Additionally, generate two arrays for the user to guide their mindset and behavior:
+1. "processGoals": Array of 2-3 behavioral, process-oriented daily/weekly targets tailored to their weight, available days, and equipment. For beginners getting healthy, this is their north star. (e.g. "Complete 3 intentional movement sessions every week", "Hit 7000 steps on off days", "Keep calories under 2400 to support safe weight loss").
+2. "letsBeReal": Array of up to 5 blunt, no-nonsense rules for success. CRITICAL INSTRUCTION: You MUST align these with the Just-In-Time (JIT) mentality and the core philosophy: "You can suck, but you can't skip." Meaning, encourage them to modify or shorten a workout if they are busy/tired, but doing zero is unacceptable. The language should be encouraging but firm and real.
+
 Return ONLY a valid JSON object exactly matching this structure without any markdown wrappers or text:
 {
   "overarchingTheme": "String (e.g. 'From Couch to 5K - A Journey of Consistency')",
@@ -320,7 +330,9 @@ Return ONLY a valid JSON object exactly matching this structure without any mark
       "detailedDescription": "String (Full details, can be about a paragraph in length, detailing the physiological intent of the phase)",
       "expectedDurationWeeks": 4
     }
-  ]
+  ],
+  "processGoals": ["String"],
+  "letsBeReal": ["String"]
 }`;
 
     try {

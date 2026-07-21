@@ -138,7 +138,8 @@
             easy: `<div class="w-5 h-5 bg-primary-easy icon-turtle" title="Easy Run"></div>`,
             fast: `<div class="w-5 h-5 bg-primary-speed icon-fast" title="Fast Run"></div>`,
             strength: `<div class="w-5 h-5 bg-primary-strength icon-shield" title="Strength"></div>`,
-            rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`
+            rest: `<svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`,
+            walk: `<i class="fa-solid fa-person-walking text-emerald-400 text-lg" title="Walking Activity"></i>`
         };
 
         // ------------------ WORKOUT FILE PARSER ENGINE ------------------
@@ -662,6 +663,45 @@
                     const coachCommentsEl = document.getElementById('drawer-coach-comments');
                     if (coachCommentsEl) coachCommentsEl.innerText = data.journeyComments || "-";
 
+                    // Process Goals UI (Health track)
+                    const pgContainer = document.getElementById('process-goals-container');
+                    const pgList = document.getElementById('process-goals-list');
+                    const lbrList = document.getElementById('lets-be-real-list');
+                    
+                    if (data.primaryGoal === 'health' && data.processGoals && data.processGoals.length > 0) {
+                        if (pgContainer) pgContainer.classList.remove('hidden');
+                        if (pgList) {
+                            pgList.innerHTML = data.processGoals.map(g => `<li>${g}</li>`).join('');
+                        }
+                    } else {
+                        if (pgContainer) pgContainer.classList.add('hidden');
+                    }
+                    
+                    if (lbrList && data.letsBeReal && data.letsBeReal.length > 0) {
+                        lbrList.innerHTML = data.letsBeReal.map(rule => `
+                            <li class="flex items-start gap-3 bg-slate-950/50 p-3 rounded-xl border border-slate-700/50">
+                                <div class="mt-1 text-emerald-400">
+                                    <i class="fa-solid fa-check-double text-xs"></i>
+                                </div>
+                                <span class="text-sm text-slate-300 leading-snug">${rule}</span>
+                            </li>
+                        `).join('');
+                        
+                        // Weekly auto-popup logic
+                        if (data.primaryGoal === 'health') {
+                            const now = new Date();
+                            const lastPopup = data.lastLetsBeRealPopup ? new Date(data.lastLetsBeRealPopup) : null;
+                            const msInWeek = 7 * 24 * 60 * 60 * 1000;
+                            
+                            if (!lastPopup || (now - lastPopup) >= msInWeek) {
+                                setTimeout(() => {
+                                    openLetsBeRealModal();
+                                    userDocRef.update({ lastLetsBeRealPopup: now.toISOString() }).catch(console.error);
+                                }, 1500); // slight delay after dashboard load
+                            }
+                        }
+                    }
+
                     const isSimpleChecked = document.getElementById('simple-mode-toggle') && document.getElementById('simple-mode-toggle').checked;
                     let guidesToRender = (isSimpleChecked && data.simpleStrengthGuides) ? data.simpleStrengthGuides : data.currentStrengthGuides;
 
@@ -1120,23 +1160,32 @@
         function selectFitness(level) {
             document.getElementById('intake-fitness-level').value = level;
 
-            document.getElementById('fit-beginner').classList.remove('border-green-500', 'bg-green-900/50');
+            document.getElementById('fit-brand_new').classList.remove('border-green-500', 'bg-green-900/50');
+            document.getElementById('fit-returning').classList.remove('border-teal-500', 'bg-teal-900/50');
             document.getElementById('fit-intermediate').classList.remove('border-blue-500', 'bg-blue-900/50');
             document.getElementById('fit-advanced').classList.remove('border-purple-500', 'bg-purple-900/50');
 
-            document.getElementById('fit-beginner').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('fit-brand_new').classList.add('border-slate-700', 'bg-slate-900');
+            document.getElementById('fit-returning').classList.add('border-slate-700', 'bg-slate-900');
             document.getElementById('fit-intermediate').classList.add('border-slate-700', 'bg-slate-900');
             document.getElementById('fit-advanced').classList.add('border-slate-700', 'bg-slate-900');
 
-            if (level === 'beginner') {
-                document.getElementById('fit-beginner').classList.remove('border-slate-700', 'bg-slate-900');
-                document.getElementById('fit-beginner').classList.add('border-green-500', 'bg-green-900/50');
+            if (level === 'brand_new') {
+                document.getElementById('fit-brand_new').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('fit-brand_new').classList.add('border-green-500', 'bg-green-900/50');
+                document.getElementById('training-focus-container').classList.add('hidden');
+            } else if (level === 'returning') {
+                document.getElementById('fit-returning').classList.remove('border-slate-700', 'bg-slate-900');
+                document.getElementById('fit-returning').classList.add('border-teal-500', 'bg-teal-900/50');
+                document.getElementById('training-focus-container').classList.add('hidden');
             } else if (level === 'intermediate') {
                 document.getElementById('fit-intermediate').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('fit-intermediate').classList.add('border-blue-500', 'bg-blue-900/50');
+                document.getElementById('training-focus-container').classList.remove('hidden');
             } else if (level === 'advanced') {
                 document.getElementById('fit-advanced').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('fit-advanced').classList.add('border-purple-500', 'bg-purple-900/50');
+                document.getElementById('training-focus-container').classList.remove('hidden');
             }
         }
 
@@ -1145,28 +1194,48 @@
 
             document.getElementById('goal-health').classList.remove('border-emerald-500', 'bg-emerald-900/50');
             document.getElementById('goal-race').classList.remove('border-amber-500', 'bg-amber-900/50');
-            document.getElementById('goal-recovery').classList.remove('border-sky-500', 'bg-sky-900/50');
 
             document.getElementById('goal-health').classList.add('border-slate-700', 'bg-slate-900');
             document.getElementById('goal-race').classList.add('border-slate-700', 'bg-slate-900');
-            document.getElementById('goal-recovery').classList.add('border-slate-700', 'bg-slate-900');
 
             document.getElementById('dynamic-form-race').classList.add('hidden');
-            document.getElementById('dynamic-form-recovery').classList.add('hidden');
+
+            const descBrandNew = document.getElementById('desc-brand_new');
+            const descReturning = document.getElementById('desc-returning');
+            const descIntermediate = document.getElementById('desc-intermediate');
+            const descAdvanced = document.getElementById('desc-advanced');
 
             if (goal === 'health') {
                 document.getElementById('goal-health').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('goal-health').classList.add('border-emerald-500', 'bg-emerald-900/50');
+                
+                if (descBrandNew) descBrandNew.innerText = "Starting fresh. Focusing on building a consistent habit and learning the basics.";
+                if (descReturning) descReturning.innerText = "Returning to build consistency after time off.";
+                if (descIntermediate) descIntermediate.innerText = "Occasionally active. Looking to build strength and improve overall health.";
+                if (descAdvanced) descAdvanced.innerText = "Consistently active. Seeking a balanced, well-rounded fitness regimen.";
+
             } else if (goal === 'race') {
                 document.getElementById('goal-race').classList.remove('border-slate-700', 'bg-slate-900');
                 document.getElementById('goal-race').classList.add('border-amber-500', 'bg-amber-900/50');
                 document.getElementById('dynamic-form-race').classList.remove('hidden');
-            } else if (goal === 'recovery') {
-                document.getElementById('goal-recovery').classList.remove('border-slate-700', 'bg-slate-900');
-                document.getElementById('goal-recovery').classList.add('border-sky-500', 'bg-sky-900/50');
-                document.getElementById('dynamic-form-recovery').classList.remove('hidden');
+                
+                if (descBrandNew) descBrandNew.innerText = "Completely new to running. Needs to start with the fundamentals.";
+                if (descReturning) descReturning.innerText = "Returning / refresh after a long break.";
+                if (descIntermediate) descIntermediate.innerText = "Runs regularly, building endurance or speed.";
+                if (descAdvanced) descAdvanced.innerText = "High mileage, training for specific time goals.";
             }
         }
+
+        // Setup training focus slider listener
+        document.getElementById('intake-training-focus')?.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            const label = document.getElementById('training-focus-label');
+            if (val < 20) label.innerText = `Heavy Strength Focus (${val}/100)`;
+            else if (val < 40) label.innerText = `Strength Bias (${val}/100)`;
+            else if (val < 60) label.innerText = `Balanced (${val}/100)`;
+            else if (val < 80) label.innerText = `Cardio Bias (${val}/100)`;
+            else label.innerText = `Heavy Cardio Focus (${val}/100)`;
+        });
 
         async function getGoalPaces() {
             const fitness = document.getElementById('intake-fitness-level').value;
@@ -1255,6 +1324,12 @@
             const equipmentCheckboxes = document.querySelectorAll('input[name="intake-hardware"]:checked');
             const equipmentList = Array.from(equipmentCheckboxes).map(cb => cb.value);
 
+            let trainingFocusRatio = "auto";
+            if (fitnessLevel !== 'brand_new' && fitnessLevel !== 'returning') {
+                const sliderVal = document.getElementById('intake-training-focus').value;
+                trainingFocusRatio = parseInt(sliderVal);
+            }
+
             if (!intakeAthleteId) {
                 alert("Please specify a unique Athlete ID.");
                 return;
@@ -1287,11 +1362,6 @@
                     return;
                 }
                 activeAdjustedGoal = dynamicData.goalPace || dynamicData.currentPace || "10:00";
-            } else if (primaryGoal === 'recovery') {
-                dynamicData = {
-                    natureOfBreak: document.getElementById('intake-recovery-nature').value,
-                    currentPhase: document.getElementById('intake-recovery-phase').value
-                };
             }
 
             showAutopilotLoader();
@@ -1322,6 +1392,7 @@
                 fitnessLevel: fitnessLevel,
                 primaryGoal: primaryGoal,
                 dynamicGoalData: dynamicData,
+                trainingFocusRatio: trainingFocusRatio,
                 daysAvailable: daysAvailable,
                 targetWeight: targetWeight,
                 includeStrength: strength !== 'none',
@@ -1356,6 +1427,8 @@
                 if (planResult.data && planResult.data.macrocyclePlan) {
                     profilePayload.macrocyclePlan = planResult.data.macrocyclePlan;
                     profilePayload.overarchingTheme = planResult.data.overarchingTheme || "Your Training Journey";
+                    profilePayload.processGoals = planResult.data.processGoals || [];
+                    profilePayload.letsBeReal = planResult.data.letsBeReal || [];
                 } else {
                     throw new Error("Invalid format");
                 }
@@ -2586,6 +2659,20 @@
 
         function closeEmergencyModal() {
             document.getElementById('emergency-adapt-modal').classList.add('hidden');
+        }
+
+        function openLetsBeRealModal() {
+            const modal = document.getElementById('lets-be-real-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function closeLetsBeRealModal() {
+            const modal = document.getElementById('lets-be-real-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
         }
 
         async function submitEmergencyAdaptation() {
@@ -3947,6 +4034,7 @@
                 const maxHealthy = Math.round((24.9 * totalInches * totalInches) / 703);
                 textRange.innerText = `Healthy weight range for your height: ${minHealthy} - ${maxHealthy} lbs`;
             }
+            window.updateBMIVisual = updateBMIVisual;
 
             window.enforceMinimumWeight = function (el) {
                 const ft = parseInt(document.getElementById('intake-height-ft')?.value) || (typeof userProfileData !== 'undefined' && userProfileData?.heightInches ? Math.floor(userProfileData.heightInches / 12) : 0);
