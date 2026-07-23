@@ -48,8 +48,12 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
         try {
             pacesData = JSON.parse(responseText);
         } catch (e) {
-            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            pacesData = JSON.parse(cleaned);
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                pacesData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
         }
         
         return pacesData;
@@ -125,8 +129,12 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
         try {
             parsedData = JSON.parse(responseText);
         } catch (e) {
-            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            parsedData = JSON.parse(cleaned);
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                parsedData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
         }
         
         return parsedData;
@@ -178,10 +186,8 @@ The user is entering Macrocycle Phase ${phaseIndex || 1}.
 
 1. Generate a 7-day workout block that precisely fits their Days Available to Train (use "rest" type for the remaining days).
 If strength training is Yes, include at least 1-2 "strength" workouts.
-You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same 'sequenceOrder' (1 through 7) so that their rest days are truly restorative. IMPORTANT: When stacking, you MUST create two completely separate workout objects in the JSON array (one for the run, one for the strength) with the same sequenceOrder. DO NOT combine a run and a strength routine into a single workout title or object.
-For strength workouts, also generate 1 to 3 specific Strength Guides for the week.
-Assign a unique 'id' to each generated strength guide (e.g., "A", "B", "C").
-Set the 'strengthGuideReference' of the strength workout to match the EXACT 'id' of the guide you generated.
+For main strength workouts, ALWAYS link them to a Strength Guide by generating 1 to 3 specific Strength Guides for the week (assigned unique IDs like "A", "B", "C"), setting 'strengthGuideReference' to that exact ID, and setting 'activities' to a single placeholder item (e.g. [{ "name": "Strength Circuit A", "type": "work" }]). Do NOT list custom strength exercises inline inside 'activities' for main strength workouts. Inline activities in 'activities' should only be used for warmups ("prep") or cooldowns ("cool").
+You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same 'sequenceOrder' (1 through 7) so that their rest days are truly restorative. IMPORTANT: When stacking, you MUST create two completely separate workout objects in the JSON array (one for the run, one for the strength) with the same sequenceOrder. DO NOT combine a run and a strength routine into a single workout title or object. CRITICAL: NEVER generate duplicate workouts on the same day (e.g. do not schedule two runs or two identical strength workouts on the same day). Only stack if it is a run and a strength workout. Limit stacking to a maximum of 2 activities per day.
 
 2. Attach a 'jitPreparationTip' to EVERY workout object (including rest days). This tip should instruct the user on what to do *the day before* or *the hours leading up to* this specific workout to prepare/fuel/recover.
 
@@ -190,6 +196,7 @@ Set the 'strengthGuideReference' of the strength workout to match the EXACT 'id'
 5. CRITICAL: For any "work" activities (especially Strength Circuits or Intervals), ensure the "sets" property is explicitly defined as a Number. Determine the optimal number of sets (whether 1 set for active recovery/beginners, or 3-5 sets for advanced/hypertrophy) based carefully on the user's fitness level, goals, and history. Be intentional and consistent with this prescription.
 6. If a work activity is a circuit (e.g. Strength Circuit A), explicitly set "isCircuit" to true and specify the number of rounds in "circuitRounds". For non-circuit activities, set them to false and 0.
 7. Time Constraints: The user has a daily time limit of ${profile?.desiredWorkoutLength || 'Unlimited'} minutes. A workout can be significantly shorter if it needs to be, but it should not be excessively longer (keep within ~10% of their limit max). If a single workout (like a long run) significantly exceeds this limit, attempt to break the volume up across multiple days (e.g., breaking a 6-mile run into a 2-mile and 4-mile split on consecutive days) to keep the daily time within ~10% of their available time. However, if you believe a single long continuous session is absolutely necessary to reach the optimal performance for their goal, you may keep the longer workout but explicitly mention this in the 'jitPreparationTip' or 'targetInstructions'.
+8. CRITICAL 'type' Validation: The 'type' field of a workout MUST be exactly one of these strings: "run", "walk", "bike", "swim", "easy", "fast", "long", "tempo", "interval", "recovery", "base", "aerobic", "strength", "rest". Do not invent new types.
 
 Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
 {
@@ -199,7 +206,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "phaseNumber": ${phaseIndex || 1},
       "sequenceOrder": 1,
       "workoutTitle": "String",
-      "type": "String (walk, easy, strength, rest, fast)",
+      "type": "String (MUST be exactly one of the validated types above)",
       "isSpeedWorkout": Boolean,
       "isBenchmark": Boolean,
       "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
@@ -207,7 +214,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "targetInstructions": "String (Keep under 100 characters)",
       "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: easy, goal, tempo, long, or null)",
       "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
-      "strengthGuideReference": "String (The exact 'id' of the strength guide, e.g., 'A', else null)",
+      "strengthGuideReference": "String (The exact 'id' of the strength guide e.g. 'A' ONLY IF exercises are in strengthGuides. If exercises are listed inline in activities, set strengthGuideReference to null)",
       "activities": [
         {
           "name": "String (e.g., Warmup, Interval, Squats)",
@@ -253,8 +260,12 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
         try {
             parsedData = JSON.parse(responseText);
         } catch (e) {
-            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            parsedData = JSON.parse(cleaned);
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                parsedData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
         }
         
         let workouts = parsedData.workouts || parsedData;
@@ -346,8 +357,12 @@ Return ONLY a valid JSON object exactly matching this structure without any mark
         try {
             planData = JSON.parse(responseText);
         } catch (e) {
-            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            planData = JSON.parse(cleaned);
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                planData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
         }
         
         return planData;
@@ -402,8 +417,12 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
         try {
             parsedData = JSON.parse(responseText);
         } catch (e) {
-            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            parsedData = JSON.parse(cleaned);
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                parsedData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
         }
         
         return parsedData;
@@ -455,8 +474,12 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
         try {
             planData = JSON.parse(responseText);
         } catch (e) {
-            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            planData = JSON.parse(cleaned);
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                planData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
         }
         
         return planData;
@@ -520,8 +543,12 @@ CRITICAL: Do not include any text outside of the JSON object. Do not wrap in mar
         try {
             workoutData = JSON.parse(responseText);
         } catch (e) {
-            const cleaned = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            workoutData = JSON.parse(cleaned);
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                workoutData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
         }
         
         return workoutData;
