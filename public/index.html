@@ -4267,7 +4267,12 @@
                                                     if (nextStep.targetDistance) parts.push(`${nextStep.targetDistance} mi`);
                                                     else if (getDisplayDuration(nextStep) && getDisplayDuration(nextStep).includes('Mile')) parts.push(getDisplayDuration(nextStep));
                                                     
-                                                    if (nextStep.targetPaceZone) parts.push(`Pace: ${nextStep.targetPaceZone}`);
+                                                    if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
+                                                        parts.push(`Target: ${defaultMin}:${defaultSec} /mi`);
+                                                    } else if (nextStep.targetPaceZone) {
+                                                        parts.push(`Pace: ${nextStep.targetPaceZone}`);
+                                                    }
+
                                                     if (nextStep.targetDuration) parts.push(`${nextStep.targetDuration} mins`);
                                                     else if (getDisplayDuration(nextStep) && !parts.some(p => p.includes('mi') || p.includes('Mile'))) parts.push(getDisplayDuration(nextStep));
 
