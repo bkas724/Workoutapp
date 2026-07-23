@@ -96,6 +96,7 @@
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-storage-compat.js"></script>
 
     <script>
         function switchTab(tabId) {
@@ -349,6 +350,29 @@
                 </div>
             </div>
         </header>
+
+        <!-- Turkey Trot Challenge Banner -->
+        <div class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-amber-900/60 to-yellow-600/40 border border-yellow-500/50 rounded-2xl p-4 shadow-xl cursor-pointer hover:border-yellow-400 transition-all duration-300"
+            onclick="switchTab('turkey-trot')">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none">
+            </div>
+            <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 w-full">
+                    <div class="p-3 bg-yellow-500/20 text-yellow-400 rounded-xl border border-yellow-500/30">
+                        <i class="fa-solid fa-trophy text-2xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-extrabold text-white text-lg drop-shadow-md">Turkey Trot Challenge</h3>
+                        <p class="text-xs text-yellow-200 font-bold tracking-wider">$500 Prize Pool on the line!</p>
+                    </div>
+                    <div class="bg-yellow-500/20 px-3 py-1.5 rounded-lg border border-yellow-500/30 md:block hidden">
+                        <span
+                            class="text-xs font-bold text-yellow-300 uppercase tracking-widest flex items-center gap-1">View
+                            <i class="fa-solid fa-arrow-right"></i></span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div id="next-activity-focus"
             class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/40 rounded-2xl p-4 md:p-6 shadow-xl transition-all duration-500">
@@ -677,6 +701,285 @@
             </div>
         </div>
 
+        <!-- TURKEY TROT CHALLENGE TAB -->
+        <section id="turkey-trot-card"
+            class="tab-content tab-turkey-trot hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden transition-all duration-500">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none">
+            </div>
+
+            <div
+                class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-800/60 pb-6">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="p-3 bg-yellow-500/20 text-yellow-400 rounded-2xl border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+                        <i class="fa-solid fa-trophy text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2
+                            class="font-extrabold text-2xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-amber-500">
+                            Gap to Perfection</h2>
+                        <p class="text-xs text-yellow-500/80 font-bold uppercase tracking-widest mt-1">Turkey Trot 5K
+                            Challenge</p>
+                    </div>
+                </div>
+                <!-- Countdown Banner -->
+                <div id="tt-countdown-banner" class="bg-indigo-900/40 border border-indigo-500/40 rounded-xl px-4 py-2 text-center shadow-[0_0_15px_rgba(99,102,241,0.15)] hidden">
+                    <p class="text-sm font-bold text-indigo-200 uppercase tracking-widest m-0 flex items-center justify-center">
+                        <i class="fa-solid fa-stopwatch mr-2 text-indigo-400 animate-pulse"></i>
+                        <span id="tt-countdown-text">...</span>
+                    </p>
+                </div>
+
+                <div class="text-center sm:text-right">
+                    <div
+                        class="inline-block bg-gradient-to-br from-amber-600/20 to-yellow-600/20 border border-yellow-500/40 rounded-xl px-4 py-2 shadow-[0_0_20px_rgba(234,179,8,0.15)]">
+                        <p class="text-[10px] text-yellow-300/80 font-bold uppercase tracking-wider mb-0.5">Prize Pool
+                        </p>
+                        <p class="text-2xl font-black text-yellow-400 drop-shadow-md">$500</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Scale & Turkey Trophy Leaderboard -->
+            <div class="w-full mb-8 pt-4 pb-4" id="turkey-trot-leaderboard">
+                <!-- Vertical Bar Chart Area -->
+                <div class="bg-slate-950 border border-slate-800 rounded-3xl p-4 md:p-6 relative mt-4">
+                    <!-- Turkey Trophy at the top -->
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-20">
+                        <div
+                            class="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                            Perfection (12:35)
+                        </div>
+                    </div>
+                    <!-- Scale Background Lines -->
+                    <div
+                        class="absolute inset-x-0 top-12 bottom-12 flex flex-col justify-between pointer-events-none opacity-30 px-4">
+                        <div class="border-t border-dashed border-slate-500 w-full relative"><span
+                                class="absolute -top-3 right-0 text-[10px] font-bold text-slate-400"
+                                id="tt-scale-max">25%</span></div>
+                        <div class="border-t border-dashed border-slate-500 w-full relative"><span
+                                class="absolute -top-3 right-0 text-[10px] font-bold text-slate-400"
+                                id="tt-scale-mid">12.5%</span></div>
+                        <div class="border-t border-solid border-slate-500 w-full relative"><span
+                                class="absolute -top-3 right-0 text-[10px] font-bold text-slate-400">0%</span></div>
+                    </div>
+
+                    <!-- Bars Container -->
+                    <div class="relative h-72 md:h-80 flex justify-around items-end pt-12 pb-12 z-10">
+
+                        <!-- User 1: bkas724 -->
+                        <div class="flex flex-col items-center justify-end h-full w-1/3 relative group">
+                            <!-- Projected Stats Hover Card -->
+                            <div
+                                class="absolute -top-16 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 border border-emerald-500/30 p-2 rounded-lg text-center shadow-xl pointer-events-none z-30 w-max whitespace-nowrap">
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Estimated Finish</p>
+                                <p class="text-xs font-black text-emerald-400" id="tt-proj-bkas">--:--</p>
+                            </div>
+
+                            <!-- Bar -->
+                            <div class="relative w-full max-w-[90px] bg-gradient-to-t from-emerald-500/5 to-emerald-500/30 rounded-t-2xl border-t-4 border-emerald-500 flex flex-col items-center justify-start transition-all duration-1000 min-h-[4rem]"
+                                id="tt-bar-bkas" style="height: 0%;">
+                                <!-- Headshot -->
+                                <div
+                                    class="absolute -top-6 w-12 h-12 md:w-14 md:h-14 rounded-full border-4 border-slate-950 overflow-hidden shadow-lg bg-emerald-900">
+                                    <img src="Images/bryanheadshot.png" alt="Bryan" class="w-full h-full object-cover">
+                                </div>
+                                <!-- Text Below Headshot inside bar -->
+                                <div class="mt-8 md:mt-10 text-center px-1">
+                                    <h3 class="text-xs font-black text-white truncate w-full">Bryan</h3>
+                                    <p class="text-base md:text-xl font-black text-emerald-400 drop-shadow-md"
+                                        id="tt-score-bkas">0.0%</p>
+                                    <p class="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5">Base:
+                                        <span id="tt-base-bkas">--</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Leader Advantage Label -->
+                        <div
+                            class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-slate-900/90 backdrop-blur border border-slate-700 px-3 py-1.5 rounded-full shadow-xl z-20">
+                            <p class="text-[9px] font-black text-white uppercase tracking-wider" id="tt-leader-diff">
+                                Tied</p>
+                        </div>
+
+                        <!-- User 2: acap1600 -->
+                        <div class="flex flex-col items-center justify-end h-full w-1/3 relative group">
+                            <!-- Projected Stats Hover Card -->
+                            <div
+                                class="absolute -top-16 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 border border-indigo-500/30 p-2 rounded-lg text-center shadow-xl pointer-events-none z-30 w-max whitespace-nowrap">
+                                <p class="text-[9px] text-slate-400 uppercase font-bold">Estimated Finish</p>
+                                <p class="text-xs font-black text-indigo-400" id="tt-proj-acap">--:--</p>
+                            </div>
+
+                            <!-- Bar -->
+                            <div class="relative w-full max-w-[90px] bg-gradient-to-t from-indigo-500/5 to-indigo-500/30 rounded-t-2xl border-t-4 border-indigo-500 flex flex-col items-center justify-start transition-all duration-1000 min-h-[4rem]"
+                                id="tt-bar-acap" style="height: 0%;">
+                                <!-- Headshot -->
+                                <div
+                                    class="absolute -top-6 w-12 h-12 md:w-14 md:h-14 rounded-full border-4 border-slate-950 overflow-hidden shadow-lg bg-indigo-900">
+                                    <img src="Images/anthonyheadshot.png" alt="Anthony"
+                                        class="w-full h-full object-cover">
+                                </div>
+                                <!-- Text Below Headshot inside bar -->
+                                <div class="mt-8 md:mt-10 text-center px-1">
+                                    <h3 class="text-xs font-black text-white truncate w-full">Anthony</h3>
+                                    <p class="text-base md:text-xl font-black text-indigo-400 drop-shadow-md"
+                                        id="tt-score-acap">0.0%</p>
+                                    <p class="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5">Base:
+                                        <span id="tt-base-acap">--</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <p class="text-center text-[10px] text-slate-500 font-bold mt-2 uppercase tracking-widest"><i
+                            class="fa-solid fa-hand-pointer mr-1"></i> Tap bars for estimated finish</p>
+                </div>
+            </div>
+
+            <!-- Weekly Submission Area -->
+            <div id="tt-submission-container" class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 md:p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-slate-200 uppercase tracking-widest"><i
+                            class="fa-solid fa-calendar-week mr-2 text-indigo-400"></i><span id="tt-submission-title">Loading...</span></h3>
+                    <span id="tt-week-status"
+                        class="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-bold uppercase tracking-wider">Loading...</span>
+                </div>
+
+                <div id="tt-submit-area" class="space-y-4">
+                    <p id="tt-seeding-msg"
+                        class="text-xs text-amber-400 font-bold hidden bg-amber-500/10 border border-amber-500/20 p-2 rounded-lg">
+                        <i class="fa-solid fa-circle-info mr-1"></i> Enter your seeding workout as close to July 25th
+                        2026 as possible!
+                    </p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date</label>
+                            <input type="date" id="tt-input-date"
+                                class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Distance
+                                (mi)</label>
+                            <input type="number" step="0.01" id="tt-input-dist" placeholder="e.g. 3.5"
+                                class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Time
+                                (MM:SS)</label>
+                            <input type="text" id="tt-input-time" placeholder="e.g. 30:00"
+                                class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg HR
+                                (bpm)</label>
+                            <input type="number" id="tt-input-hr" placeholder="e.g. 150"
+                                class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div class="space-y-1 md:col-span-4">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Proof
+                                (Screenshot)</label>
+                            <input type="file" id="tt-input-proof" accept="image/*"
+                                class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-slate-400 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-500/20 file:text-indigo-400 hover:file:bg-indigo-500/30 cursor-pointer">
+                        </div>
+                    </div>
+                    <button onclick="submitTurkeyTrotProgress()" id="tt-submit-btn"
+                        class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-lg text-sm flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                    </button>
+                    <p id="tt-upload-status" class="text-xs font-semibold text-slate-400 hidden"></p>
+                </div>
+
+                <div id="tt-proof-view" class="hidden mt-4 pt-4 border-t border-slate-800/60">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Weekly Proof</h4>
+                    <div class="flex gap-4">
+                        <button onclick="viewProof('bkas724')" id="tt-proof-bkas"
+                            class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors hidden">View
+                            bkas724 Proof</button>
+                        <button onclick="viewProof('acap1600')" id="tt-proof-acap"
+                            class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors hidden">View
+                            acap1600 Proof</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rules Framework -->
+            <div class="mt-8 border-t border-slate-800/60 pt-6">
+                <button onclick="document.getElementById('tt-rules').classList.toggle('hidden')"
+                    class="w-full flex justify-between items-center text-slate-300 font-bold hover:text-white transition-colors cursor-pointer">
+                    <span class="uppercase tracking-widest text-xs"><i class="fa-solid fa-scale-balanced mr-2"></i>The
+                        Framework & Rules</span>
+                    <i class="fa-solid fa-chevron-down text-slate-500"></i>
+                </button>
+                <div id="tt-rules"
+                    class="mt-4 text-sm md:text-base text-slate-300 leading-relaxed bg-slate-950 p-4 md:p-6 rounded-xl border border-slate-800 shadow-inner">
+                    <h4 class="font-black text-white text-lg border-b border-slate-800 pb-2 mb-6">How it Works:</h4>
+                    
+                    <div class="flex flex-col md:flex-row items-center md:items-stretch gap-4 md:gap-2 lg:gap-4 relative">
+                        <!-- Step 1 -->
+                        <div class="flex-1 bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 relative group hover:border-indigo-500/30 transition-colors">
+                            <strong class="text-indigo-400 block text-lg font-black mb-2 flex items-center">
+                                <span class="bg-indigo-500/20 text-indigo-400 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2 border border-indigo-500/30">1</span>
+                                The Baseline
+                            </strong>
+                            <p class="text-sm text-slate-400">Each Runner logged a baseline. The app used pace and heart rate to estimate their full effort 5k (175 avg. BPM). This is each runner's official starting line.</p>
+                            <!-- Arrow Mobile -->
+                            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 md:hidden text-slate-700">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                        </div>
+
+                        <!-- Arrow Desktop -->
+                        <div class="hidden md:flex flex-col justify-center text-slate-700 px-1">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="flex-1 bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 relative group hover:border-emerald-500/30 transition-colors">
+                            <strong class="text-emerald-400 block text-lg font-black mb-2 flex items-center">
+                                <span class="bg-emerald-500/20 text-emerald-400 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2 border border-emerald-500/30">2</span>
+                                The Goal
+                            </strong>
+                            <p class="text-sm text-slate-400">The 5K world record is <strong class="text-slate-200">12:35</strong>. Close your gap to the world record by the most, relative to your baseline. (Accounts for the increased difficulty of shaving time at faster paces).</p>
+                            <!-- Arrow Mobile -->
+                            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 md:hidden text-slate-700">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                        </div>
+
+                        <!-- Arrow Desktop -->
+                        <div class="hidden md:flex flex-col justify-center text-slate-700 px-1">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="flex-1 bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 relative group hover:border-amber-500/30 transition-colors">
+                            <strong class="text-amber-400 block text-lg font-black mb-2 flex items-center">
+                                <span class="bg-amber-500/20 text-amber-400 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2 border border-amber-500/30">3</span>
+                                The Race
+                            </strong>
+                            <p class="text-sm text-slate-400">The runners still race straight up, but only for pride. The $500 goes to the runner who closes a greater percentage of their world record gap by the Thanksgiving Turkey Trot.</p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 text-xs font-mono text-slate-400 mt-6 text-center">
+                        Equal relative effort results in a perfect tie. No sandbagging. May the more disciplined athlete win.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Go Back Button (For Guests) -->
+            <div id="tt-guest-back" class="mt-8 text-center hidden">
+                <button onclick="window.location.reload()"
+                    class="text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors uppercase tracking-wider underline">
+                    Return to Login
+                </button>
+            </div>
+        </section>
+
         <footer class="mt-auto p-6 text-center text-gray-500 text-xs border-t animate-fade-in">
             <p>
                 Icons by
@@ -708,7 +1011,7 @@
                         <h2
                             class="text-2xl font-black text-white bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
                             Welcome to MyFlow</h2>
-                        <p class="text-xs text-indigo-400 font-semibold mt-1">Adaptive Just-in-Time Autopilot</p>
+                        <p class="text-xs text-indigo-400 font-semibold mt-1">Adaptive Just-in-Time Fitness Planning</p>
                     </div>
                 </div>
 
@@ -736,6 +1039,12 @@
                 <button onclick="startNewProfileOnboarding()"
                     class="w-full bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 py-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-plus text-xs"></i> Create New Profile
+                </button>
+
+                <!-- Guest Turkey Trot Access -->
+                <button onclick="bypassToTurkeyTrot()"
+                    class="w-full bg-gradient-to-r from-amber-600/10 to-yellow-600/10 hover:from-amber-600/20 hover:to-yellow-600/20 border border-yellow-500/20 text-yellow-500 py-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-2 cursor-pointer mt-4">
+                    <i class="fa-solid fa-eye text-xs"></i> View Turkey Trot Challenge
                 </button>
             </div>
 
@@ -7552,6 +7861,378 @@
                 alert("Failed to remove workout.");
             }
         }
+        // ==========================================
+        // TURKEY TROT CHALLENGE LOGIC
+        // ==========================================
+        let isTurkeyTrotGuest = false;
+
+        function bypassToTurkeyTrot() {
+            isTurkeyTrotGuest = true;
+            document.getElementById('onboarding-modal').classList.add('hidden');
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            // Show Turkey Trot tab
+            document.getElementById('turkey-trot-card').classList.remove('hidden');
+            document.getElementById('turkey-trot-card').classList.add('block');
+
+            // Hide the bottom navigation for guests
+            const bottomNav = document.querySelector('nav');
+            if (bottomNav) bottomNav.classList.add('hidden');
+
+            // Show the guest back button
+            document.getElementById('tt-guest-back').classList.remove('hidden');
+
+            // Hide the submission area
+            document.getElementById('tt-submit-area').classList.add('hidden');
+
+            loadTurkeyTrotData();
+        }
+
+        async function loadTurkeyTrotData() {
+            try {
+                // Fetch all submissions to easily find the first (baseline) entry
+                const snap = await db.collection("turkeyTrotSubmissions").orderBy('timestamp', 'asc').get();
+                const submissions = {};
+
+                let baselineBkas = null;
+                let baselineWeekBkas = null;
+                let baselineAcap = null;
+                let baselineWeekAcap = null;
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    // group by weekNumber and userId
+                    const week = data.weekNumber || 1;
+
+                    // The first entry serves as the baseline seed
+                    if (data.userId === 'bkas724' && !baselineBkas) {
+                        baselineBkas = data.projectedPaceSeconds;
+                        baselineWeekBkas = week;
+                    }
+                    if (data.userId === 'acap1600' && !baselineAcap) {
+                        baselineAcap = data.projectedPaceSeconds;
+                        baselineWeekAcap = week;
+                    }
+
+                    if (!submissions[week]) submissions[week] = {};
+                    submissions[week][data.userId] = data;
+                });
+
+                function formatTime(secs) {
+                    if (!secs) return "Pending Seed";
+                    const m = Math.floor(secs / 60);
+                    const s = Math.floor(secs % 60);
+                    return m + ':' + (s < 10 ? '0' : '') + s;
+                }
+
+                document.getElementById('tt-base-bkas').innerText = formatTime(baselineBkas);
+                document.getElementById('tt-base-acap').innerText = formatTime(baselineAcap);
+
+                // Change submit button text if they need to seed
+                const currentUser = typeof userId !== 'undefined' ? userId : null;
+                const submitBtn = document.getElementById('tt-submit-btn');
+                const seedingMsg = document.getElementById('tt-seeding-msg');
+                const titleEl = document.getElementById('tt-submission-title');
+                
+                const july25 = new Date('2026-07-25T00:00:00');
+                const now = new Date();
+                const isBeforeJuly25 = now < july25;
+
+                if (submitBtn) {
+                    if (isBeforeJuly25) {
+                        submitBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Baseline Opens July 25th';
+                        submitBtn.disabled = true;
+                        submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500', 'cursor-pointer');
+                        submitBtn.classList.add('bg-slate-700', 'text-slate-400', 'cursor-not-allowed');
+                        if (titleEl) titleEl.innerText = "Submissions Locked";
+                        if (seedingMsg) seedingMsg.classList.add('hidden');
+                    } else {
+                        // Ensure it is not locked visually if they refresh on or after July 25
+                        submitBtn.disabled = false;
+                        submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500', 'cursor-pointer');
+                        submitBtn.classList.remove('bg-slate-700', 'text-slate-400', 'cursor-not-allowed');
+
+                        if (currentUser && ((currentUser === 'bkas724' && !baselineBkas) || (currentUser === 'acap1600' && !baselineAcap))) {
+                            submitBtn.innerHTML = '<i class="fa-solid fa-seedling"></i> Lock in Baseline Submission';
+                            if (titleEl) titleEl.innerText = "Baseline Submission";
+                            if (seedingMsg) seedingMsg.classList.remove('hidden');
+                        } else {
+                            submitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Lock in Weekly Time';
+                            if (titleEl) titleEl.innerText = "Weekly Submission";
+                            if (seedingMsg) seedingMsg.classList.add('hidden');
+                        }
+                    }
+                }
+                
+                // Update Countdown
+                const todayForCountdown = new Date();
+                todayForCountdown.setHours(0,0,0,0);
+                const raceDay = new Date('2026-11-26T00:00:00'); // Thanksgiving 2026
+                const diffDays = Math.ceil((raceDay - todayForCountdown) / (1000 * 60 * 60 * 24));
+                
+                const countdownEl = document.getElementById('tt-countdown-banner');
+                const textEl = document.getElementById('tt-countdown-text');
+                if (countdownEl && textEl) {
+                    countdownEl.classList.remove('hidden');
+                    if (diffDays > 0) {
+                        textEl.innerHTML = `<span class="text-white font-black">${diffDays} Days</span> until Race Day!`;
+                    } else if (diffDays === 0) {
+                        textEl.innerHTML = `<span class="text-white font-black">It's Race Day!</span> Give it your all!`;
+                    } else {
+                        textEl.innerHTML = `<span class="text-white font-black">Race Completed!</span>`;
+                    }
+                }
+
+                // Find the latest week where BOTH have submitted, or current week
+                let latestWeek = 1;
+                let maxWeekFound = 1;
+                Object.keys(submissions).forEach(w => { if (parseInt(w) > maxWeekFound) maxWeekFound = parseInt(w); });
+
+                let bkasData = null;
+                let acapData = null;
+
+                for (let w = maxWeekFound; w >= 1; w--) {
+                    if (submissions[w]) {
+                        if (submissions[w]['bkas724'] && submissions[w]['acap1600']) {
+                            latestWeek = w;
+                            bkasData = submissions[w]['bkas724'];
+                            acapData = submissions[w]['acap1600'];
+                            break;
+                        } else if (submissions[w]['bkas724'] || submissions[w]['acap1600']) {
+                            latestWeek = w;
+                        }
+                    }
+                }
+
+                const currentWeekSubmissions = submissions[latestWeek] || {};
+                const bkasHasSubmitted = !!currentWeekSubmissions['bkas724'];
+                const acapHasSubmitted = !!currentWeekSubmissions['acap1600'];
+
+                function calculateEstimatedFinalPace(base, current, currentWk, seedWk) {
+                    if (!base || !current) return "--:--";
+                    const wksPassed = currentWk - seedWk;
+                    if (wksPassed <= 0) return formatTime(current);
+                    const rate = (base - current) / wksPassed;
+                    const wksRemaining = 18 - wksPassed; // Roughly 18 weeks from July 25 to Nov 26
+                    let proj = current - (rate * wksRemaining);
+                    if (proj < 755) proj = 755;
+                    return formatTime(proj);
+                }
+
+                let bkasScore = 0;
+                let acapScore = 0;
+
+                // If it's a seeding week (week with baselines), it's treated exactly like a normal week 
+                // where the score will simply be 0% since Current == Baseline.
+                if (bkasHasSubmitted && acapHasSubmitted) {
+                    document.getElementById('tt-week-status').innerText = `Week ${latestWeek} Results Live!`;
+
+                    // Calculate Scores
+                    bkasScore = calculateLogScore(baselineBkas, currentWeekSubmissions['bkas724'].projectedPaceSeconds);
+                    acapScore = calculateLogScore(baselineAcap, currentWeekSubmissions['acap1600'].projectedPaceSeconds);
+
+                    document.getElementById('tt-proj-bkas').innerText = calculateEstimatedFinalPace(baselineBkas, currentWeekSubmissions['bkas724'].projectedPaceSeconds, latestWeek, baselineWeekBkas);
+                    document.getElementById('tt-proj-acap').innerText = calculateEstimatedFinalPace(baselineAcap, currentWeekSubmissions['acap1600'].projectedPaceSeconds, latestWeek, baselineWeekAcap);
+
+                    // Setup proofs
+                    document.getElementById('tt-proof-view').classList.remove('hidden');
+                    const btnBkas = document.getElementById('tt-proof-bkas');
+                    const btnAcap = document.getElementById('tt-proof-acap');
+
+                    btnBkas.classList.remove('hidden');
+                    btnBkas.onclick = () => window.open(currentWeekSubmissions['bkas724'].screenshotUrl, '_blank');
+
+                    btnAcap.classList.remove('hidden');
+                    btnAcap.onclick = () => window.open(currentWeekSubmissions['acap1600'].screenshotUrl, '_blank');
+
+                } else {
+                    // Blind phase
+                    document.getElementById('tt-week-status').innerText = `Week ${latestWeek}: Waiting for ${(!bkasHasSubmitted ? 'Bryan' : '')} ${(!bkasHasSubmitted && !acapHasSubmitted ? '&' : '')} ${(!acapHasSubmitted ? 'Anthony' : '')}`;
+                    document.getElementById('tt-proj-bkas').innerText = '--:--';
+                    document.getElementById('tt-proj-acap').innerText = '--:--';
+                    document.getElementById('tt-proof-view').classList.add('hidden');
+
+                    // Show last week's data if available
+                    if (latestWeek > 1 && submissions[latestWeek - 1] && submissions[latestWeek - 1]['bkas724'] && submissions[latestWeek - 1]['acap1600']) {
+                        bkasScore = calculateLogScore(baselineBkas, submissions[latestWeek - 1]['bkas724'].projectedPaceSeconds);
+                        acapScore = calculateLogScore(baselineAcap, submissions[latestWeek - 1]['acap1600'].projectedPaceSeconds);
+
+                        document.getElementById('tt-proj-bkas').innerText = calculateEstimatedFinalPace(baselineBkas, submissions[latestWeek - 1]['bkas724'].projectedPaceSeconds, latestWeek - 1, baselineWeekBkas);
+                        document.getElementById('tt-proj-acap').innerText = calculateEstimatedFinalPace(baselineAcap, submissions[latestWeek - 1]['acap1600'].projectedPaceSeconds, latestWeek - 1, baselineWeekAcap);
+                    }
+                }
+
+                // Determine max scale for Y axis
+                const maxVal = Math.max(parseFloat(bkasScore), parseFloat(acapScore));
+                let maxScale = 25;
+                if (maxVal > 25) maxScale = 50;
+                if (maxVal > 50) maxScale = 75;
+                if (maxVal > 75) maxScale = 100;
+
+                document.getElementById('tt-scale-max').innerText = maxScale + '%';
+                document.getElementById('tt-scale-mid').innerText = (maxScale / 2) + '%';
+
+                const bkasHeight = (bkasScore / maxScale) * 100;
+                const acapHeight = (acapScore / maxScale) * 100;
+
+                animateVerticalScore('tt-score-bkas', 'tt-bar-bkas', bkasScore, bkasHeight);
+                animateVerticalScore('tt-score-acap', 'tt-bar-acap', acapScore, acapHeight);
+
+                // Update Leader Advantage Label
+                const diff = parseFloat(bkasScore) - parseFloat(acapScore);
+                const diffEl = document.getElementById('tt-leader-diff');
+                if (diff > 0) {
+                    diffEl.innerHTML = `<span class="text-emerald-400">Bryan +${diff.toFixed(1)}%</span>`;
+                } else if (diff < 0) {
+                    diffEl.innerHTML = `<span class="text-indigo-400">Anthony +${Math.abs(diff).toFixed(1)}%</span>`;
+                } else {
+                    diffEl.innerText = "Tied";
+                }
+
+            } catch (e) {
+                console.error("Error loading Turkey Trot data:", e);
+                const statusEl = document.getElementById('tt-week-status');
+                if (statusEl) statusEl.innerText = "Error: " + e.message;
+            }
+        }
+
+        function calculateLogScore(baselineSecs, currentSecs) {
+            if (!baselineSecs || !currentSecs) return 0;
+            if (currentSecs >= baselineSecs) return 0;
+            const wr = 755; // 12:35
+            const num = Math.log(baselineSecs) - Math.log(currentSecs);
+            const den = Math.log(baselineSecs) - Math.log(wr);
+            let score = (num / den) * 100;
+            if (score < 0) score = 0;
+            if (score > 100) score = 100;
+            return score.toFixed(1);
+        }
+
+        function animateVerticalScore(textId, barId, targetScore, targetHeight) {
+            document.getElementById(textId).innerText = targetScore + '%';
+            setTimeout(() => {
+                document.getElementById(barId).style.height = targetHeight + '%';
+            }, 100);
+        }
+
+        async function submitTurkeyTrotProgress() {
+            if (isTurkeyTrotGuest) return; // Guests can't submit
+
+            // Require active user
+            if (!userId || (userId !== 'bkas724' && userId !== 'acap1600')) {
+                alert("Only bkas724 and acap1600 can submit times.");
+                return;
+            }
+
+            const dateInput = document.getElementById('tt-input-date').value;
+            const distInput = parseFloat(document.getElementById('tt-input-dist').value);
+            const timeInput = document.getElementById('tt-input-time').value.trim();
+            const hrInput = parseInt(document.getElementById('tt-input-hr').value);
+            const proofFile = document.getElementById('tt-input-proof').files[0];
+            const statusText = document.getElementById('tt-upload-status');
+
+            if (!dateInput || !distInput || !timeInput || !hrInput || !proofFile) {
+                alert("Please fill out all fields and attach a screenshot proof.");
+                return;
+            }
+
+            // Parse MM:SS
+            const parts = timeInput.split(':');
+            if (parts.length !== 2) {
+                alert("Please enter time in MM:SS format.");
+                return;
+            }
+            const mins = parseInt(parts[0]);
+            const secs = parseInt(parts[1]);
+            const totalSeconds = (mins * 60) + secs;
+
+            // Calculate Projected 5K Baseline
+            const paceSecPerMile = totalSeconds / distInput;
+            const projectedPaceSecPerMile = paceSecPerMile * (hrInput / 175);
+            const projected5kSecs = projectedPaceSecPerMile * 3.11;
+
+            statusText.innerText = "Uploading proof...";
+            statusText.classList.remove('hidden');
+            document.getElementById('tt-submit-btn').disabled = true;
+
+            try {
+                // Upload to Firebase Storage
+                const ext = proofFile.name.split('.').pop();
+                const path = `challenge_proofs/${Date.now()}_${userId}.${ext}`;
+                const storageRef = firebase.storage().ref().child(path);
+
+                await storageRef.put(proofFile);
+                const downloadUrl = await storageRef.getDownloadURL();
+
+                statusText.innerText = "Saving submission...";
+
+                // Save to Firestore using Week of Year
+                // If it is the first entry for this user, it acts as the baseline (seeding run).
+                const d = new Date();
+                const start = new Date(d.getFullYear(), 0, 0);
+                const diff = d - start;
+                const oneWeek = 1000 * 60 * 60 * 24 * 7;
+                let currentWeekNum = Math.floor(diff / oneWeek);
+
+                // Ensure they don't overwrite a previous submission in the exact same week accidentally,
+                // or just append it and our logic fetches the earliest/latest appropriately.
+                // The `orderBy('timestamp', 'asc')` in `loadTurkeyTrotData` guarantees the absolute first
+                // submission across time acts as the baseline.
+
+                await db.collection("turkeyTrotSubmissions").add({
+                    weekNumber: currentWeekNum,
+                    userId: userId,
+                    workoutDate: dateInput,
+                    rawDistance: distInput,
+                    rawTime: timeInput,
+                    rawHr: hrInput,
+                    projectedPaceSeconds: projected5kSecs,
+                    screenshotUrl: downloadUrl,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                statusText.innerText = "Submission successful!";
+                statusText.classList.add('text-emerald-400');
+                statusText.classList.remove('text-slate-400');
+
+                // Reset inputs
+                document.getElementById('tt-input-date').value = '';
+                document.getElementById('tt-input-dist').value = '';
+                document.getElementById('tt-input-time').value = '';
+                document.getElementById('tt-input-hr').value = '';
+                document.getElementById('tt-input-proof').value = '';
+
+                // Reload data
+                loadTurkeyTrotData();
+
+            } catch (e) {
+                console.error("Error submitting progress:", e);
+                statusText.innerText = "Upload failed. Try again.";
+                statusText.classList.add('text-rose-450');
+            } finally {
+                document.getElementById('tt-submit-btn').disabled = false;
+            }
+        }
+
+        // Hook into existing switchTab to load data when tab is opened
+        const originalSwitchTab = switchTab;
+        switchTab = function (tabId) {
+            originalSwitchTab(tabId);
+            if (tabId === 'turkey-trot') {
+                loadTurkeyTrotData();
+                // Ensure userId exists before checking
+                const currentUser = typeof userId !== 'undefined' ? userId : null;
+                if (currentUser !== 'bkas724' && currentUser !== 'acap1600') {
+                    document.getElementById('tt-submit-area').classList.add('hidden');
+                } else {
+                    document.getElementById('tt-submit-area').classList.remove('hidden');
+                }
+            }
+        };
+
     </script>
 </body>
 
