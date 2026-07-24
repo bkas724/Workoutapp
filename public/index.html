@@ -407,6 +407,71 @@
             </div>
         </div>
 
+        <!-- Home Tab AI Health & Recovery Insights Card -->
+        <section id="home-health-insights-card"
+            class="tab-content tab-home block mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden">
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800/80">
+                <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                    <i class="fa-solid fa-sparkles text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="font-extrabold text-lg text-slate-100">AI Health & Recovery Insights</h2>
+                    <p class="text-xs text-slate-400">Daily movement guidance and portion-controlled nutrition heuristics</p>
+                </div>
+            </div>
+
+            <div id="home-ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- Movement Tip -->
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-person-running"></i> Movement Guide
+                        </h4>
+                        <p id="home-insight-movement" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <!-- Hydration & Recovery -->
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-droplet"></i> Hydration & Recovery
+                        </h4>
+                        <p id="home-insight-hydration" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <!-- Tiered Nutrition Guides -->
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
+                        </h4>
+                        <div class="flex gap-1.5 mb-3 bg-slate-900 p-1 rounded-xl w-max border border-slate-800/80">
+                            <button onclick="window.switchNutritionTab('rest')" id="home-tab-nut-rest"
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
+                            <button onclick="window.switchNutritionTab('light')" id="home-tab-nut-light"
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
+                            <button onclick="window.switchNutritionTab('hard')" id="home-tab-nut-hard"
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                        </div>
+                        <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
+                            <p id="home-insight-nut-rest" class="block"></p>
+                            <p id="home-insight-nut-light" class="hidden"></p>
+                            <p id="home-insight-nut-hard" class="hidden"></p>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-slate-500 text-center mt-2.5">*AI-estimated portion guides. Not medical advice.</p>
+                </div>
+            </div>
+
+            <div id="home-ai-health-empty"
+                class="hidden border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-6 text-center text-slate-500">
+                <i class="fa-solid fa-chart-line text-2xl mb-2 opacity-50"></i>
+                <p class="text-xs">Log your weight during block transitions to unlock AI Health Insights.</p>
+            </div>
+        </section>
+
         <section id="flow-timeline-card"
             class="tab-content tab-journey hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden transition-all duration-500">
             <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none">
@@ -524,7 +589,7 @@
             <input type="hidden" id="input-sec" value="10">
         </section>
 
-        <!-- Dashboard BMI & Health Insights Card -->
+        <!-- Dashboard BMI Card (Full-Width) -->
         <section id="dashboard-bmi-card"
             class="tab-content tab-analytics hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden transition-all duration-500">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
@@ -534,7 +599,7 @@
                     </div>
                     <div>
                         <h2 class="font-extrabold text-xl text-slate-100">Health & Biometrics</h2>
-                        <p class="text-sm text-slate-400 mt-1">Weight Trend Engine, Consistency & Nutrition</p>
+                        <p class="text-sm text-slate-400 mt-1">Weight Trend Engine & Target Trajectory</p>
                     </div>
                 </div>
                 <button onclick="openLogWeightModal()"
@@ -543,131 +608,105 @@
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Left: Consistency & BMI Chart -->
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
-                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">Days in Phase</span>
-                            <span id="consistency-days-phase" class="text-lg font-black text-indigo-400">-</span>
-                        </div>
-                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
-                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">Current Weight</span>
-                            <span id="weight-ticker-current" class="text-lg font-black text-slate-100">-</span>
-                        </div>
-                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
-                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">7-Day Rate</span>
-                            <span id="weight-ticker-rate" class="text-lg font-black text-emerald-400">-</span>
-                        </div>
-                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
-                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">Phase Change</span>
-                            <span id="weight-ticker-phase" class="text-lg font-black text-sky-400">-</span>
-                        </div>
+            <!-- Ticker Row -->
+            <div class="grid grid-cols-3 gap-3 md:gap-4 text-center mb-6">
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3.5">
+                    <span class="block text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-0.5">Current Weight</span>
+                    <span id="weight-ticker-current" class="text-lg md:text-xl font-black text-slate-100">-</span>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3.5">
+                    <span class="block text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-0.5">7-Day Rate</span>
+                    <span id="weight-ticker-rate" class="text-lg md:text-xl font-black text-emerald-400">-</span>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3.5">
+                    <span class="block text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-0.5">Phase Change</span>
+                    <span id="weight-ticker-phase" class="text-lg md:text-xl font-black text-sky-400">-</span>
+                </div>
+            </div>
+
+            <!-- Full-Width Chart Container -->
+            <div class="bg-slate-950/30 border border-slate-800/50 rounded-2xl p-4 md:p-5">
+                <div class="flex justify-between items-end mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-slate-300">Weight & BMI Progression</span>
+                        <button onclick="openFullJourneyModal()"
+                            class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-colors border border-slate-800 flex items-center gap-1 cursor-pointer">
+                            <i class="fa-solid fa-expand text-[10px]"></i> Full Journey
+                        </button>
                     </div>
-                    <div class="bg-slate-950/30 border border-slate-800/50 rounded-2xl p-4">
-                        <div class="flex justify-between items-end mb-4">
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-bold text-slate-300">Weight & BMI Progression</span>
-                                <button onclick="openFullJourneyModal()"
-                                    class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 px-2 py-1 rounded-md transition-colors border border-slate-800"><i
-                                        class="fa-solid fa-expand"></i> Full Journey</button>
-                            </div>
-                            <div class="text-right flex flex-col items-end">
-                                <span id="bmi-label-current" class="text-sm font-black text-orange-500">-</span>
-                                <span id="bmi-label-target" class="text-xs font-bold text-sky-500">-</span>
-                            </div>
-                        </div>
-                        <div class="h-64 w-full relative">
-                            <canvas id="bmi-history-chart"></canvas>
-                        </div>
+                    <div class="text-right flex flex-col items-end">
+                        <span id="bmi-label-current" class="text-sm font-black text-orange-500">-</span>
+                        <span id="bmi-label-target" class="text-xs font-bold text-sky-500">-</span>
                     </div>
                 </div>
-
-                <!-- Right: AI Health Insights -->
-                <div class="space-y-4 flex flex-col">
-                    <div id="ai-health-insights-container"
-                        class="flex-1 bg-slate-950/50 border border-slate-800 rounded-2xl p-5 hidden flex-col relative overflow-hidden">
-                        <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                            <i class="fa-solid fa-sparkles text-4xl text-indigo-400"></i>
-                        </div>
-
-                        <div class="space-y-4 relative z-10 flex-1">
-                            <!-- Movement Tip -->
-                            <div>
-                                <h4
-                                    class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <i class="fa-solid fa-person-running"></i> Movement
-                                </h4>
-                                <p id="insight-movement" class="text-sm text-slate-300 leading-relaxed"></p>
-                            </div>
-
-                            <!-- Hydration/Recovery -->
-                            <div>
-                                <h4
-                                    class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <i class="fa-solid fa-droplet"></i> Hydration & Recovery
-                                </h4>
-                                <p id="insight-hydration" class="text-sm text-slate-300 leading-relaxed"></p>
-                            </div>
-
-                            <!-- Tiered Nutrition Tabs -->
-                            <div class="pt-2 border-t border-slate-800">
-                                <h4
-                                    class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-                                    <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
-                                </h4>
-                                <div
-                                    class="flex gap-2 mb-3 bg-slate-900 p-1 rounded-xl w-max border border-slate-800/80">
-                                    <button onclick="window.switchNutritionTab('rest')" id="tab-nut-rest"
-                                        class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-white transition-all">Rest</button>
-                                    <button onclick="window.switchNutritionTab('light')" id="tab-nut-light"
-                                        class="px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">Light</button>
-                                    <button onclick="window.switchNutritionTab('hard')" id="tab-nut-hard"
-                                        class="px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">Hard</button>
-                                </div>
-                                <div class="bg-slate-900/50 rounded-xl p-3 text-sm text-slate-300 min-h-[80px]">
-                                    <p id="insight-nut-rest" class="block"></p>
-                                    <p id="insight-nut-light" class="hidden"></p>
-                                    <p id="insight-nut-hard" class="hidden"></p>
-                                </div>
-                                <p class="text-[9px] text-slate-500 text-center mt-3">*AI-estimated portion guides. Not
-                                    medical advice.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="ai-health-empty"
-                        class="flex-1 border border-dashed border-slate-700 rounded-2xl flex flex-col items-center justify-center p-6 text-center text-slate-500">
-                        <i class="fa-solid fa-chart-line text-2xl mb-2 opacity-50"></i>
-                        <p class="text-sm">Log your weight during block transitions to unlock AI Health Insights.</p>
-                    </div>
+                <div class="h-72 md:h-80 w-full relative">
+                    <canvas id="bmi-history-chart"></canvas>
                 </div>
             </div>
         </section>
 
-        <section id="gpx-baseline-card"
+        <!-- AI Health & Recovery Insights Card (Dedicated Card directly below Weight Chart) -->
+        <section id="ai-health-insights-card"
             class="tab-content tab-analytics hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
-                    <i class="fa-solid fa-route text-lg"></i>
+            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800/80">
+                <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                    <i class="fa-solid fa-sparkles text-lg"></i>
                 </div>
                 <div>
-                    <h2 class="font-bold text-lg text-slate-100">GPX Stride Baseline</h2>
-                    <p class="text-xs text-slate-400">Unlock advanced stride metrics coaching</p>
+                    <h2 class="font-extrabold text-lg text-slate-100">AI Health & Recovery Insights</h2>
+                    <p class="text-xs text-slate-400">Daily movement guidance and portion-controlled nutrition heuristics</p>
                 </div>
             </div>
-            <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 text-center space-y-4">
-                <p class="text-xs text-slate-400 leading-relaxed">
-                    Upload a GPX or TCX file from a recent workout to let the coach analyze your heart rate,
-                    cadence, and gradient loads.
-                </p>
-                <div class="flex justify-center">
-                    <input type="file" id="direct-gpx-upload" accept=".gpx,.tcx,.json,.txt" class="hidden"
-                        onchange="handleDirectGPXUpload(this)">
-                    <button onclick="document.getElementById('direct-gpx-upload').click()"
-                        class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-file-arrow-up"></i> Upload GPX/TCX Workout
-                    </button>
+
+            <div id="ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- Movement Tip -->
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-person-running"></i> Movement Guide
+                        </h4>
+                        <p id="insight-movement" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
                 </div>
+
+                <!-- Hydration & Recovery -->
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-droplet"></i> Hydration & Recovery
+                        </h4>
+                        <p id="insight-hydration" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <!-- Tiered Nutrition Guides -->
+                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
+                        </h4>
+                        <div class="flex gap-1.5 mb-3 bg-slate-900 p-1 rounded-xl w-max border border-slate-800/80">
+                            <button onclick="window.switchNutritionTab('rest')" id="tab-nut-rest"
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
+                            <button onclick="window.switchNutritionTab('light')" id="tab-nut-light"
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
+                            <button onclick="window.switchNutritionTab('hard')" id="tab-nut-hard"
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                        </div>
+                        <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
+                            <p id="insight-nut-rest" class="block"></p>
+                            <p id="insight-nut-light" class="hidden"></p>
+                            <p id="insight-nut-hard" class="hidden"></p>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-slate-500 text-center mt-2.5">*AI-estimated portion guides. Not medical advice.</p>
+                </div>
+            </div>
+
+            <div id="ai-health-empty"
+                class="hidden border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-6 text-center text-slate-500">
+                <i class="fa-solid fa-chart-line text-2xl mb-2 opacity-50"></i>
+                <p class="text-xs">Log your weight during block transitions to unlock AI Health Insights.</p>
             </div>
         </section>
 
@@ -1884,176 +1923,180 @@
     <div id="profile-edit-modal"
         class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/90 backdrop-blur-md flex p-4 hidden">
         <div
-            class="m-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 relative overflow-hidden">
+            class="m-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
             <div
                 class="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none">
             </div>
-            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                <h3 class="text-sm font-bold text-indigo-400 uppercase tracking-widest">Athlete Profile & Constraints
-                </h3>
-                <button onclick="closeProfileModal()"
-                    class="text-slate-400 hover:text-white transition-colors cursor-pointer">
-                    <i class="fa-solid fa-xmark text-base"></i>
-                </button>
-            </div>
-            <div class="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                    <span class="text-slate-500 block">Birth Year:</span>
-                    <input type="number" id="modal-birthyear" disabled
-                        class="w-full mt-1 bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-500 font-bold text-xs focus:outline-none cursor-not-allowed">
-                </div>
-                <div>
-                    <div class="flex justify-between items-end mb-1">
-                        <span class="text-slate-500 block">Weight (lbs):</span>
-                        <button type="button" onclick="openWeightHistoryModal()"
-                            class="text-[10px] text-sky-400 hover:text-sky-300 transition-colors"><i
-                                class="fa-solid fa-clock-rotate-left mr-1"></i>History</button>
-                    </div>
-                    <input type="number" id="modal-weight" step="0.1" placeholder="e.g. 165" min="50" max="400"
-                        class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
-                </div>
-                <div>
-                    <span class="text-slate-500 block">Sex:</span>
-                    <select id="modal-sex" disabled
-                        class="w-full mt-1 bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-500 font-bold text-xs focus:outline-none cursor-not-allowed appearance-none">
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div>
-                    <span class="text-slate-500 block">Height:</span>
-                    <div class="flex gap-2 mt-1">
-                        <input type="number" id="modal-height-ft" placeholder="ft" min="3" max="8"
-                            oninput="validateTargetWeight()"
-                            class="w-1/2 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
-                        <input type="number" id="modal-height-in" placeholder="in" min="0" max="11"
-                            oninput="validateTargetWeight()"
-                            class="w-1/2 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
-                    </div>
-                </div>
-                <div>
-                    <span class="text-slate-500 block">Mins per Workout:</span>
-                    <input type="number" id="modal-workout-length" placeholder="e.g. 45" min="15" max="180"
-                        class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
-                </div>
-                <div>
-                    <span class="text-slate-500 block">Days Available:</span>
-                    <input type="number" id="modal-days-available" placeholder="e.g. 4" min="1" max="7"
-                        class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
-                </div>
-                <div>
-                    <span class="text-slate-500 block">Strength Focus:</span>
-                    <select id="modal-include-strength"
-                        class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
-                        <option value="runner_specific">Running Specific</option>
-                        <option value="full_body">Full Body</option>
-                        <option value="none">No Strength Training</option>
-                    </select>
-                </div>
-                <div class="relative">
-                    <span class="text-slate-500 block relative">Target Weight (lbs):</span>
-                    <input type="number" id="modal-target-weight" step="0.1" placeholder="e.g. 150" min="50" max="400"
-                        onblur="enforceMinimumWeight(this)" oninput="validateTargetWeight()"
-                        class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
 
-                    <div
-                        class="min-weight-bubble hidden absolute top-full left-0 mt-2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl whitespace-nowrap z-30 flex items-center gap-1.5">
-                        <div class="absolute -top-1 left-4 w-3 h-3 bg-indigo-600 rotate-45"></div>
-                        <i class="fa-solid fa-circle-info"></i> Minimum healthy weight is <span class="min-val"></span>
-                        lbs
+            <!-- Frozen Header -->
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-4 mb-4 shrink-0 z-20">
+                <h3 class="text-xs md:text-sm font-bold text-indigo-400 uppercase tracking-widest">Athlete Profile & Constraints</h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="saveProfileModal()"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold px-3.5 py-1.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-check text-[11px]"></i> Save
+                    </button>
+                    <button onclick="closeProfileModal()"
+                        class="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer ml-1">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Modal Body -->
+            <div class="overflow-y-auto custom-scrollbar flex-1 space-y-6 pr-1">
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <span class="text-slate-500 block">Birth Year:</span>
+                        <input type="number" id="modal-birthyear" disabled
+                            class="w-full mt-1 bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-500 font-bold text-xs focus:outline-none cursor-not-allowed">
                     </div>
-                </div>
-                <div class="col-span-2 border-t border-slate-800/60 pt-2">
-                    <span class="text-slate-500 block">Why?:</span>
-                    <textarea id="modal-why-notes" placeholder="e.g. I want to prove to myself that I can do it..."
-                        class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
-                </div>
-                <div class="col-span-2 border-t border-slate-800/60 pt-2">
-                    <span class="text-slate-500 block">Available Equipment:</span>
-                    <div id="modal-hardware-edit"
-                        class="mt-1 grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-850">
-                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                            <input type="checkbox" name="modal-hardware" value="bicycle"
-                                class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                            <span class="text-slate-300 text-[10px]">Bicycle</span>
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                            <input type="checkbox" name="modal-hardware" value="dumbbells"
-                                class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                            <span class="text-slate-300 text-[10px]">Dumbbells</span>
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                            <input type="checkbox" name="modal-hardware" value="treadmill"
-                                class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                            <span class="text-slate-300 text-[10px]">Treadmill</span>
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                            <input type="checkbox" name="modal-hardware" value="pull-up bar"
-                                class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                            <span class="text-slate-300 text-[10px]">Pull-up Bar</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="col-span-2 border-t border-slate-800/60 pt-2">
-                    <label class="flex items-center justify-between">
-                        <span class="text-slate-500 block">Personal Notes (Constraints):</span>
-                        <div class="group relative cursor-help">
-                            <i
-                                class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                            <div
-                                class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
-                                <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It
-                                uses this context to automatically adjust your workout types, intensities, and schedules
-                                to perfectly fit your life.
-                            </div>
+                    <div>
+                        <div class="flex justify-between items-end mb-1">
+                            <span class="text-slate-500 block">Weight (lbs):</span>
+                            <button type="button" onclick="openWeightHistoryModal()"
+                                class="text-[10px] text-sky-400 hover:text-sky-300 transition-colors"><i
+                                    class="fa-solid fa-clock-rotate-left mr-1"></i>History</button>
                         </div>
-                    </label>
-                    <textarea id="modal-baseline-notes"
-                        placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts. Also, I have a history of shin splints, so please ease me into high-impact running."
-                        class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
-                </div>
-                <div class="col-span-2 border-t border-slate-800/60 pt-2.5">
-                    <span class="text-slate-500 block mb-1 text-[10px] uppercase font-bold tracking-wider">Baseline
-                        Workout File (GPX/TCX):</span>
-                    <div class="flex items-center gap-3">
-                        <input type="file" id="modal-gpx-upload" accept=".gpx,.tcx,.json,.txt" class="hidden"
-                            onchange="handleModalGPXUpload(this)">
-                        <button type="button" onclick="document.getElementById('modal-gpx-upload').click()"
-                            class="bg-indigo-650/10 hover:bg-indigo-650/20 text-indigo-400 border border-indigo-500/20 px-3.5 py-2 rounded-xl text-[10px] font-bold hover:bg-slate-900 transition-colors flex items-center gap-1.5 cursor-pointer">
-                            <i class="fa-solid fa-file-arrow-up"></i> Upload Baseline File
-                        </button>
-                        <button type="button" id="modal-gpx-clear-btn" onclick="clearModalGPX()"
-                            class="text-rose-400 hover:text-rose-350 hover:bg-rose-500/10 px-2.5 py-2 rounded-xl text-[10px] font-bold border border-rose-500/15 cursor-pointer transition-colors hidden flex items-center gap-1">
-                            <i class="fa-solid fa-trash-can text-[9px]"></i> Remove
-                        </button>
-                        <span id="modal-gpx-status" class="text-[10px] text-slate-500 italic">No file uploaded</span>
+                        <input type="number" id="modal-weight" step="0.1" placeholder="e.g. 165" min="50" max="400"
+                            class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Sex:</span>
+                        <select id="modal-sex" disabled
+                            class="w-full mt-1 bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-500 font-bold text-xs focus:outline-none cursor-not-allowed appearance-none">
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Height:</span>
+                        <div class="flex gap-2 mt-1">
+                            <input type="number" id="modal-height-ft" placeholder="ft" min="3" max="8"
+                                oninput="validateTargetWeight()"
+                                class="w-1/2 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
+                            <input type="number" id="modal-height-in" placeholder="in" min="0" max="11"
+                                oninput="validateTargetWeight()"
+                                class="w-1/2 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Mins per Workout:</span>
+                        <input type="number" id="modal-workout-length" placeholder="e.g. 45" min="15" max="180"
+                            class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Days Available:</span>
+                        <input type="number" id="modal-days-available" placeholder="e.g. 4" min="1" max="7"
+                            class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Strength Focus:</span>
+                        <select id="modal-include-strength"
+                            class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
+                            <option value="runner_specific">Running Specific</option>
+                            <option value="full_body">Full Body</option>
+                            <option value="none">No Strength Training</option>
+                        </select>
+                    </div>
+                    <div class="relative">
+                        <span class="text-slate-500 block relative">Target Weight (lbs):</span>
+                        <input type="number" id="modal-target-weight" step="0.1" placeholder="e.g. 150" min="50" max="400"
+                            onblur="enforceMinimumWeight(this)" oninput="validateTargetWeight()"
+                            class="w-full mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-bold text-xs focus:outline-none focus:border-indigo-500/80">
+
+                        <div
+                            class="min-weight-bubble hidden absolute top-full left-0 mt-2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl whitespace-nowrap z-30 flex items-center gap-1.5">
+                            <div class="absolute -top-1 left-4 w-3 h-3 bg-indigo-600 rotate-45"></div>
+                            <i class="fa-solid fa-circle-info"></i> Minimum healthy weight is <span class="min-val"></span>
+                            lbs
+                        </div>
+                    </div>
+                    <div class="col-span-2 border-t border-slate-800/60 pt-2">
+                        <span class="text-slate-500 block">Why?:</span>
+                        <textarea id="modal-why-notes" placeholder="e.g. I want to prove to myself that I can do it..."
+                            class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                    </div>
+                    <div class="col-span-2 border-t border-slate-800/60 pt-2">
+                        <span class="text-slate-500 block">Available Equipment:</span>
+                        <div id="modal-hardware-edit"
+                            class="mt-1 grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-850">
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input type="checkbox" name="modal-hardware" value="bicycle"
+                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
+                                <span class="text-slate-300 text-[10px]">Bicycle</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input type="checkbox" name="modal-hardware" value="dumbbells"
+                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
+                                <span class="text-slate-300 text-[10px]">Dumbbells</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input type="checkbox" name="modal-hardware" value="treadmill"
+                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
+                                <span class="text-slate-300 text-[10px]">Treadmill</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input type="checkbox" name="modal-hardware" value="pull-up bar"
+                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
+                                <span class="text-slate-300 text-[10px]">Pull-up Bar</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-span-2 border-t border-slate-800/60 pt-2">
+                        <label class="flex items-center justify-between">
+                            <span class="text-slate-500 block">Personal Notes (Constraints):</span>
+                            <div class="group relative cursor-help">
+                                <i
+                                    class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div
+                                    class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                    <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                                    Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It
+                                    uses this context to automatically adjust your workout types, intensities, and schedules
+                                    to perfectly fit your life.
+                                </div>
+                            </div>
+                        </label>
+                        <textarea id="modal-baseline-notes"
+                            placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts. Also, I have a history of shin splints, so please ease me into high-impact running."
+                            class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                    </div>
+                    <div class="col-span-2 border-t border-slate-800/60 pt-3">
+                        <span class="text-slate-500 block mb-2 text-[10px] uppercase font-bold tracking-wider">Notifications</span>
+                        <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                                    <i class="fa-solid fa-bell text-xs"></i>
+                                </div>
+                                <div>
+                                    <span class="text-slate-200 text-xs font-bold block">Weight Logging Reminder</span>
+                                    <span class="text-slate-500 text-[10px] block">Show banner when weight entry is > 2 days old</span>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="modal-weight-notifications-toggle" class="sr-only peer">
+                                <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                            </label>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="flex gap-3 text-xs font-bold pt-2 border-t border-slate-800/60">
-                <button onclick="closeProfileModal()"
-                    class="flex-1 py-3 rounded-xl bg-slate-850 text-slate-300 border border-slate-750 hover:bg-slate-800 transition-all cursor-pointer">Cancel</button>
-                <button onclick="saveProfileModal()"
-                    class="flex-1 bg-indigo-650 hover:bg-indigo-550 text-white py-3 rounded-xl shadow-lg transition-all cursor-pointer">Save
-                    Changes</button>
-            </div>
-            <div class="flex gap-3 text-xs font-bold pt-2 border-t border-slate-800/60 mt-3">
-                <button onclick="promptRestartJourney()"
-                    class="flex-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rotate-right"></i> Start New Journey
-                </button>
-                <button onclick="refreshAIInsights()" id="btn-refresh-insights"
-                    class="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Refresh AI Insights
-                </button>
-            </div>
-            <div class="flex gap-3 text-xs font-bold pt-2 border-t border-slate-800/60 mt-3">
-                <button onclick="refreshAITimelineDetails()" id="btn-refresh-timeline"
-                    class="flex-1 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/20 py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-timeline"></i> Refresh AI Timeline Details
-                </button>
+
+                <div class="flex flex-col sm:flex-row gap-3 text-xs font-bold pt-4 border-t border-slate-800/60 mt-4">
+                    <button onclick="promptRestartJourney()"
+                        class="flex-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-rotate-right"></i> Start New Journey
+                    </button>
+                    <button onclick="refreshAIInsights()" id="btn-refresh-insights"
+                        class="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Refresh AI Insights
+                    </button>
+                    <button onclick="refreshAITimelineDetails()" id="btn-refresh-timeline"
+                        class="flex-1 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/20 py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-timeline"></i> Refresh Timeline
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -6793,6 +6836,11 @@
                     }
                 }
 
+                const notifToggle = document.getElementById('modal-weight-notifications-toggle');
+                if (notifToggle) {
+                    notifToggle.checked = !!(userProfileData && userProfileData.notificationsEnabled);
+                }
+
                 if (typeof window.validateTargetWeight === 'function') {
                     window.validateTargetWeight();
                 }
@@ -6925,6 +6973,9 @@
             const checkboxes = document.querySelectorAll('input[name="modal-hardware"]:checked');
             const hardwareList = Array.from(checkboxes).map(cb => cb.value);
 
+            const notifToggle = document.getElementById('modal-weight-notifications-toggle');
+            const notificationsEnabledVal = notifToggle ? notifToggle.checked : false;
+
             if (db && userId) {
                 const updates = {
                     desiredWorkoutLength: lengthVal,
@@ -6935,8 +6986,11 @@
                     includeStrength: strengthTypeVal !== 'none',
                     strengthType: strengthTypeVal,
                     why: whyNotesVal,
-                    equipmentList: hardwareList
+                    equipmentList: hardwareList,
+                    notificationsEnabled: notificationsEnabledVal
                 };
+                if (userProfileData) userProfileData.notificationsEnabled = notificationsEnabledVal;
+                if (typeof checkWeightReminderBanner === 'function') checkWeightReminderBanner(userProfileData);
                 if (targetWeightVal) updates.targetWeight = targetWeightVal;
 
                 if (userProfileData && userProfileData.weight !== weightVal) {
@@ -7192,13 +7246,23 @@
             window.switchNutritionTab = function (tier) {
                 const tabs = ['rest', 'light', 'hard'];
                 tabs.forEach(t => {
+                    const activeClass = "px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer";
+                    const inactiveClass = "px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer";
+
+                    // Tab 2 Elements
                     const tabEl = document.getElementById(`tab-nut-${t}`);
                     const insightEl = document.getElementById(`insight-nut-${t}`);
                     if (tabEl && insightEl) {
-                        tabEl.className = t === tier ?
-                            "px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-white transition-all" :
-                            "px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                        tabEl.className = t === tier ? activeClass : inactiveClass;
                         insightEl.className = t === tier ? "block" : "hidden";
+                    }
+
+                    // Home Tab Elements
+                    const homeTabEl = document.getElementById(`home-tab-nut-${t}`);
+                    const homeInsightEl = document.getElementById(`home-insight-nut-${t}`);
+                    if (homeTabEl && homeInsightEl) {
+                        homeTabEl.className = t === tier ? activeClass : inactiveClass;
+                        homeInsightEl.className = t === tier ? "block" : "hidden";
                     }
                 });
             };
@@ -7359,7 +7423,7 @@
                 if (userProfileData) updateDashboardBMI(userProfileData, false);
             };
 
-            function openLogWeightModal() {
+            window.openLogWeightModal = function () {
                 const modal = document.getElementById('log-weight-modal');
                 if (!modal) return;
                 const todayStr = new Date().toISOString().split('T')[0];
@@ -7372,17 +7436,17 @@
                 document.getElementById('bodyfat-input-val').value = '';
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
-            }
+            };
 
-            function closeLogWeightModal() {
+            window.closeLogWeightModal = function () {
                 const modal = document.getElementById('log-weight-modal');
                 if (modal) {
                     modal.classList.add('hidden');
                     modal.classList.remove('flex');
                 }
-            }
+            };
 
-            async function saveWeightLog(e) {
+            window.saveWeightLog = async function (e) {
                 if (e) e.preventDefault();
                 const weightVal = parseFloat(document.getElementById('weight-input-val').value);
                 const bodyFatVal = parseFloat(document.getElementById('bodyfat-input-val').value);
@@ -7423,29 +7487,52 @@
                     checkWeightReminderBanner(userProfileData);
                 }
                 closeLogWeightModal();
-            }
+            };
 
             function checkWeightReminderBanner(data) {
                 const banner = document.getElementById('home-weight-reminder-banner');
                 if (!banner) return;
                 if (!data) return;
 
+                // Off by default unless explicitly enabled in profile settings
+                const enabled = !!data.notificationsEnabled;
+                if (!enabled) {
+                    banner.classList.add('hidden');
+                    banner.classList.remove('flex');
+                    return;
+                }
+
                 let lastLogTime = 0;
                 if (data.bmiHistory && data.bmiHistory.length > 0) {
                     data.bmiHistory.forEach(h => {
                         if (h.date) {
                             const t = new Date(h.date).getTime();
-                            if (t > lastLogTime) lastLogTime = t;
+                            if (!isNaN(t) && t > lastLogTime) lastLogTime = t;
                         }
                     });
-                } else if (data.lastWeightLogDate) {
-                    lastLogTime = new Date(data.lastWeightLogDate).getTime();
+                }
+                if (data.lastWeightLogDate) {
+                    const t = new Date(data.lastWeightLogDate).getTime();
+                    if (!isNaN(t) && t > lastLogTime) lastLogTime = t;
                 }
 
-                const now = new Date().getTime();
-                const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+                if (lastLogTime === 0) {
+                    banner.classList.remove('hidden');
+                    banner.classList.add('flex');
+                    return;
+                }
 
-                if (lastLogTime === 0 || (now - lastLogTime) > twoDaysMs) {
+                // Calculate calendar day difference using local midnight boundaries
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                
+                const lastLogDateObj = new Date(lastLogTime);
+                const lastLogStart = new Date(lastLogDateObj.getFullYear(), lastLogDateObj.getMonth(), lastLogDateObj.getDate()).getTime();
+
+                const calendarDaysDiff = Math.floor((todayStart - lastLogStart) / (24 * 60 * 60 * 1000));
+
+                // Show banner ONLY if it has been MORE than 2 calendar days since the last log
+                if (calendarDaysDiff > 2) {
                     banner.classList.remove('hidden');
                     banner.classList.add('flex');
                 } else {
@@ -7494,37 +7581,69 @@
                     }
                 }
 
-                // AI Insights
+                // AI Insights (Both Tab 2 and Home Tab)
                 const insightsContainer = document.getElementById('ai-health-insights-container');
                 const insightsEmpty = document.getElementById('ai-health-empty');
+                const homeInsightsContainer = document.getElementById('home-ai-health-insights-container');
+                const homeInsightsEmpty = document.getElementById('home-ai-health-empty');
 
                 if (data.healthInsights) {
                     if (insightsContainer) {
                         insightsContainer.classList.remove('hidden');
-                        insightsContainer.classList.add('flex');
+                        insightsContainer.classList.add('grid');
                     }
                     if (insightsEmpty) insightsEmpty.classList.add('hidden');
 
-                    const moveEl = document.getElementById('insight-movement');
-                    if (moveEl) moveEl.innerText = data.healthInsights.movementTip || "Keep moving!";
+                    if (homeInsightsContainer) {
+                        homeInsightsContainer.classList.remove('hidden');
+                        homeInsightsContainer.classList.add('grid');
+                    }
+                    if (homeInsightsEmpty) homeInsightsEmpty.classList.add('hidden');
 
+                    const moveText = data.healthInsights.movementTip || "Keep moving!";
+                    const moveEl = document.getElementById('insight-movement');
+                    if (moveEl) moveEl.innerText = moveText;
+                    const homeMoveEl = document.getElementById('home-insight-movement');
+                    if (homeMoveEl) homeMoveEl.innerText = moveText;
+
+                    const hydText = data.healthInsights.hydrationRecovery || "Stay hydrated!";
                     const hydEl = document.getElementById('insight-hydration');
-                    if (hydEl) hydEl.innerText = data.healthInsights.hydrationRecovery || "Stay hydrated!";
+                    if (hydEl) hydEl.innerText = hydText;
+                    const homeHydEl = document.getElementById('home-insight-hydration');
+                    if (homeHydEl) homeHydEl.innerText = hydText;
 
                     if (data.healthInsights.nutritionHeuristics) {
+                        const restTxt = data.healthInsights.nutritionHeuristics.restDay || "";
+                        const lightTxt = data.healthInsights.nutritionHeuristics.lightActivity || "";
+                        const hardTxt = data.healthInsights.nutritionHeuristics.hardActivity || "";
+
                         const nutRest = document.getElementById('insight-nut-rest');
-                        if (nutRest) nutRest.innerText = data.healthInsights.nutritionHeuristics.restDay || "";
+                        if (nutRest) nutRest.innerText = restTxt;
+                        const homeNutRest = document.getElementById('home-insight-nut-rest');
+                        if (homeNutRest) homeNutRest.innerText = restTxt;
+
                         const nutLight = document.getElementById('insight-nut-light');
-                        if (nutLight) nutLight.innerText = data.healthInsights.nutritionHeuristics.lightActivity || "";
+                        if (nutLight) nutLight.innerText = lightTxt;
+                        const homeNutLight = document.getElementById('home-insight-nut-light');
+                        if (homeNutLight) homeNutLight.innerText = lightTxt;
+
                         const nutHard = document.getElementById('insight-nut-hard');
-                        if (nutHard) nutHard.innerText = data.healthInsights.nutritionHeuristics.hardActivity || "";
+                        if (nutHard) nutHard.innerText = hardTxt;
+                        const homeNutHard = document.getElementById('home-insight-nut-hard');
+                        if (homeNutHard) homeNutHard.innerText = hardTxt;
                     }
                 } else {
                     if (insightsContainer) {
                         insightsContainer.classList.add('hidden');
-                        insightsContainer.classList.remove('flex');
+                        insightsContainer.classList.remove('grid');
                     }
                     if (insightsEmpty) insightsEmpty.classList.remove('hidden');
+
+                    if (homeInsightsContainer) {
+                        homeInsightsContainer.classList.add('hidden');
+                        homeInsightsContainer.classList.remove('grid');
+                    }
+                    if (homeInsightsEmpty) homeInsightsEmpty.classList.remove('hidden');
                 }
 
                 // Chart.js
