@@ -456,20 +456,20 @@
 
         <section id="pace-chart-card"
             class="tab-content tab-analytics hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden transition-all duration-500">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-4">
                 <div class="flex items-center gap-4">
                     <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20">
                         <i class="fa-solid fa-chart-line text-xl"></i>
                     </div>
                     <div>
-                        <h2 class="font-extrabold text-xl text-slate-100">Dynamic Pace Tracker</h2>
-                        <p class="text-sm text-slate-400 mt-1">Projected vs actual baseline pace progression</p>
+                        <h2 class="font-extrabold text-xl text-slate-100">Pace & Volume</h2>
+                        <p class="text-sm text-slate-400 mt-1">how do Pace and volume progress over time?</p>
                     </div>
                 </div>
 
-                <div class="flex gap-4 flex-wrap text-xs md:items-center">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs w-full xl:w-auto">
                     <div
-                        class="bg-slate-950/80 border border-slate-800/80 px-4 py-2.5 rounded-2xl flex flex-col min-w-[120px]">
+                        class="bg-slate-950/80 border border-slate-800/80 px-3.5 py-2.5 rounded-2xl flex flex-col min-w-[110px]">
                         <span class="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Current
                             Baseline</span>
                         <span class="text-slate-100 font-mono font-black text-sm mt-0.5">
@@ -477,15 +477,29 @@
                         </span>
                     </div>
                     <div
-                        class="bg-slate-950/80 border border-slate-800/80 px-4 py-2.5 rounded-2xl flex flex-col min-w-[120px]">
+                        class="bg-slate-950/80 border border-slate-800/80 px-3.5 py-2.5 rounded-2xl flex flex-col min-w-[110px]">
                         <span class="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Goal Target</span>
                         <span id="goal-pace-display"
                             class="text-indigo-300 font-mono font-black text-sm mt-0.5">-</span>
                     </div>
+                    <div
+                        class="bg-slate-950/80 border border-slate-800/80 px-3.5 py-2.5 rounded-2xl flex flex-col min-w-[110px]">
+                        <span class="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Total Distance</span>
+                        <span id="total-distance-display"
+                            class="text-emerald-400 font-mono font-black text-sm mt-0.5">0.0 mi</span>
+                    </div>
+                    <div
+                        class="bg-slate-950/80 border border-slate-800/80 px-3.5 py-2.5 rounded-2xl flex flex-col min-w-[110px]">
+                        <span class="text-slate-500 font-bold uppercase tracking-wider text-[9px]"
+                            title="Converted 5K race pace estimated from your last 2 completed runs">Est. 5K Race
+                            Pace</span>
+                        <span id="est-5k-pace-display"
+                            class="text-amber-400 font-mono font-black text-sm mt-0.5">-</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="h-64 md:h-72 w-full mt-6 relative">
+            <div class="h-72 md:h-80 w-full mt-4 relative">
                 <canvas id="pace-chart"></canvas>
             </div>
 
@@ -2582,10 +2596,13 @@
         let userId = ""; // Athlete ID tracker
         let userProfileData = null;
         let activePhaseWorkouts = [];
+        let cachedHistoryWorkouts = [];
+        let historyFetchedForUser = null;
         let activeUserListener = null;
         let activeWorkoutsListener = null;
         let syncTimeoutHandle = null;
         let paceChartInstance = null;
+        let volumeChartInstance = null;
 
         // Initialize Firebase
         if (typeof __firebase_config !== 'undefined') {
@@ -2772,8 +2789,8 @@
 
                     if (data.primaryGoal === 'race') {
                         document.getElementById('pace-chart-card').style.display = '';
-                        if (typeof updatePaceChart === 'function') {
-                            updatePaceChart(data);
+                        if (typeof updatePaceAndVolumeHub === 'function') {
+                            updatePaceAndVolumeHub(data);
                         }
                     } else {
                         document.getElementById('pace-chart-card').style.display = 'none';
@@ -2830,6 +2847,9 @@
                 renderNextActivityCard();
                 updateOverallProgressMeter();
                 checkPhaseCompletion();
+                if (userProfileData && typeof updatePaceAndVolumeHub === 'function') {
+                    updatePaceAndVolumeHub(userProfileData);
+                }
             }, (error) => {
                 console.error("Workouts channel sync error: ", error);
             });
@@ -4013,7 +4033,7 @@
                     logBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1 rounded-lg text-[11px] transition-all shadow-md cursor-pointer flex items-center justify-center";
                     const isBenchmark = workout ? workout.isBenchmark : false;
                     const type = workout ? workout.type : 'easy';
-                    logBtn.onclick = function(e) {
+                    logBtn.onclick = function (e) {
                         e.stopPropagation();
                         submitWorkout(id, isBenchmark, type);
                     };
@@ -4037,7 +4057,7 @@
                 if (logBtn) {
                     logBtn.innerText = "Log";
                     logBtn.className = "bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer";
-                    logBtn.onclick = function(e) {
+                    logBtn.onclick = function (e) {
                         e.stopPropagation();
                         toggleGatekeeper(id);
                     };
@@ -4180,7 +4200,7 @@
                 let paceHtml = "";
                 if (nextStep.targetPaceZone || getDisplayDuration(nextStep)) {
                     paceHtml = `<div class="mt-4 flex gap-8 flex-wrap">`;
-                    
+
                     if (getDisplayDuration(nextStep)) {
                         let label = getDisplayDuration(nextStep).toLowerCase().includes('mile') ? 'Distance' : 'Duration';
                         paceHtml += `<div>
@@ -4196,16 +4216,16 @@
                             <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${pType}">Computing...</span>
                         </div>`;
                     }
-                    
+
                     paceHtml += `</div>`;
                 }
 
                 const isCheckedAttr = nextStep.completed ? "checked" : "";
                 const opacityClass = nextStep.completed ? "opacity-60 grayscale-[30%]" : "";
 
-                const isComplexWorkout = nextStep.type === 'strength' || 
-                                         Boolean(nextStep.strengthGuideReference) || 
-                                         (nextStep.activities && nextStep.activities.filter(a => a.type === 'work').length > 1);
+                const isComplexWorkout = nextStep.type === 'strength' ||
+                    Boolean(nextStep.strengthGuideReference) ||
+                    (nextStep.activities && nextStep.activities.filter(a => a.type === 'work').length > 1);
 
                 htmlAccumulator += `
                     <div id="focus-card-${nextStep.id}" class="relative ${opacityClass} transition-all duration-300 mb-6">
@@ -4257,29 +4277,29 @@
                                         </div>
                                         <div class="flex items-center gap-2 mt-1.5">
                                             ${(() => {
-                                                if (nextStep.type === 'rest') {
-                                                    return `<span class="text-xs font-medium text-slate-400">Rest & Recovery • Hydration</span>`;
-                                                } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
-                                                    const exCount = (nextStep.activities ? nextStep.activities.length : 4);
-                                                    return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5"><span>${exCount} Exercises</span> <span class="text-slate-650">•</span> <span>${getDisplayDuration(nextStep) || '30 mins'}</span></span>`;
-                                                } else {
-                                                    let parts = [];
-                                                    if (nextStep.targetDistance) parts.push(`${nextStep.targetDistance} mi`);
-                                                    else if (getDisplayDuration(nextStep) && getDisplayDuration(nextStep).includes('Mile')) parts.push(getDisplayDuration(nextStep));
-                                                    
-                                                    if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
-                                                        parts.push(`Target: ${defaultMin}:${defaultSec} /mi`);
-                                                    } else if (nextStep.targetPaceZone) {
-                                                        parts.push(`Pace: ${nextStep.targetPaceZone}`);
-                                                    }
+                        if (nextStep.type === 'rest') {
+                            return `<span class="text-xs font-medium text-slate-400">Rest & Recovery • Hydration</span>`;
+                        } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
+                            const exCount = (nextStep.activities ? nextStep.activities.length : 4);
+                            return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5"><span>${exCount} Exercises</span> <span class="text-slate-650">•</span> <span>${getDisplayDuration(nextStep) || '30 mins'}</span></span>`;
+                        } else {
+                            let parts = [];
+                            if (nextStep.targetDistance) parts.push(`${nextStep.targetDistance} mi`);
+                            else if (getDisplayDuration(nextStep) && getDisplayDuration(nextStep).includes('Mile')) parts.push(getDisplayDuration(nextStep));
 
-                                                    if (nextStep.targetDuration) parts.push(`${nextStep.targetDuration} mins`);
-                                                    else if (getDisplayDuration(nextStep) && !parts.some(p => p.includes('mi') || p.includes('Mile'))) parts.push(getDisplayDuration(nextStep));
+                            if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
+                                parts.push(`Target: ${defaultMin}:${defaultSec} /mi`);
+                            } else if (nextStep.targetPaceZone) {
+                                parts.push(`Pace: ${nextStep.targetPaceZone}`);
+                            }
 
-                                                    if (parts.length === 0 && getDisplayDuration(nextStep)) parts.push(getDisplayDuration(nextStep));
-                                                    return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5">${parts.map(p => `<span>${p}</span>`).join('<span class="text-slate-650">•</span>')}</span>`;
-                                                }
-                                            })()}
+                            if (nextStep.targetDuration) parts.push(`${nextStep.targetDuration} mins`);
+                            else if (getDisplayDuration(nextStep) && !parts.some(p => p.includes('mi') || p.includes('Mile'))) parts.push(getDisplayDuration(nextStep));
+
+                            if (parts.length === 0 && getDisplayDuration(nextStep)) parts.push(getDisplayDuration(nextStep));
+                            return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5">${parts.map(p => `<span>${p}</span>`).join('<span class="text-slate-650">•</span>')}</span>`;
+                        }
+                    })()}
                                         </div>
                                     </div>
                                 </div>
@@ -4468,10 +4488,10 @@
                             nextStep.activities.forEach(act => {
                                 if (act.type === 'work' && nextStep.strengthGuideReference && !expandedGuideForStep) {
                                     const workActivities = nextStep.activities.filter(a => a.type === 'work');
-                                    const isGenericPlaceholder = workActivities.length === 1 || 
-                                                                 /circuit|routine|workout|guide|strength/i.test(act.name) || 
-                                                                 (nextStep.strengthGuideReference && act.name.toLowerCase().includes(nextStep.strengthGuideReference.toLowerCase()));
-                                    
+                                    const isGenericPlaceholder = workActivities.length === 1 ||
+                                        /circuit|routine|workout|guide|strength/i.test(act.name) ||
+                                        (nextStep.strengthGuideReference && act.name.toLowerCase().includes(nextStep.strengthGuideReference.toLowerCase()));
+
                                     if (isGenericPlaceholder) {
                                         const guide = findStrengthGuide(guidesToSearch, nextStep, nextStep.strengthGuideReference);
                                         if (guide && guide.exercises && guide.exercises.length > 0) {
@@ -5019,14 +5039,228 @@
             return dates;
         }
 
-        function paceStringToSeconds(paceStr) {
-            if (!paceStr) return 490; // Default 8:10
-            const parts = paceStr.split(':');
+        function paceStringToSeconds(paceInput) {
+            if (!paceInput && paceInput !== 0) return 490; // Default 8:10 (490s)
+            if (typeof paceInput === 'number') return paceInput;
+            const str = String(paceInput).trim().replace(/\/mi|min\/mi|mi/gi, '').trim();
+            if (!str.includes(':')) {
+                const num = parseFloat(str);
+                return !isNaN(num) ? num : 490;
+            }
+            const parts = str.split(':');
             if (parts.length !== 2) return 490;
-            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            const m = parseInt(parts[0], 10);
+            const s = parseInt(parts[1], 10);
+            if (isNaN(m) || isNaN(s)) return 490;
+            return m * 60 + s;
         }
 
-        function updatePaceChart(data) {
+        function extractWorkoutMileage(workout) {
+            if (!workout) return 0;
+
+            const type = (workout.type || '').toLowerCase();
+            const title = (workout.workoutTitle || '').toLowerCase();
+
+            // Exclude non-running sessions (Strength, Rest, Recovery) unless GPX file provides actual running distance
+            if ((type === 'strength' || type === 'rest' || title.includes('strength') || title.includes('rest day')) && (!workout.uploadedWorkoutFile || !workout.uploadedWorkoutFile.totalDistanceMeters)) {
+                return 0;
+            }
+
+            // High priority: GPX / TCX uploaded file
+            if (workout.uploadedWorkoutFile && workout.uploadedWorkoutFile.totalDistanceMeters) {
+                return workout.uploadedWorkoutFile.totalDistanceMeters / 1609.34;
+            }
+
+            if (!workout.distanceDuration) return 0;
+            const str = String(workout.distanceDuration).trim().toLowerCase();
+
+            if (str.includes('5k')) return 3.1;
+            if (str.includes('10k')) return 6.2;
+            if (str.includes('half') || str.includes('13.1')) return 13.1;
+            if (str.includes('marathon') || str.includes('26.2')) return 26.2;
+
+            // Check for explicit miles / mi
+            const mileMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:miles?|mi)\b/);
+            if (mileMatch) {
+                return parseFloat(mileMatch[1]);
+            }
+
+            // Check for explicit km / k
+            const kmMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:km|k)\b/);
+            if (kmMatch) {
+                return parseFloat(kmMatch[1]) * 0.621371;
+            }
+
+            // Check for explicit time in minutes (e.g. "30 mins")
+            if (str.includes('min')) {
+                const minsMatch = str.match(/(\d+)\s*min/);
+                if (minsMatch) {
+                    const mins = parseInt(minsMatch[1]);
+                    if (type === 'fast' || type === 'easy' || type === 'long' || workout.isSpeedWorkout) {
+                        const paceSec = workout.actualLoggedPace ? paceStringToSeconds(workout.actualLoggedPace) : 480; // 8:00 pace default
+                        const paceMins = paceSec / 60;
+                        return parseFloat((mins / paceMins).toFixed(1));
+                    }
+                }
+                return 0;
+            }
+
+            // Generic number fallback
+            const genericMatch = str.match(/(\d+(?:\.\d+)?)/);
+            if (genericMatch) {
+                return parseFloat(genericMatch[1]);
+            }
+
+            return 0;
+        }
+
+        function calculateEst5KRacePace(completedRuns, baseline5kStr) {
+            if (!completedRuns || completedRuns.length === 0) {
+                return baseline5kStr || "8:10";
+            }
+            const runsWithPace = completedRuns.filter(w => w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace))
+                .sort((a, b) => {
+                    const dateA = a.dateExecuted ? new Date(a.dateExecuted).getTime() : (a.sequenceOrder || 0);
+                    const dateB = b.dateExecuted ? new Date(b.dateExecuted).getTime() : (b.sequenceOrder || 0);
+                    return dateB - dateA;
+                });
+
+            if (runsWithPace.length === 0) return baseline5kStr || "8:10";
+
+            const lastTwo = runsWithPace.slice(0, 2);
+            let totalEstSec = 0;
+
+            lastTwo.forEach(w => {
+                const rawPaceStr = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
+                const loggedSec = paceStringToSeconds(rawPaceStr);
+                const type = (w.type || '').toLowerCase();
+                const zone = (w.targetPaceZone || '').toLowerCase();
+
+                let offsetSec = 0;
+                if (type.includes('easy') || zone.includes('easy')) {
+                    offsetSec = -80; // Easy run pace is ~80s slower than 5K pace
+                } else if (type.includes('long') || zone.includes('long')) {
+                    offsetSec = -55; // Long run pace is ~55s slower than 5K pace
+                } else if (type.includes('tempo') || zone.includes('tempo')) {
+                    offsetSec = 25;  // Tempo run pace conversion (+25s to 5K)
+                } else if (type.includes('fast') || type.includes('speed') || type.includes('interval') || w.isBenchmark) {
+                    offsetSec = 0;   // Direct 5K race effort
+                } else {
+                    offsetSec = -30;
+                }
+
+                const est5KSec = Math.max(270, loggedSec + offsetSec); // Min clamp 4:30/mi
+                totalEstSec += est5KSec;
+            });
+
+            const avg5KSec = Math.round(totalEstSec / lastTwo.length);
+            const mins = Math.floor(avg5KSec / 60);
+            const secs = avg5KSec % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        async function getOrFetchHistoryWorkouts(userId) {
+            if (!userId || typeof db === 'undefined' || !db) return [];
+            if (historyFetchedForUser === userId && cachedHistoryWorkouts.length > 0) {
+                return cachedHistoryWorkouts;
+            }
+            try {
+                const snap = await db.collection("users").doc(userId).collection("history").get();
+                cachedHistoryWorkouts = [];
+                snap.forEach(doc => cachedHistoryWorkouts.push(doc.data()));
+                historyFetchedForUser = userId;
+            } catch (e) {
+                console.warn("Could not fetch history subcollection:", e);
+            }
+            return cachedHistoryWorkouts;
+        }
+
+        async function updatePaceAndVolumeHub(data) {
+            if (!data) return;
+
+            let historyWorkouts = [];
+            if (userId) {
+                historyWorkouts = await getOrFetchHistoryWorkouts(userId);
+            }
+
+            const activeWorkouts = typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : [];
+            const allWorkouts = [...activeWorkouts, ...historyWorkouts];
+
+            const completedRuns = allWorkouts.filter(w => {
+                if (!w) return false;
+                return w.completed === true || w.completed === "true" || !!w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
+            });
+
+            let totalMiles = 0;
+            completedRuns.forEach(w => {
+                totalMiles += extractWorkoutMileage(w);
+            });
+
+            const totalDistEl = document.getElementById('total-distance-display');
+            if (totalDistEl) {
+                totalDistEl.innerText = `${totalMiles.toFixed(1)} mi`;
+            }
+
+            const est5KPace = calculateEst5KRacePace(completedRuns, data.baseline5k);
+            const est5KEl = document.getElementById('est-5k-pace-display');
+            if (est5KEl) {
+                est5KEl.innerText = `${est5KPace} / mi`;
+            }
+
+            updatePaceChart(data, completedRuns);
+        }
+
+        function generateWeeklyTimeline(startDateStr, endDateStr, defaultWeeks = 12) {
+            const start = startDateStr ? new Date(startDateStr) : new Date();
+            let numWeeks = defaultWeeks;
+            if (endDateStr && startDateStr) {
+                const diffMs = new Date(endDateStr).getTime() - new Date(startDateStr).getTime();
+                const calcWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+                if (calcWeeks > 0) numWeeks = calcWeeks;
+            }
+            numWeeks = Math.max(4, Math.min(16, numWeeks)); // Clamp between 4 and 16 weeks
+
+            const labels = [];
+            const windows = [];
+
+            for (let w = 0; w < numWeeks; w++) {
+                const weekStart = new Date(start.getTime() + (w * 7 * 24 * 60 * 60 * 1000));
+                const weekEnd = new Date(weekStart.getTime() + (7 * 24 * 60 * 60 * 1000));
+
+                const opt = { month: 'short', day: 'numeric' };
+                const dateStr = weekStart.toLocaleDateString('en-US', opt);
+
+                labels.push(`Wk ${w + 1}`);
+                windows.push({ start: weekStart.getTime(), end: weekEnd.getTime(), dateStr, weekNum: w + 1 });
+            }
+
+            return { labels, windows, numWeeks, startMs: start.getTime() };
+        }
+
+        function convertRunToEst5KPaceSec(w) {
+            const rawPaceStr = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
+            if (!rawPaceStr) return null;
+            const loggedSec = paceStringToSeconds(rawPaceStr);
+            const type = (w.type || '').toLowerCase();
+            const zone = (w.targetPaceZone || '').toLowerCase();
+
+            let offsetSec = 0;
+            if (type.includes('easy') || zone.includes('easy')) {
+                offsetSec = -80; // Easy run pace ~80s slower than 5K pace
+            } else if (type.includes('long') || zone.includes('long')) {
+                offsetSec = -55; // Long run pace ~55s slower than 5K pace
+            } else if (type.includes('tempo') || zone.includes('tempo')) {
+                offsetSec = 25;  // Tempo run pace offset
+            } else if (type.includes('fast') || type.includes('speed') || type.includes('interval') || w.isBenchmark) {
+                offsetSec = 0;   // Direct 5K effort
+            } else {
+                offsetSec = -30;
+            }
+
+            return Math.max(270, loggedSec + offsetSec); // Clamp at 4:30 min/mi minimum
+        }
+
+        function updatePaceChart(data, completedRuns) {
             if (!data) return;
             const canvas = document.getElementById('pace-chart');
             if (!canvas) return;
@@ -5040,43 +5274,64 @@
             const startSec = paceStringToSeconds(data.baseline5k || "8:10");
             const goalSec = paceStringToSeconds(data.activeAdjustedGoal || "6:26");
 
-            // 1. Construct Projected Line (linear interpolation)
+            // 1. Generate Timeline for EVERY Week across the macrocycle
+            const { labels, windows, numWeeks, startMs } = generateWeeklyTimeline(data.journeyStartDate, data.targetDate, 12);
+
+            // 2. Linear Projected Goal Line
             const projectedData = [];
-            for (let i = 0; i <= 7; i++) {
-                const sec = startSec - (i * (startSec - goalSec) / 7);
+            for (let i = 0; i < numWeeks; i++) {
+                const sec = startSec - (i * (startSec - goalSec) / (numWeeks - 1));
                 projectedData.push(sec / 60);
             }
 
-            // 2. Construct Actual Line (mapped checkpoints)
-            const actualData = Array(8).fill(null);
-            actualData[0] = startSec / 60; // Start point
+            // 3. Calculate Weekly Volume & Weekly Est. 5K Race Pace Bubbles for EVERY Week
+            const weeklyVolumeData = Array(numWeeks).fill(0);
+            const weeklyEstPaceData = Array(numWeeks).fill(null);
 
-            let maxPopulatedIdx = 0;
-            if (data.paceHistory && Array.isArray(data.paceHistory)) {
-                data.paceHistory.forEach(item => {
-                    let idx = item.index;
-                    if (idx === undefined) {
-                        idx = getCheckpointIndex(item.phase, item.activityId || '');
+            // Baseline bubble at Week 1 if no runs completed yet
+            weeklyEstPaceData[0] = startSec / 60;
+
+            const runs = completedRuns || (typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : []);
+
+            for (let wIdx = 0; wIdx < numWeeks; wIdx++) {
+                const weekWin = windows[wIdx];
+                let weekVolume = 0;
+                let weekPaceSecs = [];
+
+                runs.forEach(w => {
+                    let wMs = 0;
+                    if (w.dateExecuted) {
+                        wMs = new Date(w.dateExecuted).getTime();
+                    } else if (w.sequenceOrder) {
+                        const wkOffset = Math.floor((w.sequenceOrder - 1) / 3);
+                        wMs = startMs + (wkOffset * 7 * 24 * 60 * 60 * 1000);
                     }
-                    if (idx >= 0 && idx <= 7) {
-                        actualData[idx] = paceStringToSeconds(item.pace) / 60;
-                        if (idx > maxPopulatedIdx) maxPopulatedIdx = idx;
+
+                    if (wMs >= weekWin.start && wMs < weekWin.end) {
+                        const miles = extractWorkoutMileage(w);
+                        if (miles > 0) weekVolume += miles;
+
+                        const estSec = convertRunToEst5KPaceSec(w);
+                        if (estSec !== null) {
+                            weekPaceSecs.push(estSec);
+                        }
                     }
                 });
+
+                weeklyVolumeData[wIdx] = parseFloat(weekVolume.toFixed(1));
+
+                if (weekPaceSecs.length > 0) {
+                    const avgSec = weekPaceSecs.reduce((a, b) => a + b, 0) / weekPaceSecs.length;
+                    weeklyEstPaceData[wIdx] = avgSec / 60;
+                }
             }
 
-            // Trim actual data tail containing nulls so the line stops at the last logged point
-            const trimmedActualData = actualData.map((val, idx) => {
-                return idx <= maxPopulatedIdx ? val : null;
-            });
-
-            const labels = generateTimelineDates(data.journeyStartDate, data.targetDate);
-
-            // Check if chart instance exists
+            // Update or Create Mixed Dual-Axis Chart Instance
             if (paceChartInstance) {
                 paceChartInstance.data.labels = labels;
-                paceChartInstance.data.datasets[0].data = trimmedActualData;
+                paceChartInstance.data.datasets[0].data = weeklyEstPaceData;
                 paceChartInstance.data.datasets[1].data = projectedData;
+                paceChartInstance.data.datasets[2].data = weeklyVolumeData;
                 paceChartInstance.update();
             } else {
                 const ctx = canvas.getContext('2d');
@@ -5086,19 +5341,26 @@
                         labels: labels,
                         datasets: [
                             {
-                                label: 'Actual Pace',
-                                data: trimmedActualData,
+                                label: 'Weekly Est. 5K Pace',
+                                type: 'line',
+                                yAxisID: 'y',
+                                data: weeklyEstPaceData,
                                 borderColor: '#6366f1', // Indigo-500
-                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                backgroundColor: 'rgba(99, 102, 241, 0.15)',
                                 borderWidth: 3.5,
                                 pointBackgroundColor: '#6366f1',
-                                pointBorderColor: '#fff',
-                                pointHoverRadius: 6,
-                                tension: 0.15,
-                                spanGaps: true
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 6.5,
+                                pointHoverRadius: 9,
+                                tension: 0.2,
+                                spanGaps: true,
+                                order: 1
                             },
                             {
-                                label: 'Projected Pace',
+                                label: 'Projected Pace Target',
+                                type: 'line',
+                                yAxisID: 'y',
                                 data: projectedData,
                                 borderColor: '#94a3b8', // Slate-400
                                 borderDash: [6, 6],
@@ -5106,7 +5368,20 @@
                                 pointBackgroundColor: '#94a3b8',
                                 pointHoverRadius: 4,
                                 tension: 0.1,
-                                fill: false
+                                fill: false,
+                                order: 2
+                            },
+                            {
+                                label: 'Weekly Volume',
+                                type: 'bar',
+                                yAxisID: 'y1',
+                                data: weeklyVolumeData,
+                                backgroundColor: 'rgba(16, 185, 129, 0.35)',
+                                borderColor: '#10b981',
+                                borderWidth: 1.5,
+                                borderRadius: 6,
+                                barPercentage: 0.45,
+                                order: 3
                             }
                         ]
                     },
@@ -5119,11 +5394,7 @@
                                 position: 'top',
                                 labels: {
                                     color: '#94a3b8',
-                                    font: {
-                                        family: 'Plus Jakarta Sans',
-                                        weight: '600',
-                                        size: 11
-                                    },
+                                    font: { family: 'Plus Jakarta Sans', weight: '600', size: 11 },
                                     boxWidth: 12,
                                     boxHeight: 12,
                                     padding: 15
@@ -5134,56 +5405,60 @@
                                 borderColor: '#334155',
                                 borderWidth: 1,
                                 titleColor: '#fff',
-                                titleFont: {
-                                    family: 'Plus Jakarta Sans',
-                                    weight: 'bold'
-                                },
+                                titleFont: { family: 'Plus Jakarta Sans', weight: 'bold' },
                                 bodyColor: '#94a3b8',
-                                bodyFont: {
-                                    family: 'Plus Jakarta Sans'
-                                },
+                                bodyFont: { family: 'Plus Jakarta Sans' },
                                 callbacks: {
                                     label: function (context) {
                                         const val = context.raw;
                                         if (val === null || val === undefined) return '';
+                                        const label = context.dataset.label || '';
+                                        if (context.dataset.yAxisID === 'y1') {
+                                            return ` ${label}: ${parseFloat(val.toFixed(1))} miles`;
+                                        }
                                         const mins = Math.floor(val);
                                         const secs = Math.round((val - mins) * 60);
-                                        const label = context.dataset.label || '';
-                                        return `${label}: ${mins}:${secs < 10 ? '0' : ''}${secs} /mi`;
+                                        return ` ${label}: ${mins}:${secs < 10 ? '0' : ''}${secs} /mi`;
                                     }
                                 }
                             }
                         },
                         scales: {
                             x: {
-                                grid: {
-                                    display: false
-                                },
+                                grid: { display: false },
                                 ticks: {
                                     color: '#64748b',
-                                    font: {
-                                        family: 'Plus Jakarta Sans',
-                                        weight: '600',
-                                        size: 10
-                                    }
+                                    font: { family: 'Plus Jakarta Sans', weight: '600', size: 10 },
+                                    autoSkip: true,
+                                    maxTicksLimit: 4,
+                                    maxRotation: 0,
+                                    minRotation: 0
                                 }
                             },
                             y: {
-                                grid: {
-                                    color: 'rgba(51, 65, 85, 0.3)'
-                                },
+                                type: 'linear',
+                                position: 'left',
+                                title: { display: true, text: 'Pace (min/mi)', color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 10, weight: 'bold' } },
+                                grid: { color: 'rgba(51, 65, 85, 0.3)' },
                                 ticks: {
                                     color: '#64748b',
-                                    font: {
-                                        family: 'Plus Jakarta Sans',
-                                        weight: '600',
-                                        size: 10
-                                    },
+                                    font: { family: 'Plus Jakarta Sans', weight: '600', size: 10 },
                                     callback: function (value) {
                                         const mins = Math.floor(value);
                                         const secs = Math.round((value - mins) * 60);
                                         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
                                     }
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                title: { display: true, text: 'Weekly Volume (mi)', color: '#10b981', font: { family: 'Plus Jakarta Sans', size: 10, weight: 'bold' } },
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#10b981',
+                                    font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' },
+                                    callback: function (v) { return `${v} mi`; }
                                 }
                             }
                         }
