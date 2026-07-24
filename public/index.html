@@ -347,9 +347,25 @@
                         </div>
                     </div>
 
+        </header>
+
+        <!-- Home Weight Logging Reminder Banner (Shown when > 2 days since last weight log) -->
+        <div id="home-weight-reminder-banner"
+            class="tab-content tab-home hidden mb-6 bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                    <i class="fa-solid fa-scale-unbalanced text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm text-slate-100">Weight Logging Reminder</h4>
+                    <p class="text-xs text-slate-400">You haven't logged your weight in over 2 days. Keep your trend engine accurate!</p>
                 </div>
             </div>
-        </header>
+            <button onclick="openLogWeightModal()"
+                class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-plus"></i> Log Weight
+            </button>
+        </div>
 
         <!-- Turkey Trot Challenge Banner -->
         <div class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-amber-900/60 to-yellow-600/40 border border-yellow-500/50 rounded-2xl p-4 shadow-xl cursor-pointer hover:border-yellow-400 transition-all duration-300"
@@ -518,30 +534,40 @@
                     </div>
                     <div>
                         <h2 class="font-extrabold text-xl text-slate-100">Health & Biometrics</h2>
-                        <p class="text-sm text-slate-400 mt-1">Consistency, Recovery & Nutrition</p>
+                        <p class="text-sm text-slate-400 mt-1">Weight Trend Engine, Consistency & Nutrition</p>
                     </div>
                 </div>
+                <button onclick="openLogWeightModal()"
+                    class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer shrink-0">
+                    <i class="fa-solid fa-plus text-xs"></i> Log Weight
+                </button>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Left: Consistency & BMI Chart -->
-                <div class="space-y-6">
-                    <div class="flex gap-4">
-                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex-1 text-center">
-                            <span class="block text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">Days
-                                in Phase</span>
-                            <span id="consistency-days-phase" class="text-2xl font-black text-indigo-400">-</span>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
+                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">Days in Phase</span>
+                            <span id="consistency-days-phase" class="text-lg font-black text-indigo-400">-</span>
                         </div>
-                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex-1 text-center">
-                            <span class="block text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">Block
-                                Completion</span>
-                            <span id="consistency-score" class="text-2xl font-black text-emerald-400">-</span>
+                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
+                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">Current Weight</span>
+                            <span id="weight-ticker-current" class="text-lg font-black text-slate-100">-</span>
+                        </div>
+                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
+                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">7-Day Rate</span>
+                            <span id="weight-ticker-rate" class="text-lg font-black text-emerald-400">-</span>
+                        </div>
+                        <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-3">
+                            <span class="block text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-0.5">Phase Change</span>
+                            <span id="weight-ticker-phase" class="text-lg font-black text-sky-400">-</span>
                         </div>
                     </div>
                     <div class="bg-slate-950/30 border border-slate-800/50 rounded-2xl p-4">
                         <div class="flex justify-between items-end mb-4">
                             <div class="flex items-center gap-2">
-                                <span class="text-sm font-bold text-slate-300">BMI History & Target</span>
+                                <span class="text-sm font-bold text-slate-300">Weight & BMI Progression</span>
                                 <button onclick="openFullJourneyModal()"
                                     class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 px-2 py-1 rounded-md transition-colors border border-slate-800"><i
                                         class="fa-solid fa-expand"></i> Full Journey</button>
@@ -2073,6 +2099,55 @@
                     <!-- Populated by JS -->
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Log Weight Modal -->
+    <div id="log-weight-modal"
+        class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div
+            class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden transition-all duration-300">
+            <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                        <i class="fa-solid fa-weight-scale text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-lg text-slate-100">Log Weight Entry</h3>
+                        <p class="text-xs text-slate-400">Track weight & body fat progression</p>
+                    </div>
+                </div>
+                <button onclick="closeLogWeightModal()" class="text-slate-400 hover:text-slate-200 p-2 cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form onsubmit="saveWeightLog(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Weight (lbs)</label>
+                    <input type="number" step="0.1" id="weight-input-val" required placeholder="e.g. 165.5"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Body Fat % (Optional)</label>
+                    <input type="number" step="0.1" id="bodyfat-input-val" placeholder="e.g. 16.5"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 text-sm focus:outline-none focus:border-emerald-500 font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Log Date</label>
+                    <input type="date" id="weight-date-val" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 text-sm focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div class="flex gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" onclick="closeLogWeightModal()"
+                        class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-sm transition-all cursor-pointer">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-3 rounded-xl text-sm transition-all shadow-lg cursor-pointer">Save Log</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -7284,8 +7359,104 @@
                 if (userProfileData) updateDashboardBMI(userProfileData, false);
             };
 
+            function openLogWeightModal() {
+                const modal = document.getElementById('log-weight-modal');
+                if (!modal) return;
+                const todayStr = new Date().toISOString().split('T')[0];
+                document.getElementById('weight-date-val').value = todayStr;
+                if (typeof userProfileData !== 'undefined' && userProfileData && userProfileData.weight) {
+                    document.getElementById('weight-input-val').value = userProfileData.weight;
+                } else {
+                    document.getElementById('weight-input-val').value = '';
+                }
+                document.getElementById('bodyfat-input-val').value = '';
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function closeLogWeightModal() {
+                const modal = document.getElementById('log-weight-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            }
+
+            async function saveWeightLog(e) {
+                if (e) e.preventDefault();
+                const weightVal = parseFloat(document.getElementById('weight-input-val').value);
+                const bodyFatVal = parseFloat(document.getElementById('bodyfat-input-val').value);
+                const dateVal = document.getElementById('weight-date-val').value;
+
+                if (isNaN(weightVal) || weightVal <= 0) return;
+
+                const dateObj = dateVal ? new Date(dateVal + 'T12:00:00') : new Date();
+                const entry = {
+                    date: dateObj.toISOString(),
+                    weight: weightVal
+                };
+                if (!isNaN(bodyFatVal) && bodyFatVal > 0) {
+                    entry.bodyFat = bodyFatVal;
+                }
+
+                if (typeof userProfileData !== 'undefined' && userProfileData) {
+                    if (!userProfileData.bmiHistory) userProfileData.bmiHistory = [];
+                    userProfileData.bmiHistory.push(entry);
+                    userProfileData.weight = weightVal;
+                    userProfileData.lastWeightLogDate = dateObj.toISOString();
+                }
+
+                if (typeof userId !== 'undefined' && userId && typeof db !== 'undefined' && db) {
+                    try {
+                        await db.collection("users").doc(userId).update({
+                            weight: weightVal,
+                            lastWeightLogDate: dateObj.toISOString(),
+                            bmiHistory: firebase.firestore.FieldValue.arrayUnion(entry)
+                        });
+                    } catch(err) {
+                        console.warn("Error updating weight log in Firestore:", err);
+                    }
+                }
+
+                if (typeof userProfileData !== 'undefined') {
+                    if (typeof updateDashboardBMI === 'function') updateDashboardBMI(userProfileData);
+                    checkWeightReminderBanner(userProfileData);
+                }
+                closeLogWeightModal();
+            }
+
+            function checkWeightReminderBanner(data) {
+                const banner = document.getElementById('home-weight-reminder-banner');
+                if (!banner) return;
+                if (!data) return;
+
+                let lastLogTime = 0;
+                if (data.bmiHistory && data.bmiHistory.length > 0) {
+                    data.bmiHistory.forEach(h => {
+                        if (h.date) {
+                            const t = new Date(h.date).getTime();
+                            if (t > lastLogTime) lastLogTime = t;
+                        }
+                    });
+                } else if (data.lastWeightLogDate) {
+                    lastLogTime = new Date(data.lastWeightLogDate).getTime();
+                }
+
+                const now = new Date().getTime();
+                const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+
+                if (lastLogTime === 0 || (now - lastLogTime) > twoDaysMs) {
+                    banner.classList.remove('hidden');
+                    banner.classList.add('flex');
+                } else {
+                    banner.classList.add('hidden');
+                    banner.classList.remove('flex');
+                }
+            }
+
             window.updateDashboardBMI = function (data, isFullJourney = false) {
                 console.log(`[BMI Chart Debug] Starting updateDashboardBMI (isFullJourney: ${isFullJourney})`);
+                checkWeightReminderBanner(data);
                 const card = document.getElementById('dashboard-bmi-card');
                 if (!card) {
                     console.log("[BMI Chart Debug] dashboard-bmi-card not found!");
@@ -7307,15 +7478,19 @@
                 if (typeof activePhaseWorkouts !== 'undefined' && activePhaseWorkouts.length > 0) {
                     const completed = activePhaseWorkouts.filter(w => w.completed).length;
                     const total = activePhaseWorkouts.length;
-                    document.getElementById('consistency-score').innerText = `${Math.round((completed / total) * 100)}%`;
+                    const scoreEl = document.getElementById('consistency-score');
+                    if (scoreEl) scoreEl.innerText = `${Math.round((completed / total) * 100)}%`;
 
                     const completedDates = activePhaseWorkouts.filter(w => w.completed && w.dateExecuted).map(w => new Date(w.dateExecuted).getTime());
-                    if (completedDates.length > 0) {
-                        const minDate = Math.min(...completedDates);
-                        const days = Math.floor((new Date().getTime() - minDate) / (1000 * 3600 * 24)) + 1;
-                        document.getElementById('consistency-days-phase').innerText = `${days} Days`;
-                    } else {
-                        document.getElementById('consistency-days-phase').innerText = "Day 1";
+                    const daysEl = document.getElementById('consistency-days-phase');
+                    if (daysEl) {
+                        if (completedDates.length > 0) {
+                            const minDate = Math.min(...completedDates);
+                            const days = Math.floor((new Date().getTime() - minDate) / (1000 * 3600 * 24)) + 1;
+                            daysEl.innerText = `${days} Days`;
+                        } else {
+                            daysEl.innerText = "Day 1";
+                        }
                     }
                 }
 
@@ -7324,22 +7499,32 @@
                 const insightsEmpty = document.getElementById('ai-health-empty');
 
                 if (data.healthInsights) {
-                    insightsContainer.classList.remove('hidden');
-                    insightsContainer.classList.add('flex');
-                    insightsEmpty.classList.add('hidden');
+                    if (insightsContainer) {
+                        insightsContainer.classList.remove('hidden');
+                        insightsContainer.classList.add('flex');
+                    }
+                    if (insightsEmpty) insightsEmpty.classList.add('hidden');
 
-                    document.getElementById('insight-movement').innerText = data.healthInsights.movementTip || "Keep moving!";
-                    document.getElementById('insight-hydration').innerText = data.healthInsights.hydrationRecovery || "Stay hydrated!";
+                    const moveEl = document.getElementById('insight-movement');
+                    if (moveEl) moveEl.innerText = data.healthInsights.movementTip || "Keep moving!";
+
+                    const hydEl = document.getElementById('insight-hydration');
+                    if (hydEl) hydEl.innerText = data.healthInsights.hydrationRecovery || "Stay hydrated!";
 
                     if (data.healthInsights.nutritionHeuristics) {
-                        document.getElementById('insight-nut-rest').innerText = data.healthInsights.nutritionHeuristics.restDay || "";
-                        document.getElementById('insight-nut-light').innerText = data.healthInsights.nutritionHeuristics.lightActivity || "";
-                        document.getElementById('insight-nut-hard').innerText = data.healthInsights.nutritionHeuristics.hardActivity || "";
+                        const nutRest = document.getElementById('insight-nut-rest');
+                        if (nutRest) nutRest.innerText = data.healthInsights.nutritionHeuristics.restDay || "";
+                        const nutLight = document.getElementById('insight-nut-light');
+                        if (nutLight) nutLight.innerText = data.healthInsights.nutritionHeuristics.lightActivity || "";
+                        const nutHard = document.getElementById('insight-nut-hard');
+                        if (nutHard) nutHard.innerText = data.healthInsights.nutritionHeuristics.hardActivity || "";
                     }
                 } else {
-                    insightsContainer.classList.add('hidden');
-                    insightsContainer.classList.remove('flex');
-                    insightsEmpty.classList.remove('hidden');
+                    if (insightsContainer) {
+                        insightsContainer.classList.add('hidden');
+                        insightsContainer.classList.remove('flex');
+                    }
+                    if (insightsEmpty) insightsEmpty.classList.remove('hidden');
                 }
 
                 // Chart.js
@@ -7374,6 +7559,43 @@
                         }
                     }
                     history.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    // Update biometrics ticker stats
+                    if (history.length > 0) {
+                        const latestLog = history[history.length - 1];
+                        const currentW = latestLog.weight;
+                        const currEl = document.getElementById('weight-ticker-current');
+                        if (currEl) currEl.innerText = `${currentW.toFixed(1)} lbs`;
+
+                        // 7-Day Rate calculation
+                        let rateText = "-";
+                        if (history.length >= 2) {
+                            const latestTime = new Date(latestLog.date).getTime();
+                            const sevenDaysAgoTime = latestTime - (7 * 24 * 60 * 60 * 1000);
+                            let prevLog = history[0];
+                            for (let i = history.length - 1; i >= 0; i--) {
+                                if (new Date(history[i].date).getTime() <= sevenDaysAgoTime) {
+                                    prevLog = history[i];
+                                    break;
+                                }
+                            }
+                            const daysDiff = (latestTime - new Date(prevLog.date).getTime()) / (1000 * 60 * 60 * 24);
+                            if (daysDiff >= 1) {
+                                const rateVal = parseFloat(((latestLog.weight - prevLog.weight) / (daysDiff / 7)).toFixed(1));
+                                rateText = rateVal > 0 ? `+${rateVal} lbs/wk` : `${rateVal} lbs/wk`;
+                            }
+                        }
+                        const rateEl = document.getElementById('weight-ticker-rate');
+                        if (rateEl) rateEl.innerText = rateText;
+
+                        // Phase Change calculation
+                        const phaseStart = data.journeyStartDate ? new Date(data.journeyStartDate) : new Date(history[0].date);
+                        let firstInPhase = history.find(h => new Date(h.date) >= phaseStart) || history[0];
+                        const phaseDiffVal = parseFloat((latestLog.weight - firstInPhase.weight).toFixed(1));
+                        const phaseDiffText = phaseDiffVal > 0 ? `+${phaseDiffVal} lbs` : `${phaseDiffVal} lbs`;
+                        const phaseEl = document.getElementById('weight-ticker-phase');
+                        if (phaseEl) phaseEl.innerText = phaseDiffText;
+                    }
 
                     const pad = n => n.toString().padStart(2, '0');
 
@@ -7620,67 +7842,39 @@
                             ctx.font = '10px "Plus Jakarta Sans", sans-serif';
                             ctx.textAlign = 'center';
 
-                            // User weights labels (dataset 1 - weekly bubbles)
-                            const meta1 = chart.getDatasetMeta(1);
-                            if (meta1 && meta1.data) {
-                                meta1.data.forEach((point, index) => {
+                            // Dataset 2: Orange Weekly Log Markers / Phase Starting Weight
+                            const meta2 = chart.getDatasetMeta(2);
+                            if (meta2 && meta2.data) {
+                                meta2.data.forEach((point, index) => {
                                     const valObj = weeklyPoints[index];
-                                    if (valObj) {
+                                    if (valObj && point) {
                                         const numVal = parseFloat(valObj.y);
                                         const numStart = parseFloat(startWeight);
                                         const loss = (numVal - numStart).toFixed(1);
-                                        const lossText = numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`);
+                                        const lossText = index === 0 ? 'Start' : (numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`));
                                         ctx.fillStyle = '#ea580c'; // Orange
                                         ctx.textBaseline = 'bottom';
 
                                         if (lossText) {
-                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y - 18);
+                                            ctx.fillText(`${numVal.toFixed(1)} lbs`, point.x, point.y - 18);
                                             ctx.font = '9px "Plus Jakarta Sans", sans-serif';
                                             ctx.fillText(lossText, point.x, point.y - 7);
                                             ctx.font = '10px "Plus Jakarta Sans", sans-serif';
                                         } else {
-                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y - 10);
+                                            ctx.fillText(`${numVal.toFixed(1)} lbs`, point.x, point.y - 10);
                                         }
                                     }
                                 });
-                            }
-
-                            // Target labels (dataset 2)
-                            const meta2 = chart.getDatasetMeta(2);
-                            if (meta2 && meta2.data) {
-                                for (let i = 0; i < targetPoints.length; i++) {
-                                    const valObj = targetPoints[i];
-                                    const point = meta2.data[i];
-
-                                    let hasUserPoint = weeklyPoints.some(wp => Math.abs(wp.x - i) < 0.5);
-
-                                    if (point && valObj && !hasUserPoint) {
-                                        const numVal = parseFloat(valObj.y);
-                                        const numStart = parseFloat(startWeight);
-                                        const loss = (numVal - numStart).toFixed(1);
-                                        const lossText = numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`);
-                                        ctx.fillStyle = '#0ea5e9'; // Blue
-                                        ctx.textBaseline = 'top';
-
-                                        if (lossText) {
-                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y + 15);
-                                            ctx.font = '9px "Plus Jakarta Sans", sans-serif';
-                                            ctx.fillText(lossText, point.x, point.y + 26);
-                                            ctx.font = '10px "Plus Jakarta Sans", sans-serif';
-                                        } else {
-                                            ctx.fillText(`${numVal.toFixed(1)}`, point.x, point.y + 15);
-                                        }
-                                    }
-                                }
                             }
                             ctx.restore();
                         },
                         afterDraw: (chart) => {
                             const { ctx } = chart;
-                            const datasetMeta = chart.getDatasetMeta(2); // Target dataset
+                            // Dataset 3: Stage Target Dataset
+                            const datasetMeta = chart.getDatasetMeta(3);
                             if (!datasetMeta || !datasetMeta.data || datasetMeta.data.length === 0) return;
 
-                            // Point the bullseye at the very last point of the target line (Stage or Full Target)
+                            // Point the Blue Stage Target Bubble at the very last point of the stage target line
                             const lastPoint = datasetMeta.data[datasetMeta.data.length - 1];
                             if (!lastPoint) return;
 
@@ -7689,15 +7883,33 @@
 
                             ctx.save();
                             ctx.beginPath();
-                            ctx.arc(px, py, 6, 0, 2 * Math.PI);
-                            ctx.fillStyle = isFullJourney ? '#a855f7' : '#0ea5e9'; // Purple if full journey, blue if stage
+                            ctx.arc(px, py, 7, 0, 2 * Math.PI);
+                            ctx.fillStyle = isFullJourney ? '#a855f7' : '#0ea5e9'; // Purple if full journey, Blue if stage
                             ctx.fill();
-                            ctx.lineWidth = 2;
+                            ctx.lineWidth = 2.5;
                             ctx.strokeStyle = '#ffffff';
                             ctx.stroke();
+
+                            // Label above/below stage target bubble
+                            ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+                            ctx.fillStyle = isFullJourney ? '#a855f7' : '#0ea5e9';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            ctx.fillText(`${stageTargetWeight.toFixed(1)} lbs`, px, py - 10);
                             ctx.restore();
                         }
                     };
+
+                    // Calculate 7-Day Moving Average Trend points
+                    let ma7Points = [];
+                    for (let i = 0; i < allPoints.length; i++) {
+                        let pt = allPoints[i];
+                        let currentX = pt.x;
+                        let windowPts = allPoints.filter(p => Math.abs(p.x - currentX) <= 0.5);
+                        let sumY = windowPts.reduce((acc, p) => acc + p.y, 0);
+                        let avgY = sumY / windowPts.length;
+                        ma7Points.push({ x: pt.x, y: parseFloat(avgY.toFixed(1)) });
+                    }
 
                     // Calculate dynamic min and max based on visible points
                     const validWeights = allPoints.map(p => p.y);
@@ -7712,19 +7924,32 @@
                         data: {
                             datasets: [
                                 {
-                                    label: 'Your Trend',
+                                    label: 'Raw Weight Log',
                                     data: allPoints,
-                                    borderColor: '#f97316', // Orange
-                                    backgroundColor: '#f97316',
-                                    borderWidth: 3,
+                                    borderColor: 'rgba(148, 163, 184, 0.45)', // Muted Slate
+                                    backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                                    borderWidth: 1.5,
+                                    borderDash: [3, 3],
                                     fill: false,
-                                    tension: 0.3,
-                                    pointBackgroundColor: '#ea580c',
+                                    tension: 0.2,
+                                    pointBackgroundColor: '#94a3b8',
                                     pointBorderColor: '#ffffff',
                                     pointBorderWidth: 1,
-                                    pointRadius: 2, // Very small dot, slightly bigger than line
-                                    pointHoverRadius: 4,
+                                    pointRadius: 3,
+                                    pointHoverRadius: 5,
                                     z: 10
+                                },
+                                {
+                                    label: '7-Day Moving Avg',
+                                    data: ma7Points,
+                                    borderColor: '#10b981', // Emerald
+                                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                                    borderWidth: 3.5,
+                                    fill: false,
+                                    tension: 0.25,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 6,
+                                    z: 12
                                 },
                                 {
                                     label: 'Weekly Markers',
