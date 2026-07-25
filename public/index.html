@@ -938,6 +938,7 @@
                     </div>
                     <p class="text-center text-[10px] text-slate-500 font-bold mt-2 uppercase tracking-widest"><i
                             class="fa-solid fa-hand-pointer mr-1"></i> Tap bars for estimated finish</p>
+                    <div id="tt-view-mode-badge" class="hidden"></div>
                 </div>
             </div>
 
@@ -8874,6 +8875,65 @@
                     }
                 }
 
+                // --- COMPETITOR BLIND MODE (FOG OF WAR) ---
+                const activeUser = typeof userId !== 'undefined' && userId ? userId : null;
+                const isBryan = (activeUser === 'bkas724');
+                const isAnthony = (activeUser === 'acap1600');
+                const isSpectator = (!isBryan && !isAnthony);
+
+                const badgeEl = document.getElementById('tt-view-mode-badge');
+                if (badgeEl) {
+                    if (isBryan || isAnthony) {
+                        badgeEl.className = "text-center text-[11px] font-semibold mt-4 p-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 block leading-relaxed shadow-sm";
+                        badgeEl.innerHTML = `<i class="fa-solid fa-user-shield mr-1.5 text-indigo-400"></i><strong>Competitor Blind Mode:</strong> Opponent numbers & proofs are obscured to prevent pacing. You are seeing their consistent training trajectory.`;
+                    } else {
+                        badgeEl.className = "text-center text-[11px] font-semibold mt-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 block leading-relaxed shadow-sm";
+                        badgeEl.innerHTML = `<i class="fa-solid fa-eye mr-1.5 text-emerald-400"></i><strong>Spectator Access:</strong> You are viewing live, unfiltered scores, projected finishes, and proof screenshots for both runners!`;
+                    }
+                }
+
+                // If Bryan is viewing and we are past Seeding Week, obscure Anthony's actual score/time/proof
+                if (isBryan && latestWeek > baselineWeekAcap && baselineAcap > 0) {
+                    const wks = latestWeek - baselineWeekAcap;
+                    acapScore = Math.min(100, (wks * 2.0)).toFixed(1);
+                    const estPaceSecs = baselineAcap - (wks * 12);
+                    document.getElementById('tt-proj-acap').innerText = "~" + formatTime(estPaceSecs > 755 ? estPaceSecs : 755);
+                    const btnAcap = document.getElementById('tt-proof-acap');
+                    if (btnAcap) {
+                        btnAcap.innerText = "🔒 Opponent Proof Obscured";
+                        btnAcap.onclick = (e) => { e.preventDefault(); alert("Fog of War Active: Opponent screenshot proofs and actual weekly times are hidden from active competitors to prevent pacing! Visitors and spectators can view all live unfiltered data."); };
+                        btnAcap.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                } 
+                // If Anthony is viewing and we are past Seeding Week, obscure Bryan's actual score/time/proof
+                else if (isAnthony && latestWeek > baselineWeekBkas && baselineBkas > 0) {
+                    const wks = latestWeek - baselineWeekBkas;
+                    bkasScore = Math.min(100, (wks * 2.0)).toFixed(1);
+                    const estPaceSecs = baselineBkas - (wks * 12);
+                    document.getElementById('tt-proj-bkas').innerText = "~" + formatTime(estPaceSecs > 755 ? estPaceSecs : 755);
+                    const btnBkas = document.getElementById('tt-proof-bkas');
+                    if (btnBkas) {
+                        btnBkas.innerText = "🔒 Opponent Proof Obscured";
+                        btnBkas.onclick = (e) => { e.preventDefault(); alert("Fog of War Active: Opponent screenshot proofs and actual weekly times are hidden from active competitors to prevent pacing! Visitors and spectators can view all live unfiltered data."); };
+                        btnBkas.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                } 
+                // For spectators (or during Week 1 seeding), make sure buttons look normal if they were previously modified
+                else {
+                    const btnBkas = document.getElementById('tt-proof-bkas');
+                    if (btnBkas && currentWeekSubmissions['bkas724']) {
+                        btnBkas.innerText = "View bkas724 Proof";
+                        btnBkas.onclick = () => window.open(currentWeekSubmissions['bkas724'].screenshotUrl, '_blank');
+                        btnBkas.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    const btnAcap = document.getElementById('tt-proof-acap');
+                    if (btnAcap && currentWeekSubmissions['acap1600']) {
+                        btnAcap.innerText = "View acap1600 Proof";
+                        btnAcap.onclick = () => window.open(currentWeekSubmissions['acap1600'].screenshotUrl, '_blank');
+                        btnAcap.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+
                 // Determine max scale for Y axis
                 const maxVal = Math.max(parseFloat(bkasScore), parseFloat(acapScore));
                 let maxScale = 25;
@@ -8893,12 +8953,13 @@
                 // Update Leader Advantage Label
                 const diff = parseFloat(bkasScore) - parseFloat(acapScore);
                 const diffEl = document.getElementById('tt-leader-diff');
+                const estSuffix = (isBryan || isAnthony) ? " (vs Est.)" : "";
                 if (diff > 0) {
-                    diffEl.innerHTML = `<span class="text-emerald-400">Bryan +${diff.toFixed(1)}%</span>`;
+                    diffEl.innerHTML = `<span class="text-emerald-400">Bryan +${diff.toFixed(1)}%${estSuffix}</span>`;
                 } else if (diff < 0) {
-                    diffEl.innerHTML = `<span class="text-indigo-400">Anthony +${Math.abs(diff).toFixed(1)}%</span>`;
+                    diffEl.innerHTML = `<span class="text-indigo-400">Anthony +${Math.abs(diff).toFixed(1)}%${estSuffix}</span>`;
                 } else {
-                    diffEl.innerText = "Tied";
+                    diffEl.innerText = "Tied" + (estSuffix ? " vs Est." : "");
                 }
 
             } catch (e) {
