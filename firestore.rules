@@ -17,5 +17,9 @@ service cloud.firestore {
     match /turkeyTrotSubmissions/{document=**} {
       allow read, write: if true;
     }
+    
+    match /turkeyTrotComments/{document=**} {
+      allow read, write: if true;
+    }
   }
 }
