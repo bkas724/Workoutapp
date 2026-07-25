@@ -1011,7 +1011,7 @@
                                 The Baseline
                             </strong>
                             <p class="text-sm text-slate-400">Each Runner logged a baseline. The app used pace and heart
-                                rate to estimate their full effort 5k (175 avg. BPM). This is each runner's official
+                                rate to estimate their full effort 5k (172 avg. BPM). This is each runner's official
                                 starting line.</p>
                             <!-- Arrow Mobile -->
                             <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 md:hidden text-slate-700">
@@ -8878,8 +8878,8 @@
             if (!baselineSecs || !currentSecs) return 0;
             if (currentSecs >= baselineSecs) return 0;
             const wr = 755; // 12:35
-            const num = Math.log(baselineSecs) - Math.log(currentSecs);
-            const den = Math.log(baselineSecs) - Math.log(wr);
+            const num = Math.log10(baselineSecs) - Math.log10(currentSecs);
+            const den = Math.log10(baselineSecs) - Math.log10(wr);
             let score = (num / den) * 100;
             if (score < 0) score = 0;
             if (score > 100) score = 100;
@@ -8924,10 +8924,10 @@
             const secs = parseInt(parts[1]);
             const totalSeconds = (mins * 60) + secs;
 
-            // Calculate Projected 5K Baseline
+            // Calculate Projected 5K Baseline (Resting HR = 60, Max HR = 185, Target Race HR = 172, Divisor = 112)
             const paceSecPerMile = totalSeconds / distInput;
-            const projectedPaceSecPerMile = paceSecPerMile * (hrInput / 175);
-            const projected5kSecs = projectedPaceSecPerMile * 3.11;
+            const projectedPaceSecPerMile = paceSecPerMile * ((hrInput - 60) / 112);
+            const projected5kSecs = projectedPaceSecPerMile * 3.10686;
 
             statusText.innerText = "Uploading proof...";
             statusText.classList.remove('hidden');
