@@ -849,9 +849,11 @@
             <!-- Dynamic Scale & Turkey Trophy Leaderboard -->
             <div class="w-full mb-8 pt-4 pb-4" id="turkey-trot-leaderboard">
                 <!-- Master Top View Switcher Bar (Hidden in production, revealed via ?dev=true or localhost) -->
-                <div id="tt-dev-toggle-bar" class="flex flex-wrap items-center justify-between gap-3 w-full mb-4 px-1 hidden">
+                <div id="tt-dev-toggle-bar"
+                    class="flex flex-wrap items-center justify-between gap-3 w-full mb-3 px-1 hidden">
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/20 border border-amber-500/40 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <span
+                            class="text-[10px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/20 border border-amber-500/40 px-2.5 py-1 rounded-full flex items-center gap-1.5">
                             <i class="fa-solid fa-code text-amber-400"></i> Dev Mode Controls (?dev=true)
                         </span>
                     </div>
@@ -885,8 +887,6 @@
                             class="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 uppercase tracking-wider drop-shadow-md m-0">
                             The Matchup
                         </h3>
-                        <p class="text-[11px] text-slate-400 font-bold mt-1 mb-0">Week 1 Comparison &
-                            Pace Metrics</p>
                     </div>
 
                     <!-- Tale of the Tape Header: Headshots Side-by-Side with VS Badge in Middle -->
@@ -9152,8 +9152,9 @@
 
                 snap.forEach(doc => {
                     const data = doc.data();
-                    // group by weekNumber and userId
-                    const week = data.weekNumber || 1;
+                    // Map raw weekNumber (calendar week 29-46) into 1-18 Competition Weeks
+                    let rawWeek = parseInt(data.weekNumber) || 1;
+                    let week = rawWeek >= 29 ? Math.min(18, Math.max(1, rawWeek - 28)) : Math.min(18, Math.max(1, rawWeek));
 
                     // The first entry serves as the baseline seed
                     if (data.userId === 'bkas724' && !baselineBkas) {
@@ -9700,17 +9701,19 @@
                 requestAnimationFrame(updateAvatars);
                 setTimeout(updateAvatars, 100);
 
-                // Update Week 1 Kickoff Box & Right Sidebar Docking State
-                const isDev = checkDevMode();
-                let targetView = 'kickoff';
-                if (!isDev || !window.hasUserToggledView) {
-                    targetView = (latestWeek === 1) ? 'kickoff' : 'chart';
-                } else {
-                    targetView = window.currentTTView || 'kickoff';
+                // Update Competition Week Bubble Badge
+                const weekNumEl = document.getElementById('tt-week-num-display');
+                if (weekNumEl) weekNumEl.innerText = `Week ${latestWeek}`;
+
+                // Update Kickoff Box & Right Sidebar Docking State (Defaults to Kickoff Card until Week 4)
+                checkDevMode();
+                let targetView = (latestWeek < 4) ? 'kickoff' : 'chart';
+                if (window.hasUserToggledView && window.currentTTView) {
+                    targetView = window.currentTTView;
                 }
                 switchTTView(targetView);
 
-                if (latestWeek > 1) {
+                if (latestWeek >= 4) {
                     const isBryanWinning = (diff >= 0);
                     const winImg = isBryanWinning ? 'Images/bryanheadshot.png' : 'Images/anthonyheadshot.png';
                     const winName = isBryanWinning ? 'Bryan' : 'Anthony';
@@ -9839,7 +9842,9 @@
                 const start = new Date(d.getFullYear(), 0, 0);
                 const diff = d - start;
                 const oneWeek = 1000 * 60 * 60 * 24 * 7;
-                let currentWeekNum = Math.floor(diff / oneWeek);
+                let calWeekNum = Math.floor(diff / oneWeek);
+                // Map calendar week (Week 29+) to 18-week competition timeline (Week 1 to 18)
+                let currentWeekNum = calWeekNum >= 29 ? Math.min(18, Math.max(1, calWeekNum - 28)) : Math.min(18, Math.max(1, calWeekNum));
 
                 // Ensure they don't overwrite a previous submission in the exact same week accidentally,
                 // or just append it and our logic fetches the earliest/latest appropriately.
