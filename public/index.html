@@ -416,23 +416,13 @@
         <!-- Home Tab AI Health & Recovery Insights Card -->
         <section id="home-health-insights-card"
             class="tab-content tab-home block mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden">
-            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800/80">
-                <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
-                    <i class="fa-solid fa-sparkles text-lg"></i>
-                </div>
-                <div>
-                    <h2 class="font-extrabold text-lg text-slate-100">AI Health & Recovery Insights</h2>
-                    <p class="text-xs text-slate-400">Daily movement and nutrition guidance</p>
-                </div>
-            </div>
-
             <div id="home-ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <!-- Movement Tip -->
                 <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
                         <h4
                             class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-person-running"></i> Movement
+                            <i class="fa-solid fa-person-running"></i> Movement Insights
                         </h4>
                         <p id="home-insight-movement" class="text-xs text-slate-300 leading-relaxed"></p>
                     </div>
@@ -443,31 +433,33 @@
                     <div>
                         <h4
                             class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-droplet"></i> Hydration & Recovery
+                            <i class="fa-solid fa-droplet"></i> Hydration and Recovery Insights
                         </h4>
                         <p id="home-insight-hydration" class="text-xs text-slate-300 leading-relaxed"></p>
                     </div>
                 </div>
 
                 <!-- Tiered Nutrition Guides -->
-                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div id="home-insight-nut-card" class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
                                 <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
                             </h4>
-                            <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
-                                class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1 rounded-lg hover:bg-slate-900 cursor-pointer">
-                                <i class="fa-solid fa-rotate"></i>
-                            </button>
-                        </div>
-                        <div class="flex gap-1.5 mb-3 bg-slate-900 p-1 rounded-xl w-max border border-slate-800/80">
-                            <button onclick="window.switchNutritionTab('rest')" id="home-tab-nut-rest"
-                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
-                            <button onclick="window.switchNutritionTab('light')" id="home-tab-nut-light"
-                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
-                            <button onclick="window.switchNutritionTab('hard')" id="home-tab-nut-hard"
-                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                            <div class="flex items-center gap-2">
+                                <div class="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800/80">
+                                    <button onclick="window.switchNutritionTab('rest')" id="home-tab-nut-rest"
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
+                                    <button onclick="window.switchNutritionTab('light')" id="home-tab-nut-light"
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
+                                    <button onclick="window.switchNutritionTab('hard')" id="home-tab-nut-hard"
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                                </div>
+                                <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
+                                    class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-emerald-500/30 cursor-pointer">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
                             <div id="home-insight-nut-rest" class="block"></div>
@@ -669,24 +661,13 @@
         <!-- AI Health & Recovery Insights Card (Dedicated Card directly below Weight Chart) -->
         <section id="ai-health-insights-card"
             class="tab-content tab-analytics hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden">
-            <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800/80">
-                <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
-                    <i class="fa-solid fa-sparkles text-lg"></i>
-                </div>
-                <div>
-                    <h2 class="font-extrabold text-lg text-slate-100">AI Health & Recovery Insights</h2>
-                    <p class="text-xs text-slate-400">Daily movement guidance and portion-controlled nutrition
-                        heuristics</p>
-                </div>
-            </div>
-
             <div id="ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <!-- Movement Tip -->
                 <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
                         <h4
                             class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-person-running"></i> Movement Guide
+                            <i class="fa-solid fa-person-running"></i> Movement Insights
                         </h4>
                         <p id="insight-movement" class="text-xs text-slate-300 leading-relaxed"></p>
                     </div>
@@ -697,31 +678,33 @@
                     <div>
                         <h4
                             class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-droplet"></i> Hydration & Recovery
+                            <i class="fa-solid fa-droplet"></i> Hydration and Recovery Insights
                         </h4>
                         <p id="insight-hydration" class="text-xs text-slate-300 leading-relaxed"></p>
                     </div>
                 </div>
 
                 <!-- Tiered Nutrition Guides -->
-                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div id="insight-nut-card" class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
                                 <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
                             </h4>
-                            <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
-                                class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1 rounded-lg hover:bg-slate-900 cursor-pointer">
-                                <i class="fa-solid fa-rotate"></i>
-                            </button>
-                        </div>
-                        <div class="flex gap-1.5 mb-3 bg-slate-900 p-1 rounded-xl w-max border border-slate-800/80">
-                            <button onclick="window.switchNutritionTab('rest')" id="tab-nut-rest"
-                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
-                            <button onclick="window.switchNutritionTab('light')" id="tab-nut-light"
-                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
-                            <button onclick="window.switchNutritionTab('hard')" id="tab-nut-hard"
-                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                            <div class="flex items-center gap-2">
+                                <div class="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800/80">
+                                    <button onclick="window.switchNutritionTab('rest')" id="tab-nut-rest"
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
+                                    <button onclick="window.switchNutritionTab('light')" id="tab-nut-light"
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
+                                    <button onclick="window.switchNutritionTab('hard')" id="tab-nut-hard"
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                                </div>
+                                <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
+                                    class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-emerald-500/30 cursor-pointer">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
                             <div id="insight-nut-rest" class="block"></div>
@@ -7342,24 +7325,49 @@
                 btnElement.disabled = true;
             }
             try {
-                const fn = firebase.functions().httpsCallable('refreshNutritionOnly');
                 const cleanProfile = JSON.parse(JSON.stringify(userProfileData || {}));
-                const result = await fn({ profile: cleanProfile });
-                const data = result.data;
+                let nutritionHeuristics = null;
 
-                if (data && data.nutritionHeuristics) {
+                // 1. Try dedicated endpoint first
+                try {
+                    const fn = firebase.functions().httpsCallable('refreshNutritionOnly');
+                    const result = await fn({ profile: cleanProfile });
+                    if (result && result.data && result.data.nutritionHeuristics) {
+                        nutritionHeuristics = result.data.nutritionHeuristics;
+                    }
+                } catch (e) {
+                    console.warn("refreshNutritionOnly endpoint not deployed or reachable, falling back to backfillAIInsights:", e);
+                }
+
+                // 2. Fallback to existing deployed backfillAIInsights function if dedicated endpoint is not deployed yet
+                if (!nutritionHeuristics) {
+                    const backfillFn = firebase.functions().httpsCallable('backfillAIInsights');
+                    const activeWorkouts = typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : [];
+                    const result = await backfillFn({
+                        profile: cleanProfile,
+                        history: [],
+                        activeWorkouts: activeWorkouts
+                    });
+                    if (result && result.data && result.data.healthInsights && result.data.healthInsights.nutritionHeuristics) {
+                        nutritionHeuristics = result.data.healthInsights.nutritionHeuristics;
+                    }
+                }
+
+                if (nutritionHeuristics) {
                     if (!userProfileData.healthInsights) userProfileData.healthInsights = {};
-                    userProfileData.healthInsights.nutritionHeuristics = data.nutritionHeuristics;
+                    userProfileData.healthInsights.nutritionHeuristics = nutritionHeuristics;
 
                     if (db && userId) {
                         await db.collection("users").doc(userId).update({
-                            "healthInsights.nutritionHeuristics": data.nutritionHeuristics
+                            "healthInsights.nutritionHeuristics": nutritionHeuristics
                         });
                     }
 
                     if (typeof updateAIInsightsDisplay === 'function') {
                         updateAIInsightsDisplay(userProfileData);
                     }
+                } else {
+                    throw new Error("No nutrition recommendations returned.");
                 }
             } catch (err) {
                 console.error("Failed to refresh nutrition guidance:", err);
@@ -8097,33 +8105,45 @@
                                 const desc = tierData.description || '';
                                 const meals = tierData.meals || {};
                                 return `
-                                    <div class="space-y-2.5 text-xs">
-                                        <div class="flex items-center justify-between bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/80">
-                                            <span class="font-bold text-emerald-400">Calorie Target</span>
-                                            <span class="font-normal text-white text-xs bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30">${target}</span>
+                                    <div class="space-y-3 text-xs">
+                                        <!-- Calorie Target & Description on Same Line -->
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+                                            <span class="font-bold text-emerald-300 text-xs bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30 shrink-0">
+                                                <span class="font-bold text-emerald-400">Calorie Target:</span> ${target}
+                                            </span>
+                                            ${desc ? `<span class="text-slate-300 text-xs leading-relaxed font-normal">${desc}</span>` : ''}
                                         </div>
-                                        ${desc ? `<p class="text-slate-300 text-xs leading-relaxed px-1 font-normal">${desc}</p>` : ''}
+
+                                        <!-- Meal Cards Column Grid -->
                                         ${meals && (meals.breakfast || meals.lunch || meals.dinner || meals.snack) ? `
-                                        <div class="bg-slate-950/50 rounded-xl border border-slate-800/80 divide-y divide-slate-800/60 overflow-hidden">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                             ${meals.breakfast ? `
-                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
-                                                <span class="font-bold text-amber-400 col-span-1">Breakfast</span>
-                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.breakfast}</span>
+                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                                <div>
+                                                    <span class="font-bold text-amber-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-amber-500/20">Breakfast</span>
+                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.breakfast}</p>
+                                                </div>
                                             </div>` : ''}
                                             ${meals.lunch ? `
-                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
-                                                <span class="font-bold text-orange-400 col-span-1">Lunch</span>
-                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.lunch}</span>
+                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                                <div>
+                                                    <span class="font-bold text-orange-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-orange-500/20">Lunch</span>
+                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.lunch}</p>
+                                                </div>
                                             </div>` : ''}
                                             ${meals.dinner ? `
-                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
-                                                <span class="font-bold text-sky-400 col-span-1">Dinner</span>
-                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.dinner}</span>
+                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                                <div>
+                                                    <span class="font-bold text-sky-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-sky-500/20">Dinner</span>
+                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.dinner}</p>
+                                                </div>
                                             </div>` : ''}
                                             ${meals.snack ? `
-                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
-                                                <span class="font-bold text-fuchsia-400 col-span-1">Snack</span>
-                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.snack}</span>
+                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                                <div>
+                                                    <span class="font-bold text-fuchsia-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-fuchsia-500/20">Snack</span>
+                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.snack}</p>
+                                                </div>
                                             </div>` : ''}
                                         </div>` : ''}
                                     </div>
@@ -8135,6 +8155,27 @@
                         const restTxt = data.healthInsights.nutritionHeuristics.restDay;
                         const lightTxt = data.healthInsights.nutritionHeuristics.lightActivity;
                         const hardTxt = data.healthInsights.nutritionHeuristics.hardActivity;
+
+                        const isComplexNutrition = (restTxt && typeof restTxt === 'object') ||
+                                                   (lightTxt && typeof lightTxt === 'object') ||
+                                                   (hardTxt && typeof hardTxt === 'object');
+
+                        const updateLayoutForComplexity = (containerId, cardId) => {
+                            const container = document.getElementById(containerId);
+                            const nutCard = document.getElementById(cardId);
+                            if (container && nutCard) {
+                                if (isComplexNutrition) {
+                                    container.className = "grid grid-cols-1 md:grid-cols-2 gap-5";
+                                    nutCard.className = "bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between col-span-1 md:col-span-2";
+                                } else {
+                                    container.className = "grid grid-cols-1 md:grid-cols-3 gap-5";
+                                    nutCard.className = "bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between col-span-1";
+                                }
+                            }
+                        };
+
+                        updateLayoutForComplexity('home-ai-health-insights-container', 'home-insight-nut-card');
+                        updateLayoutForComplexity('ai-health-insights-container', 'insight-nut-card');
 
                         const nutRest = document.getElementById('insight-nut-rest');
                         if (nutRest) nutRest.innerHTML = formatNutritionTier(restTxt);
