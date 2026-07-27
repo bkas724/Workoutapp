@@ -71,6 +71,25 @@ exports.backfillAIInsights = onCall({
     const { profile, activeWorkouts } = request.data;
     const ai = new GoogleGenerativeAI(geminiApiKey.value());
 
+    const prescriptiveMealsEnabled = Boolean(profile?.prescriptiveMeals);
+    const dietaryNotes = profile?.dietaryPreferences || "None specified";
+
+    const nutInstruction = prescriptiveMealsEnabled
+        ? `1. 'healthInsights' object with 'movementTip', 'hydrationRecovery', and 'nutritionHeuristics'. Because the user enabled Prescriptive Meals (Allergies/Preferences: "${dietaryNotes}"), for each tier ('restDay', 'lightActivity', 'hardActivity'), return a structured object with 'calorieTarget' (e.g. "1,800 kcal"), concise 'description', and 'meals' object with 'breakfast', 'lunch', 'dinner', 'snack' recommendations strictly respecting their dietary preferences.`
+        : `1. 'healthInsights' object with 'movementTip', 'hydrationRecovery', and 'nutritionHeuristics' (restDay, lightActivity, hardActivity meals and calories as plain descriptive strings).`;
+
+    const nutSchema = prescriptiveMealsEnabled
+        ? `"nutritionHeuristics": {
+      "restDay": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } },
+      "lightActivity": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } },
+      "hardActivity": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } }
+    }`
+        : `"nutritionHeuristics": {
+      "restDay": "String",
+      "lightActivity": "String",
+      "hardActivity": "String"
+    }`;
+
     const prompt = `You are an elite running coach and nutritionist.
 The user is currently in a training block but their block was generated before we introduced AI health insights and JIT fueling tips.
 We need to backfill this missing data.
@@ -78,6 +97,8 @@ We need to backfill this missing data.
 User Profile:
 - Age: ${profile?.age || 'Unknown'}, Weight: ${profile?.weight || 'Unknown'} lbs, Height: ${profile?.heightInches || 'Unknown'} inches
 - Fitness Level: ${profile?.fitnessLevel || 'Unknown'}
+- Prescriptive Meals Enabled: ${prescriptiveMealsEnabled ? 'Yes' : 'No'}
+${prescriptiveMealsEnabled ? `- Dietary Preferences/Allergies: ${dietaryNotes}` : ''}
 
 Here are the user's active workouts for this phase:
 ${activeWorkouts.map(w => `- ID: ${w.id} | Title: ${w.workoutTitle} | Type: ${w.type} | Duration: ${w.distanceDuration} | Instructions: ${w.targetInstructions}`).join('\n')}
@@ -86,7 +107,7 @@ Existing Macrocycle Plan:
 ${JSON.stringify(profile?.macrocyclePlan || [], null, 2)}
 
 Generate the following:
-1. 'healthInsights' object with 'movementTip', 'hydrationRecovery', and 'nutritionHeuristics' (restDay, lightActivity, hardActivity meals and calories).
+${nutInstruction}
 2. 'jitPreparationTip' for EACH workout ID listed above.
 3. 'macrocyclePlan': An array updating their Existing Macrocycle Plan. Preserve the original 'phase' and 'theme' verbatim. Provide a 'simpleDescription' (1-2 sentences, laymens terms) and a 'detailedDescription' (rich paragraph detailing the physiological intent). Append an 'expectedDurationWeeks' to each phase. If the user's tier is 'recreational' (Consistent/Get Healthy), the ENTIRE journey across all phases MUST NOT exceed 12 weeks total.
 4. 'overarchingTheme': A string representing the user's primary focus for the entire journey.
@@ -96,11 +117,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
   "healthInsights": {
     "movementTip": "String",
     "hydrationRecovery": "String",
-    "nutritionHeuristics": {
-      "restDay": "String",
-      "lightActivity": "String",
-      "hardActivity": "String"
-    }
+    ${nutSchema}
   },
   "workoutTips": [
     {
@@ -147,21 +164,38 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 exports.generateWorkoutBlock = onCall({
     secrets: [geminiApiKey],
     cors: true,
-    timeoutSeconds: 60
+    timeoutSeconds: 90
 }, async (request) => {
-    const { phaseIndex, profile, history, simpleMode } = request.data;
+    const { profile, phaseIndex, history, simpleMode } = request.data;
     
     const ai = new GoogleGenerativeAI(geminiApiKey.value());
     
-    // Construct the context prompt with the rich profile and historical data
-    let historyContext = "No recent history available.";
-    if (history && history.length > 0) {
+    let historyContext = "No recent workout history logged yet.";
+    if (history && Array.isArray(history) && history.length > 0) {
         historyContext = history.map(h => 
             `- ${h.workoutTitle} (${h.distanceDuration}): target=${h.targetPaceZone || 'N/A'}, actual=${h.actualLoggedPace || 'N/A'}, RPE=${h.rpeScore || 'N/A'}${h.userWorkoutNotes ? `, Notes: "${h.userWorkoutNotes}"` : ''}`
         ).join("\n");
     }
 
     const equipmentString = simpleMode ? "None / Bodyweight (User requested Simple Mode)" : (profile?.equipmentList && profile.equipmentList.length > 0 ? profile.equipmentList.join(', ') : 'None / Bodyweight');
+    const prescriptiveMealsEnabled = Boolean(profile?.prescriptiveMeals);
+    const dietaryNotes = profile?.dietaryPreferences || "None specified";
+
+    const nutInstructionBlock = prescriptiveMealsEnabled
+        ? `3. Internally calculate their BMR using the Mifflin-St Jeor formula and formulate a daily calorie goal that supports steady progress. IMPORTANT: Stick to these maximum weight loss guardrails: If weight >= 250 lbs, max loss is 1.0%-1.5% (2.5-3.5 lbs/week). If weight 180-240 lbs, max loss is 0.5%-1.0% (1.0-2.0 lbs/week). If weight < 180 lbs, max loss is 0.25%-0.5% (0.5-1.0 lbs/week). Do not exceed these rates when formulating the daily calorie goal. Because the user enabled Prescriptive Meals (Allergies/Preferences: "${dietaryNotes}"), for each activity tier ('restDay', 'lightActivity', 'hardActivity') in 'nutritionHeuristics', return a structured object containing: 'calorieTarget' (formatted string like "1,800 kcal"), a general simple 'description' (concise, stripping out all unnecessary wordy language), and a 'meals' object with simple, actionable recommendations for 'breakfast', 'lunch', 'dinner', and 'snack' that meet that calorie target while strictly adhering to their dietary preferences. If the user provided custom notes ('gatewayOverrideNotes'), heavily adapt the upcoming workouts.`
+        : `3. Internally calculate their BMR using the Mifflin-St Jeor formula and formulate a daily calorie goal that supports steady progress. IMPORTANT: Stick to these maximum weight loss guardrails: If weight >= 250 lbs, max loss is 1.0%-1.5% (2.5-3.5 lbs/week). If weight 180-240 lbs, max loss is 0.5%-1.0% (1.0-2.0 lbs/week). If weight < 180 lbs, max loss is 0.25%-0.5% (0.5-1.0 lbs/week). Do not exceed these rates when formulating the daily calorie goal. Generate simple meal examples categorized into 'restDay', 'lightActivity', and 'hardActivity' as basic summary strings. If the user provided custom notes ('gatewayOverrideNotes'), heavily adapt the upcoming workouts.`;
+
+    const nutSchemaBlock = prescriptiveMealsEnabled
+        ? `"nutritionHeuristics": {
+      "restDay": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } },
+      "lightActivity": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } },
+      "hardActivity": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } }
+    }`
+        : `"nutritionHeuristics": {
+      "restDay": "String",
+      "lightActivity": "String",
+      "hardActivity": "String"
+    }`;
 
     const prompt = `You are a professional elite running coach AI and health nutritionist.
 User Profile:
@@ -175,6 +209,8 @@ User Profile:
 - Available Equipment: ${equipmentString}
 - Deep Motivation (Why?): ${profile?.why || 'N/A'}
 - Additional Notes: ${profile?.notes || 'None'}
+- Prescriptive Meals Enabled: ${prescriptiveMealsEnabled ? 'Yes' : 'No'}
+${prescriptiveMealsEnabled ? `- Dietary Preferences/Allergies: ${dietaryNotes}` : ''}
 ${profile?.primaryGoal === 'race' ? `- Goal Pace: ${profile?.activeAdjustedGoal || 'N/A'} min/mi` : ''}
 
 Recent Workout History:
@@ -191,7 +227,7 @@ You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same
 
 2. Attach a 'jitPreparationTip' to EVERY workout object (including rest days). This tip should instruct the user on what to do *the day before* or *the hours leading up to* this specific workout to prepare/fuel/recover.
 
-3. Internally calculate their BMR using the Mifflin-St Jeor formula and formulate a daily calorie goal that supports steady progress. IMPORTANT: Stick to these maximum weight loss guardrails: If weight >= 250 lbs, max loss is 1.0%-1.5% (2.5-3.5 lbs/week). If weight 180-240 lbs, max loss is 0.5%-1.0% (1.0-2.0 lbs/week). If weight < 180 lbs, max loss is 0.25%-0.5% (0.5-1.0 lbs/week). Do not exceed these rates when formulating the daily calorie goal. Generate simple meal examples categorized into 'restDay', 'lightActivity', and 'hardActivity'. If the user provided custom notes ('gatewayOverrideNotes'), heavily adapt the upcoming workouts.
+${nutInstructionBlock}
 4. Evaluate their recent history and determine if they missed days/took extra rest. Use this context to scale intensity or volume for the new block.
 5. CRITICAL: For any "work" activities (especially Strength Circuits or Intervals), ensure the "sets" property is explicitly defined as a Number. Determine the optimal number of sets (whether 1 set for active recovery/beginners, or 3-5 sets for advanced/hypertrophy) based carefully on the user's fitness level, goals, and history. Be intentional and consistent with this prescription.
 6. If a work activity is a circuit (e.g. Strength Circuit A), explicitly set "isCircuit" to true and specify the number of rounds in "circuitRounds". For non-circuit activities, set them to false and 0.
@@ -243,11 +279,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
   "healthInsights": {
     "movementTip": "String",
     "hydrationRecovery": "String",
-    "nutritionHeuristics": {
-      "restDay": "String",
-      "lightActivity": "String",
-      "hardActivity": "String"
-    }
+    ${nutSchemaBlock}
   }
 }`;
 
@@ -555,5 +587,72 @@ CRITICAL: Do not include any text outside of the JSON object. Do not wrap in mar
     } catch (error) {
         console.error("Error generating secondary workout:", error);
         throw new HttpsError("internal", "Failed to generate secondary workout.", error.message);
+    }
+});
+
+exports.refreshNutritionOnly = onCall({
+    secrets: [geminiApiKey],
+    cors: true,
+    timeoutSeconds: 60
+}, async (request) => {
+    const { profile } = request.data;
+    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+
+    const prescriptiveMealsEnabled = Boolean(profile?.prescriptiveMeals);
+    const dietaryNotes = profile?.dietaryPreferences || "None specified";
+
+    const nutInstruction = prescriptiveMealsEnabled
+        ? `Because the user enabled Prescriptive Meals (Allergies/Preferences: "${dietaryNotes}"), for each activity tier ('restDay', 'lightActivity', 'hardActivity'), return a structured object with 'calorieTarget' (e.g. "1,800 kcal"), concise 'description', and 'meals' object with 'breakfast', 'lunch', 'dinner', 'snack' recommendations strictly respecting their dietary preferences.`
+        : `Return basic meal recommendations for 'restDay', 'lightActivity', and 'hardActivity' as plain descriptive strings (basic recommendations).`;
+
+    const nutSchema = prescriptiveMealsEnabled
+        ? `"nutritionHeuristics": {
+      "restDay": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } },
+      "lightActivity": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } },
+      "hardActivity": { "calorieTarget": "String", "description": "String", "meals": { "breakfast": "String", "lunch": "String", "dinner": "String", "snack": "String" } }
+    }`
+        : `"nutritionHeuristics": {
+      "restDay": "String",
+      "lightActivity": "String",
+      "hardActivity": "String"
+    }`;
+
+    const prompt = `You are an elite nutritionist.
+User Profile:
+- Age: ${profile?.age || 'Unknown'}, Weight: ${profile?.weight || 'Unknown'} lbs, Height: ${profile?.heightInches || 'Unknown'} inches, Sex: ${profile?.sex || 'Unknown'}
+- Fitness Level: ${profile?.fitnessLevel || 'Unknown'}
+- Primary Goal: ${profile?.primaryGoal || 'Unknown'}
+- Prescriptive Meals Enabled: ${prescriptiveMealsEnabled ? 'Yes' : 'No'}
+${prescriptiveMealsEnabled ? `- Dietary Preferences/Allergies: ${dietaryNotes}` : ''}
+
+Generate updated nutrition heuristics for this user:
+${nutInstruction}
+
+Return ONLY a valid JSON object matching exactly this structure without any markdown wrappers or text:
+{
+  ${nutSchema}
+}`;
+
+    try {
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        let parsedData;
+        try {
+            parsedData = JSON.parse(responseText);
+        } catch (e) {
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                parsedData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
+        }
+
+        return parsedData;
+    } catch (error) {
+        console.error("Error calling Gemini API for nutrition refresh:", error);
+        throw new HttpsError("internal", "Failed to refresh nutrition recommendations.", error.message);
     }
 });

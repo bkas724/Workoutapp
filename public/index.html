@@ -452,10 +452,15 @@
                 <!-- Tiered Nutrition Guides -->
                 <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
-                        <h4
-                            class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
-                        </h4>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
+                            </h4>
+                            <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
+                                class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1 rounded-lg hover:bg-slate-900 cursor-pointer">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
                         <div class="flex gap-1.5 mb-3 bg-slate-900 p-1 rounded-xl w-max border border-slate-800/80">
                             <button onclick="window.switchNutritionTab('rest')" id="home-tab-nut-rest"
                                 class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
@@ -465,9 +470,9 @@
                                 class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
                         </div>
                         <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
-                            <p id="home-insight-nut-rest" class="block"></p>
-                            <p id="home-insight-nut-light" class="hidden"></p>
-                            <p id="home-insight-nut-hard" class="hidden"></p>
+                            <div id="home-insight-nut-rest" class="block"></div>
+                            <div id="home-insight-nut-light" class="hidden"></div>
+                            <div id="home-insight-nut-hard" class="hidden"></div>
                         </div>
                     </div>
                     <p class="text-[9px] text-slate-500 text-center mt-2.5">*AI-estimated portion guides. Not medical
@@ -701,10 +706,15 @@
                 <!-- Tiered Nutrition Guides -->
                 <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
-                        <h4
-                            class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
-                        </h4>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
+                            </h4>
+                            <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
+                                class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1 rounded-lg hover:bg-slate-900 cursor-pointer">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
                         <div class="flex gap-1.5 mb-3 bg-slate-900 p-1 rounded-xl w-max border border-slate-800/80">
                             <button onclick="window.switchNutritionTab('rest')" id="tab-nut-rest"
                                 class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
@@ -714,9 +724,9 @@
                                 class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
                         </div>
                         <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
-                            <p id="insight-nut-rest" class="block"></p>
-                            <p id="insight-nut-light" class="hidden"></p>
-                            <p id="insight-nut-hard" class="hidden"></p>
+                            <div id="insight-nut-rest" class="block"></div>
+                            <div id="insight-nut-light" class="hidden"></div>
+                            <div id="insight-nut-hard" class="hidden"></div>
                         </div>
                     </div>
                     <p class="text-[9px] text-slate-500 text-center mt-2.5">*AI-estimated portion guides. Not medical
@@ -2337,6 +2347,34 @@
                             placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts. Also, I have a history of shin splints, so please ease me into high-impact running."
                             class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
                     </div>
+                    <div class="col-span-2 border-t border-slate-800/60 pt-3">
+                        <span class="text-slate-500 block mb-2 text-[10px] uppercase font-bold tracking-wider">App Features</span>
+                        <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                                        <i class="fa-solid fa-utensils text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-200 text-xs font-bold block">Prescriptive Meal Recommendations</span>
+                                        <span class="text-slate-500 text-[10px] block">Receive structured Breakfast, Lunch, Dinner, & Snack ideas</span>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="modal-prescriptive-meals-toggle" class="sr-only peer" onchange="window.toggleDietaryNotes(this.checked)">
+                                    <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500">
+                                    </div>
+                                </label>
+                            </div>
+                            <div id="modal-dietary-notes-container" class="hidden flex-col gap-1.5 pt-2.5 border-t border-slate-800/80">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Allergies & Meal Preferences</label>
+                                <textarea id="modal-dietary-notes"
+                                    placeholder="e.g. Vegetarian, peanut allergy, prefer high-protein breakfasts, lactose intolerant..."
+                                    class="w-full h-16 bg-slate-900 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-span-2 border-t border-slate-800/60 pt-3">
                         <span
                             class="text-slate-500 block mb-2 text-[10px] uppercase font-bold tracking-wider">Notifications</span>
@@ -7203,12 +7241,36 @@
                     notifToggle.checked = !!(userProfileData && userProfileData.notificationsEnabled);
                 }
 
+                const pmToggle = document.getElementById('modal-prescriptive-meals-toggle');
+                const dietaryNotesEl = document.getElementById('modal-dietary-notes');
+                if (pmToggle) {
+                    const isChecked = !!(userProfileData && userProfileData.prescriptiveMeals);
+                    pmToggle.checked = isChecked;
+                    if (typeof window.toggleDietaryNotes === 'function') window.toggleDietaryNotes(isChecked);
+                }
+                if (dietaryNotesEl) {
+                    dietaryNotesEl.value = (userProfileData && userProfileData.dietaryPreferences) || "";
+                }
+
                 if (typeof window.validateTargetWeight === 'function') {
                     window.validateTargetWeight();
                 }
             }
             document.getElementById('profile-edit-modal').classList.remove('hidden');
         }
+
+        window.toggleDietaryNotes = function (checked) {
+            const container = document.getElementById('modal-dietary-notes-container');
+            if (container) {
+                if (checked) {
+                    container.classList.remove('hidden');
+                    container.classList.add('flex');
+                } else {
+                    container.classList.add('hidden');
+                    container.classList.remove('flex');
+                }
+            }
+        };
 
         function closeProfileModal() {
             document.getElementById('profile-edit-modal').classList.add('hidden');
@@ -7271,6 +7333,44 @@
                 }
             }
         }
+
+        window.refreshNutritionOnly = async function (btnElement) {
+            let icon = null;
+            if (btnElement) {
+                icon = btnElement.querySelector('i');
+                if (icon) icon.className = "fa-solid fa-rotate fa-spin text-emerald-400";
+                btnElement.disabled = true;
+            }
+            try {
+                const fn = firebase.functions().httpsCallable('refreshNutritionOnly');
+                const cleanProfile = JSON.parse(JSON.stringify(userProfileData || {}));
+                const result = await fn({ profile: cleanProfile });
+                const data = result.data;
+
+                if (data && data.nutritionHeuristics) {
+                    if (!userProfileData.healthInsights) userProfileData.healthInsights = {};
+                    userProfileData.healthInsights.nutritionHeuristics = data.nutritionHeuristics;
+
+                    if (db && userId) {
+                        await db.collection("users").doc(userId).update({
+                            "healthInsights.nutritionHeuristics": data.nutritionHeuristics
+                        });
+                    }
+
+                    if (typeof updateAIInsightsDisplay === 'function') {
+                        updateAIInsightsDisplay(userProfileData);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to refresh nutrition guidance:", err);
+                alert("Failed to refresh nutrition recommendations. Please try again.");
+            } finally {
+                if (btnElement) {
+                    if (icon) icon.className = "fa-solid fa-rotate";
+                    btnElement.disabled = false;
+                }
+            }
+        };
 
         async function refreshAITimelineDetails() {
             try {
@@ -7338,6 +7438,11 @@
             const notifToggle = document.getElementById('modal-weight-notifications-toggle');
             const notificationsEnabledVal = notifToggle ? notifToggle.checked : false;
 
+            const pmToggle = document.getElementById('modal-prescriptive-meals-toggle');
+            const prescriptiveMealsVal = pmToggle ? pmToggle.checked : false;
+            const dietaryNotesEl = document.getElementById('modal-dietary-notes');
+            const dietaryPreferencesVal = dietaryNotesEl ? dietaryNotesEl.value.trim() : "";
+
             if (db && userId) {
                 const updates = {
                     desiredWorkoutLength: lengthVal,
@@ -7349,9 +7454,15 @@
                     strengthType: strengthTypeVal,
                     why: whyNotesVal,
                     equipmentList: hardwareList,
-                    notificationsEnabled: notificationsEnabledVal
+                    notificationsEnabled: notificationsEnabledVal,
+                    prescriptiveMeals: prescriptiveMealsVal,
+                    dietaryPreferences: dietaryPreferencesVal
                 };
-                if (userProfileData) userProfileData.notificationsEnabled = notificationsEnabledVal;
+                if (userProfileData) {
+                    userProfileData.notificationsEnabled = notificationsEnabledVal;
+                    userProfileData.prescriptiveMeals = prescriptiveMealsVal;
+                    userProfileData.dietaryPreferences = dietaryPreferencesVal;
+                }
                 if (typeof checkWeightReminderBanner === 'function') checkWeightReminderBanner(userProfileData);
                 if (targetWeightVal) updates.targetWeight = targetWeightVal;
 
@@ -7976,24 +8087,69 @@
                     if (homeHydEl) homeHydEl.innerText = hydText;
 
                     if (data.healthInsights.nutritionHeuristics) {
-                        const restTxt = data.healthInsights.nutritionHeuristics.restDay || "";
-                        const lightTxt = data.healthInsights.nutritionHeuristics.lightActivity || "";
-                        const hardTxt = data.healthInsights.nutritionHeuristics.hardActivity || "";
+                        const formatNutritionTier = (tierData) => {
+                            if (!tierData) return '<p class="text-slate-500 italic text-xs">No nutrition guidance available.</p>';
+                            if (typeof tierData === 'string') {
+                                return `<p class="leading-relaxed text-slate-300 text-xs">${tierData}</p>`;
+                            }
+                            if (typeof tierData === 'object') {
+                                const target = tierData.calorieTarget || 'N/A';
+                                const desc = tierData.description || '';
+                                const meals = tierData.meals || {};
+                                return `
+                                    <div class="space-y-2.5 text-xs">
+                                        <div class="flex items-center justify-between bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/80">
+                                            <span class="font-bold text-emerald-400">Calorie Target</span>
+                                            <span class="font-normal text-white text-xs bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30">${target}</span>
+                                        </div>
+                                        ${desc ? `<p class="text-slate-300 text-xs leading-relaxed px-1 font-normal">${desc}</p>` : ''}
+                                        ${meals && (meals.breakfast || meals.lunch || meals.dinner || meals.snack) ? `
+                                        <div class="bg-slate-950/50 rounded-xl border border-slate-800/80 divide-y divide-slate-800/60 overflow-hidden">
+                                            ${meals.breakfast ? `
+                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
+                                                <span class="font-bold text-amber-400 col-span-1">Breakfast</span>
+                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.breakfast}</span>
+                                            </div>` : ''}
+                                            ${meals.lunch ? `
+                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
+                                                <span class="font-bold text-orange-400 col-span-1">Lunch</span>
+                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.lunch}</span>
+                                            </div>` : ''}
+                                            ${meals.dinner ? `
+                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
+                                                <span class="font-bold text-sky-400 col-span-1">Dinner</span>
+                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.dinner}</span>
+                                            </div>` : ''}
+                                            ${meals.snack ? `
+                                            <div class="grid grid-cols-3 sm:grid-cols-4 p-2.5 gap-2 items-start">
+                                                <span class="font-bold text-fuchsia-400 col-span-1">Snack</span>
+                                                <span class="font-normal text-slate-300 col-span-2 sm:col-span-3 leading-relaxed">${meals.snack}</span>
+                                            </div>` : ''}
+                                        </div>` : ''}
+                                    </div>
+                                `;
+                            }
+                            return '<p class="text-slate-500 italic text-xs">No nutrition guidance available.</p>';
+                        };
+
+                        const restTxt = data.healthInsights.nutritionHeuristics.restDay;
+                        const lightTxt = data.healthInsights.nutritionHeuristics.lightActivity;
+                        const hardTxt = data.healthInsights.nutritionHeuristics.hardActivity;
 
                         const nutRest = document.getElementById('insight-nut-rest');
-                        if (nutRest) nutRest.innerText = restTxt;
+                        if (nutRest) nutRest.innerHTML = formatNutritionTier(restTxt);
                         const homeNutRest = document.getElementById('home-insight-nut-rest');
-                        if (homeNutRest) homeNutRest.innerText = restTxt;
+                        if (homeNutRest) homeNutRest.innerHTML = formatNutritionTier(restTxt);
 
                         const nutLight = document.getElementById('insight-nut-light');
-                        if (nutLight) nutLight.innerText = lightTxt;
+                        if (nutLight) nutLight.innerHTML = formatNutritionTier(lightTxt);
                         const homeNutLight = document.getElementById('home-insight-nut-light');
-                        if (homeNutLight) homeNutLight.innerText = lightTxt;
+                        if (homeNutLight) homeNutLight.innerHTML = formatNutritionTier(lightTxt);
 
                         const nutHard = document.getElementById('insight-nut-hard');
-                        if (nutHard) nutHard.innerText = hardTxt;
+                        if (nutHard) nutHard.innerHTML = formatNutritionTier(hardTxt);
                         const homeNutHard = document.getElementById('home-insight-nut-hard');
-                        if (homeNutHard) homeNutHard.innerText = hardTxt;
+                        if (homeNutHard) homeNutHard.innerHTML = formatNutritionTier(hardTxt);
                     }
                 } else {
                     if (insightsContainer) {
