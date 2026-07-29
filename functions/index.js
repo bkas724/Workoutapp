@@ -208,7 +208,10 @@ User Profile:
 - Training Focus (Strength vs Cardio): ${profile?.trainingFocusRatio === 'auto' ? 'Determine optimal ratio based on BMI, weight, and fitness level. (e.g., heavier beginners should focus on walking before loading joints with strength).' : profile?.trainingFocusRatio + '/100 (0=Heavy Strength, 100=Heavy Cardio)'}
 - Available Equipment: ${equipmentString}
 - Deep Motivation (Why?): ${profile?.why || 'N/A'}
-- Additional Notes: ${profile?.notes || 'None'}
+- Personal Notes (Constraints/Lifestyle): ${profile?.userBaselineNotes || 'None'}
+- Chronic Limitations (Long-term): ${profile?.chronicLimitations || 'None'}
+- Acute Injuries (Short-term): ${profile?.acuteInjuries || 'None'}
+- Emergency Overrides: ${profile?.emergencyOverrideNotes || 'None'}
 - Prescriptive Meals Enabled: ${prescriptiveMealsEnabled ? 'Yes' : 'No'}
 ${prescriptiveMealsEnabled ? `- Dietary Preferences/Allergies: ${dietaryNotes}` : ''}
 ${profile?.primaryGoal === 'race' ? `- Goal Pace: ${profile?.activeAdjustedGoal || 'N/A'} min/mi` : ''}
@@ -223,7 +226,7 @@ The user is entering Macrocycle Phase ${phaseIndex || 1}.
 1. Generate a 7-day workout block that precisely fits their Days Available to Train (use "rest" type for the remaining days).
 If strength training is Yes, include at least 1-2 "strength" workouts.
 For main strength workouts, ALWAYS link them to a Strength Guide by generating 1 to 3 specific Strength Guides for the week (assigned unique IDs like "A", "B", "C"), setting 'strengthGuideReference' to that exact ID, and setting 'activities' to a single placeholder item (e.g. [{ "name": "Strength Circuit A", "type": "work" }]). Do NOT list custom strength exercises inline inside 'activities' for main strength workouts. Inline activities in 'activities' should only be used for warmups ("prep") or cooldowns ("cool").
-You may utilize "Same-Day Stacking" (e.g., one run and one strength) to the same 'sequenceOrder' (1 through 7) so that their rest days are truly restorative. IMPORTANT: When stacking, you MUST create two completely separate workout objects in the JSON array (one for the run, one for the strength) with the same sequenceOrder. DO NOT combine a run and a strength routine into a single workout title or object. CRITICAL: NEVER generate duplicate workouts on the same day (e.g. do not schedule two runs or two identical strength workouts on the same day). Only stack if it is a run and a strength workout. Limit stacking to a maximum of 2 activities per day.
+SEQUENCE ORDER RULES: For days 1 through 7, every day must have at least one activity (which could be cardio, strength, or rest). You may assign a maximum of TWO activities per day on non-rest days if it fits the user's goals. If you assign two activities on the same day, they MUST NOT be of the same type (e.g., one cardio and one strength is allowed. Two cardio or two strength is forbidden). If a day is a 'rest' day, there must be NO other activities scheduled on that day. IMPORTANT: When stacking, you MUST create two completely separate workout objects in the JSON array (one for the cardio, one for the strength) with the same sequenceOrder. DO NOT combine them into a single workout object.
 
 2. Attach a 'jitPreparationTip' to EVERY workout object (including rest days). This tip should instruct the user on what to do *the day before* or *the hours leading up to* this specific workout to prepare/fuel/recover.
 
@@ -303,7 +306,35 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
         let workouts = parsedData.workouts || parsedData;
         if (!Array.isArray(workouts)) workouts = [];
         
-        workouts = workouts.map((w, index) => ({
+        // Programmatic Deduplication Check
+        const seenActivities = {};
+        const deduplicatedWorkouts = [];
+        workouts.forEach((w) => {
+            const day = w.sequenceOrder;
+            if (!seenActivities[day]) {
+                seenActivities[day] = new Set();
+            }
+            
+            const broadType = w.type === 'rest' ? 'rest' : (w.type === 'strength' ? 'strength' : 'cardio');
+            
+            if (broadType === 'rest' && seenActivities[day].size > 0) {
+                return; // Can't have rest if already scheduled something else
+            }
+            if (seenActivities[day].has('rest') && broadType !== 'rest') {
+                return; // Can't schedule anything else if rest is already scheduled
+            }
+            if (seenActivities[day].has(broadType)) {
+                return; // Duplicate type (e.g., double cardio or double strength), drop it
+            }
+            if (seenActivities[day].size >= 2) {
+                return; // Max 2 activities per day, drop it
+            }
+            
+            seenActivities[day].add(broadType);
+            deduplicatedWorkouts.push(w);
+        });
+        
+        workouts = deduplicatedWorkouts.map((w, index) => ({
             ...w,
             id: "ai-act-" + Date.now() + "-" + index,
             completed: false,

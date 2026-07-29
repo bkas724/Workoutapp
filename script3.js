@@ -2439,6 +2439,15 @@
             if (activePhaseWorkouts.length === 0) return;
             const allDone = activePhaseWorkouts.every(w => w.completed);
             if (allDone) {
+                const gatewayAcuteSection = document.getElementById('gateway-acute-injury-section');
+                const gatewayAcuteNotes = document.getElementById('gateway-acute-injury-notes');
+                if (userProfileData && userProfileData.acuteInjuries && userProfileData.acuteInjuries.trim() !== '') {
+                    if (gatewayAcuteSection) gatewayAcuteSection.classList.remove('hidden');
+                    if (gatewayAcuteNotes) gatewayAcuteNotes.value = userProfileData.acuteInjuries;
+                } else {
+                    if (gatewayAcuteSection) gatewayAcuteSection.classList.add('hidden');
+                    if (gatewayAcuteNotes) gatewayAcuteNotes.value = '';
+                }
                 document.getElementById('checkout-gateway-modal').classList.remove('hidden');
             } else {
                 document.getElementById('checkout-gateway-modal').classList.add('hidden');
@@ -2462,42 +2471,98 @@
             const userDocRef = db.collection("users").doc(userId);
 
             try {
-                // Delete current subphase workouts
-                const batchDelete = db.batch();
-                activePhaseWorkouts.forEach((w) => {
-                    batchDelete.delete(userDocRef.collection("active_phase").doc(w.id));
-                });
-                await batchDelete.commit();
+                const currentPhaseIndex = userProfileData.currentPhaseIndex || 1;
+                
+                // 1. Update Profile with new Acute Injury locally first (so it gets sent to AI)
+                let newAcute = (userProfileData.acuteInjuries || "").trim();
+                if (notes) {
+                    newAcute = newAcute ? newAcute + " | " + notes : notes;
+                }
+                userProfileData.acuteInjuries = newAcute;
 
-                // Regenerate Phase 1 default workouts as reset
-                const p1Workouts = getPhase1DefaultWorkouts();
+                // 2. Fetch recent history for AI (without completed active workouts yet, because we don't want to archive until API succeeds)
+                let historySnapshot = await userDocRef.collection("history")
+                    .orderBy("dateExecuted", "desc")
+                    .limit(14)
+                    .get();
+
+                const recentHistory = [];
+                historySnapshot.forEach(doc => recentHistory.push(doc.data()));
+                
+                // Append the locally completed active workouts to history for the AI's context
+                activePhaseWorkouts.forEach(w => {
+                    if (w.completed) recentHistory.push(w);
+                });
+
+                // Sanitize payloads
+                const sanitizePayload = (obj) => {
+                    if (obj === null || obj === undefined) return obj;
+                    if (typeof obj === 'number' && isNaN(obj)) return null;
+                    if (Array.isArray(obj)) return obj.map(sanitizePayload);
+                    if (typeof obj === 'object') {
+                        const newObj = {};
+                        for (let key in obj) {
+                            newObj[key] = sanitizePayload(obj[key]);
+                        }
+                        return newObj;
+                    }
+                    return obj;
+                };
+
+                const cleanProfile = sanitizePayload(userProfileData);
+                const cleanHistory = sanitizePayload(recentHistory);
+
+                // 3. Call Firebase Cloud Function FIRST
+                const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                const aiResult = await generateWorkoutBlock({
+                    phaseIndex: currentPhaseIndex,
+                    profile: cleanProfile,
+                    history: cleanHistory
+                });
+                
+                const nextWorkouts = aiResult.data.workouts || [];
+                if (!nextWorkouts || nextWorkouts.length === 0) {
+                    throw new Error("AI returned no workouts.");
+                }
+
+                // 4. If API succeeds, update the DB profile
+                await userDocRef.update({
+                    acuteInjuries: newAcute,
+                    emergencyOverrideNotes: notes,
+                    journeyComments: `Emergency adaptation: "${notes}". Adjusted workouts based on recent changes.`
+                });
+                
+                // 5. Archive completed, wipe active_phase cleanly
+                const batchArchive = db.batch();
+                activePhaseWorkouts.forEach((w) => {
+                    if (w.completed) {
+                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                    }
+                });
+                
+                // Clean wipe of active_phase
+                const activeDocs = await userDocRef.collection("active_phase").get();
+                activeDocs.forEach(doc => {
+                    batchArchive.delete(doc.ref);
+                });
+                await batchArchive.commit();
+
+                // 6. Write new workouts
                 const batchWrite = db.batch();
-                p1Workouts.forEach((w) => {
+                nextWorkouts.forEach((w) => {
                     batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
                 });
                 await batchWrite.commit();
 
-                // Update root user profile document
-                const baseline = (userProfileData && userProfileData.baseline5k) || "8:10";
-                const todayStr = new Date().toISOString().split('T')[0];
-                await userDocRef.update({
-                    currentPhaseIndex: 1,
-                    emergencyOverrideNotes: notes,
-                    journeyComments: `Emergency adaptation: "${notes}". Your active phase workouts have been reset.`,
-                    paceHistory: [
-                        { phase: 1, pace: baseline, date: todayStr, label: "Start", index: 0 }
-                    ]
-                });
-
                 console.log("Emergency adaptation applied.");
                 setTimeout(() => {
                     hideAutopilotLoader();
-                }, 3000);
+                }, 1500);
 
             } catch (err) {
                 console.error("Emergency adaptation failure: ", err);
                 hideAutopilotLoader();
-                alert("Firestore sync error during adaptation.");
+                alert("Error during adaptation: " + err.message);
             }
         }
 
@@ -2511,6 +2576,7 @@
             }
 
             const notes = document.getElementById('gateway-override-notes').value.trim();
+            const acuteNotes = document.getElementById('gateway-acute-injury-notes').value.trim();
             const newWeightStr = document.getElementById('gateway-weight').value;
             let newWeight = parseFloat(newWeightStr);
             let bmiHistoryUpdate = null;
@@ -2525,6 +2591,8 @@
             } else if (newWeight && !isNaN(newWeight)) {
                 userProfileData.weight = newWeight;
             }
+
+            userProfileData.acuteInjuries = acuteNotes;
 
             document.getElementById('checkout-gateway-modal').classList.add('hidden');
             showAutopilotLoader();
@@ -2579,7 +2647,8 @@
                     currentPhaseIndex: nextPhaseIndex,
                     lastPhaseComments: notes,
                     lastPhaseAverageRPE: avgRpe ? parseFloat(avgRpe) : null,
-                    journeyComments: coachComments
+                    journeyComments: coachComments,
+                    acuteInjuries: acuteNotes
                 };
                 if (newWeight && !isNaN(newWeight)) {
                     updateData.weight = newWeight;
@@ -2594,22 +2663,8 @@
                     throw new Error("Profile Update Error: " + e.message);
                 }
 
-                // Archive active phase to history, then clear active_phase
-                const batchArchive = db.batch();
-                activePhaseWorkouts.forEach((w) => {
-                    if (w.completed) {
-                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
-                    }
-                    batchArchive.delete(userDocRef.collection("active_phase").doc(w.id));
-                });
-                
-                try {
-                    await batchArchive.commit();
-                } catch(e) {
-                    throw new Error("Batch Archive Error: " + e.message);
-                }
-
                 // Fetch recent history (up to last 14 workouts)
+                // We append locally completed workouts since we haven't archived them yet.
                 let historySnapshot;
                 try {
                     historySnapshot = await userDocRef.collection("history")
@@ -2623,6 +2678,10 @@
                 const recentHistory = [];
                 historySnapshot.forEach(doc => {
                     recentHistory.push(doc.data());
+                });
+                
+                activePhaseWorkouts.forEach(w => {
+                    if (w.completed) recentHistory.push(w);
                 });
 
                 // Sanitize payloads to remove NaN (which crashes the Firebase functions JSON serializer)
@@ -2673,6 +2732,20 @@
                     alert("AI Generation Error: " + error.message + "\n\nFalling back to default workouts instead.");
                     nextWorkouts = getPhase1DefaultWorkouts();
                 }
+
+                // Only if AI succeeds do we wipe active_phase
+                const batchArchive = db.batch();
+                activePhaseWorkouts.forEach((w) => {
+                    if (w.completed) {
+                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                    }
+                });
+                
+                const activeDocs = await userDocRef.collection("active_phase").get();
+                activeDocs.forEach(doc => {
+                    batchArchive.delete(doc.ref);
+                });
+                await batchArchive.commit();
 
                 const batchWrite = db.batch();
                 nextWorkouts.forEach((w) => {
@@ -3413,6 +3486,14 @@
                 document.getElementById('modal-include-strength').value = userProfileData.strengthType || "runner_specific";
                 document.getElementById('modal-why-notes').value = userProfileData.why || "";
                 document.getElementById('modal-baseline-notes').value = userProfileData.userBaselineNotes || "";
+                
+                // Fix for users who had their personal notes accidentally copied to chronic limitations
+                let chronic = userProfileData.chronicLimitations || "";
+                if (chronic === (userProfileData.userBaselineNotes || "")) {
+                    chronic = "";
+                }
+                document.getElementById('modal-chronic-limitations').value = chronic;
+                document.getElementById('modal-acute-injuries').value = userProfileData.acuteInjuries || "";
 
                 const hwChecked = userProfileData.equipmentList || [];
                 const checkboxes = document.querySelectorAll('input[name="modal-hardware"]');
@@ -3576,7 +3657,9 @@
             const daysAvailableVal = parseInt(document.getElementById('modal-days-available').value) || 4;
             const strengthTypeVal = document.getElementById('modal-include-strength').value;
             const whyNotesVal = document.getElementById('modal-why-notes').value.trim();
-            const notesVal = document.getElementById('modal-baseline-notes').value.trim();
+            const baselineVal = document.getElementById('modal-baseline-notes').value.trim();
+            const chronicVal = document.getElementById('modal-chronic-limitations').value.trim();
+            const acuteVal = document.getElementById('modal-acute-injuries').value.trim();
 
             const checkboxes = document.querySelectorAll('input[name="modal-hardware"]:checked');
             const hardwareList = Array.from(checkboxes).map(cb => cb.value);
@@ -3584,7 +3667,9 @@
             if (db && userId) {
                 const updates = {
                     desiredWorkoutLength: lengthVal,
-                    userBaselineNotes: notesVal,
+                    userBaselineNotes: baselineVal,
+                    chronicLimitations: chronicVal,
+                    acuteInjuries: acuteVal,
                     weight: weightVal,
                     heightInches: heightInchesVal,
                     daysAvailable: daysAvailableVal,

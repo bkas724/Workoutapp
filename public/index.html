@@ -1971,11 +1971,29 @@
                     next block.</p>
             </div>
             <div class="space-y-2 text-left text-xs mt-4">
-                <label class="block font-bold text-slate-400 uppercase tracking-wider">Coach Override Notes
-                    (Injury/Schedule tweaks)</label>
+                <label class="flex items-center justify-between">
+                    <span class="font-bold text-slate-400 uppercase tracking-wider">Coach Override Notes</span>
+                    <div class="group relative cursor-help">
+                        <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                        <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                            <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                            Use this for temporary schedule changes (e.g. "I am traveling on Thursday, no gym access") or general tweaks just for this upcoming block.
+                        </div>
+                    </div>
+                </label>
                 <textarea id="gateway-override-notes"
-                    placeholder="Describe any fatigue, Achilles soreness, or schedule constraints for the next block..."
-                    class="w-full h-20 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                    placeholder="Describe any schedule constraints or preferences for the next block..."
+                    class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+            </div>
+            <div id="gateway-acute-injury-section" class="hidden space-y-2 text-left text-xs mt-4 border-t border-slate-800 pt-4">
+                <label class="block font-bold text-rose-400 uppercase tracking-wider flex justify-between items-center">
+                    <span>Acute Injury Follow-up</span>
+                    <button onclick="document.getElementById('gateway-acute-injury-notes').value=''" class="text-[9px] text-slate-500 hover:text-slate-300">Clear if Healed</button>
+                </label>
+                <p class="text-[10px] text-slate-500">You previously logged an acute injury. Is it still persisting? Update the status below, or clear it if you are fully healed.</p>
+                <textarea id="gateway-acute-injury-notes"
+                    placeholder="Describe your current injury status..."
+                    class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-rose-500 resize-none"></textarea>
             </div>
             <button onclick="proceedToNextPhase()"
                 class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg text-xs">
@@ -2309,25 +2327,49 @@
                                 <span class="text-slate-300 text-[10px]">Pull-up Bar</span>
                             </label>
                         </div>
-                    </div>
                     <div class="col-span-2 border-t border-slate-800/60 pt-2">
                         <label class="flex items-center justify-between">
-                            <span class="text-slate-500 block">Personal Notes (Constraints):</span>
+                            <span class="text-slate-500 block">Personal Notes (Constraints/Lifestyle):</span>
                             <div class="group relative cursor-help">
-                                <i
-                                    class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                                <div
-                                    class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
                                     <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                    Tell your AI Coach about your lifestyle, past injuries, and personal preferences. It
-                                    uses this context to automatically adjust your workout types, intensities, and
-                                    schedules
-                                    to perfectly fit your life.
+                                    Tell your AI Coach about your lifestyle, and personal preferences. It uses this context to automatically adjust your workout types, intensities, and schedules.
                                 </div>
                             </div>
                         </label>
                         <textarea id="modal-baseline-notes"
-                            placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts. Also, I have a history of shin splints, so please ease me into high-impact running."
+                            placeholder="e.g. Former college athlete returning after a year off. I have young kids, so I need morning workouts."
+                            class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                    </div>
+                    <div class="col-span-2 border-t border-slate-800/60 pt-2">
+                        <label class="flex items-center justify-between">
+                            <span class="text-slate-500 block">Chronic Limitations (Long-term):</span>
+                            <div class="group relative cursor-help">
+                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                    <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                                    Log long-term or permanent conditions here (e.g. chronic knee pain, asthma, prior surgeries). The AI will constantly adapt every phase around these.
+                                </div>
+                            </div>
+                        </label>
+                        <textarea id="modal-chronic-limitations"
+                            placeholder="e.g. History of shin splints, or bad right knee..."
+                            class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                    </div>
+                    <div class="col-span-2 border-t border-slate-800/60 pt-2">
+                        <label class="flex items-center justify-between">
+                            <span class="text-slate-500 block">Acute Injuries (Short-term):</span>
+                            <div class="group relative cursor-help">
+                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                    <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                                    Log temporary tweaks or sickness here (e.g. rolled ankle, fighting a cold). The AI will adjust your immediate workouts, and you can clear this once healed.
+                                </div>
+                            </div>
+                        </label>
+                        <textarea id="modal-acute-injuries"
+                            placeholder="e.g. Tweaked my ankle yesterday, keep impact low for now..."
                             class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
                     </div>
                     <div class="col-span-2 border-t border-slate-800/60 pt-3">
@@ -6056,34 +6098,87 @@
             const userDocRef = db.collection("users").doc(userId);
 
             try {
-                // Delete current subphase workouts
-                const batchDelete = db.batch();
-                activePhaseWorkouts.forEach((w) => {
-                    batchDelete.delete(userDocRef.collection("active_phase").doc(w.id));
-                });
-                await batchDelete.commit();
+                const currentPhaseIndex = userProfileData.currentPhaseIndex || 1;
+                
+                // 1. Update Profile with new Acute Injury locally first (so it gets sent to AI)
+                let newAcute = (userProfileData.acuteInjuries || "").trim();
+                if (notes) {
+                    newAcute = newAcute ? newAcute + " | " + notes : notes;
+                }
+                userProfileData.acuteInjuries = newAcute;
 
-                // Regenerate Phase 1 default workouts as reset
-                const p1Workouts = getPhase1DefaultWorkouts();
+                // 2. Fetch recent history for AI (without completed active workouts yet, because we don't want to archive until API succeeds)
+                let historySnapshot = await userDocRef.collection("history")
+                    .orderBy("dateExecuted", "desc")
+                    .limit(14)
+                    .get();
+
+                const recentHistory = [];
+                historySnapshot.forEach(doc => recentHistory.push(doc.data()));
+                
+                // Append the locally completed active workouts to history for the AI's context
+                activePhaseWorkouts.forEach(w => {
+                    if (w.completed) recentHistory.push(w);
+                });
+
+                // Sanitize payloads
+                const sanitizePayload = (obj) => {
+                    if (obj === null || obj === undefined) return obj;
+                    if (typeof obj === 'number' && isNaN(obj)) return null;
+                    if (Array.isArray(obj)) return obj.map(sanitizePayload);
+                    if (typeof obj === 'object') {
+                        const newObj = {};
+                        for (let key in obj) {
+                            newObj[key] = sanitizePayload(obj[key]);
+                        }
+                        return newObj;
+                    }
+                    return obj;
+                };
+
+                const cleanProfile = sanitizePayload(userProfileData);
+                const cleanHistory = sanitizePayload(recentHistory);
+
+                // 3. Call the AI API BEFORE wiping active_phase
+                const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                const aiResult = await generateWorkoutBlock({
+                    phaseIndex: currentPhaseIndex,
+                    profile: cleanProfile,
+                    history: cleanHistory
+                });
+
+                let newWorkouts = aiResult.data.workouts || [];
+
+                // 4. If AI succeeds, NOW we safely wipe the uncompleted workouts in active_phase 
+                // and archive the completed ones.
+                const batchArchive = db.batch();
+                activePhaseWorkouts.forEach((w) => {
+                    if (w.completed) {
+                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                    }
+                });
+                
+                // Fetch fresh active docs to ensure we don't miss any orphans during wipe
+                const activeDocs = await userDocRef.collection("active_phase").get();
+                activeDocs.forEach(doc => {
+                    batchArchive.delete(doc.ref);
+                });
+                await batchArchive.commit();
+
+                // 5. Save the new AI-generated workouts
                 const batchWrite = db.batch();
-                p1Workouts.forEach((w) => {
+                newWorkouts.forEach((w) => {
                     batchWrite.set(userDocRef.collection("active_phase").doc(w.id), w);
                 });
                 await batchWrite.commit();
 
-                // Update root user profile document
-                const baseline = (userProfileData && userProfileData.baseline5k) || "8:10";
-                const todayStr = new Date().toISOString().split('T')[0];
+                // 6. Update root user profile document
                 await userDocRef.update({
-                    currentPhaseIndex: 1,
-                    emergencyOverrideNotes: notes,
-                    journeyComments: `Emergency adaptation: "${notes}". Your active phase workouts have been reset.`,
-                    paceHistory: [
-                        { phase: 1, pace: baseline, date: todayStr, label: "Start", index: 0 }
-                    ]
+                    acuteInjuries: newAcute, // Save the appended acute injury
+                    journeyComments: `Adapted plan dynamically. Notes: "${notes}".`
                 });
 
-                console.log("Emergency adaptation applied.");
+                console.log("Emergency adaptation applied via AI.");
                 setTimeout(() => {
                     hideAutopilotLoader();
                 }, 3000);
@@ -6091,7 +6186,7 @@
             } catch (err) {
                 console.error("Emergency adaptation failure: ", err);
                 hideAutopilotLoader();
-                alert("Firestore sync error during adaptation.");
+                alert("Failed to adapt plan using AI. Your current workouts were kept safe. Error: " + err.message);
             }
         }
 
@@ -6112,6 +6207,7 @@
             }
 
             const notes = document.getElementById('gateway-override-notes').value.trim();
+            const acuteNotes = document.getElementById('gateway-acute-injury-notes').value.trim();
             const newWeightStr = document.getElementById('gateway-weight').value;
             let newWeight = parseFloat(newWeightStr);
             let bmiHistoryUpdate = null;
@@ -6126,6 +6222,8 @@
             } else if (newWeight && !isNaN(newWeight)) {
                 userProfileData.weight = newWeight;
             }
+
+            userProfileData.acuteInjuries = acuteNotes;
 
             document.getElementById('checkout-gateway-modal').classList.add('hidden');
             showAutopilotLoader();
@@ -6175,51 +6273,15 @@
                     coachComments += `Generating a new block for Phase ${nextPhaseIndex}. Keep executing your sequential workouts with steady pacing.`;
                 }
 
-                // Update profile details
-                let updateData = {
-                    currentPhaseIndex: nextPhaseIndex,
-                    lastPhaseComments: notes,
-                    lastPhaseAverageRPE: avgRpe ? parseFloat(avgRpe) : null,
-                    journeyComments: coachComments
-                };
-                if (newWeight && !isNaN(newWeight)) {
-                    updateData.weight = newWeight;
-                }
-                if (bmiHistoryUpdate) {
-                    updateData.bmiHistory = bmiHistoryUpdate;
-                }
-
-                try {
-                    await userDocRef.update(updateData);
-                } catch (e) {
-                    throw new Error("Profile Update Error: " + e.message);
-                }
-
-                // Archive active phase to history, then clear active_phase
-                const batchArchive = db.batch();
-                const activePhaseSnapshot = await userDocRef.collection("active_phase").get();
-                activePhaseSnapshot.forEach((doc) => {
-                    const w = doc.data();
-                    if (w.completed) {
-                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
-                    }
-                    batchArchive.delete(userDocRef.collection("active_phase").doc(w.id));
-                });
-
-                try {
-                    await batchArchive.commit();
-                } catch (e) {
-                    throw new Error("Batch Archive Error: " + e.message);
-                }
-
                 // Fetch recent history (up to last 14 workouts)
+                // We append locally completed workouts since we haven't archived them yet.
                 let historySnapshot;
                 try {
                     historySnapshot = await userDocRef.collection("history")
                         .orderBy("dateExecuted", "desc")
                         .limit(14)
                         .get();
-                } catch (e) {
+                } catch(e) {
                     throw new Error("History Fetch Error: " + e.message);
                 }
 
@@ -6227,11 +6289,30 @@
                 historySnapshot.forEach(doc => {
                     recentHistory.push(doc.data());
                 });
+                
+                activePhaseWorkouts.forEach(w => {
+                    if (w.completed) recentHistory.push(w);
+                });
 
-                const cleanProfile = JSON.parse(JSON.stringify(userProfileData));
-                const cleanHistory = JSON.parse(JSON.stringify(recentHistory));
+                // Sanitize payloads to remove NaN
+                const sanitizePayload = (obj) => {
+                    if (obj === null || obj === undefined) return obj;
+                    if (typeof obj === 'number' && isNaN(obj)) return null;
+                    if (Array.isArray(obj)) return obj.map(sanitizePayload);
+                    if (typeof obj === 'object') {
+                        const newObj = {};
+                        for (let key in obj) {
+                            newObj[key] = sanitizePayload(obj[key]);
+                        }
+                        return newObj;
+                    }
+                    return obj;
+                };
 
-                // Call Firebase Cloud Function to generate AI workouts
+                const cleanProfile = sanitizePayload(userProfileData);
+                const cleanHistory = sanitizePayload(recentHistory);
+
+                // Call Firebase Cloud Function to generate AI workouts BEFORE wiping
                 let nextWorkouts = [];
                 try {
                     const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
@@ -6244,6 +6325,20 @@
                     const strengthGuides = aiResult.data.strengthGuides || [];
                     const healthInsights = aiResult.data.healthInsights || null;
                     let profileUpdates = {};
+                    
+                    profileUpdates.currentPhaseIndex = nextPhaseIndex;
+                    profileUpdates.lastPhaseComments = notes;
+                    profileUpdates.lastPhaseAverageRPE = avgRpe ? parseFloat(avgRpe) : null;
+                    profileUpdates.journeyComments = coachComments;
+                    profileUpdates.acuteInjuries = acuteNotes;
+                    
+                    if (newWeight && !isNaN(newWeight)) {
+                        profileUpdates.weight = newWeight;
+                    }
+                    if (bmiHistoryUpdate) {
+                        profileUpdates.bmiHistory = bmiHistoryUpdate;
+                    }
+                    
                     if (strengthGuides.length > 0) {
                         profileUpdates.currentStrengthGuides = strengthGuides;
                         profileUpdates.simpleStrengthGuides = firebase.firestore.FieldValue.delete();
@@ -6253,14 +6348,28 @@
                     if (healthInsights) {
                         profileUpdates.healthInsights = healthInsights;
                     }
-                    if (Object.keys(profileUpdates).length > 0) {
-                        await userDocRef.update(profileUpdates);
-                    }
+                    
+                    await userDocRef.update(profileUpdates);
+                    
                 } catch (error) {
                     console.error("Failed to generate AI workouts, falling back to defaults.", error);
                     alert("AI Generation Error: " + error.message + "\n\nFalling back to default workouts instead.");
                     nextWorkouts = getPhase1DefaultWorkouts();
                 }
+
+                // Only if AI succeeds do we wipe active_phase
+                const batchArchive = db.batch();
+                activePhaseWorkouts.forEach((w) => {
+                    if (w.completed) {
+                        batchArchive.set(userDocRef.collection("history").doc(w.id), w);
+                    }
+                });
+                
+                const activeDocs = await userDocRef.collection("active_phase").get();
+                activeDocs.forEach(doc => {
+                    batchArchive.delete(doc.ref);
+                });
+                await batchArchive.commit();
 
                 const batchWrite = db.batch();
                 nextWorkouts.forEach((w) => {
@@ -7181,6 +7290,14 @@
                 document.getElementById('modal-include-strength').value = userProfileData.strengthType || "runner_specific";
                 document.getElementById('modal-why-notes').value = userProfileData.why || "";
                 document.getElementById('modal-baseline-notes').value = userProfileData.userBaselineNotes || "";
+                
+                // Fix for users who had their personal notes accidentally copied to chronic limitations
+                let chronic = userProfileData.chronicLimitations || "";
+                if (chronic === (userProfileData.userBaselineNotes || "")) {
+                    chronic = "";
+                }
+                document.getElementById('modal-chronic-limitations').value = chronic;
+                document.getElementById('modal-acute-injuries').value = userProfileData.acuteInjuries || "";
 
                 const hwChecked = userProfileData.equipmentList || [];
                 const checkboxes = document.querySelectorAll('input[name="modal-hardware"]');
@@ -7438,7 +7555,9 @@
             const daysAvailableVal = parseInt(document.getElementById('modal-days-available').value) || 4;
             const strengthTypeVal = document.getElementById('modal-include-strength').value;
             const whyNotesVal = document.getElementById('modal-why-notes').value.trim();
-            const notesVal = document.getElementById('modal-baseline-notes').value.trim();
+            const baselineVal = document.getElementById('modal-baseline-notes').value.trim();
+            const chronicVal = document.getElementById('modal-chronic-limitations').value.trim();
+            const acuteVal = document.getElementById('modal-acute-injuries').value.trim();
 
             const checkboxes = document.querySelectorAll('input[name="modal-hardware"]:checked');
             const hardwareList = Array.from(checkboxes).map(cb => cb.value);
@@ -7454,13 +7573,15 @@
             if (db && userId) {
                 const updates = {
                     desiredWorkoutLength: lengthVal,
-                    userBaselineNotes: notesVal,
                     weight: weightVal,
                     heightInches: heightInchesVal,
                     daysAvailable: daysAvailableVal,
                     includeStrength: strengthTypeVal !== 'none',
                     strengthType: strengthTypeVal,
                     why: whyNotesVal,
+                    userBaselineNotes: baselineVal,
+                    chronicLimitations: chronicVal,
+                    acuteInjuries: acuteVal,
                     equipmentList: hardwareList,
                     notificationsEnabled: notificationsEnabledVal,
                     prescriptiveMeals: prescriptiveMealsVal,
