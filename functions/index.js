@@ -236,6 +236,7 @@ ${nutInstructionBlock}
 6. If a work activity is a circuit (e.g. Strength Circuit A), explicitly set "isCircuit" to true and specify the number of rounds in "circuitRounds". For non-circuit activities, set them to false and 0.
 7. Time Constraints: The user has a daily time limit of ${profile?.desiredWorkoutLength || 'Unlimited'} minutes. A workout can be significantly shorter if it needs to be, but it should not be excessively longer (keep within ~10% of their limit max). If a single workout (like a long run) significantly exceeds this limit, attempt to break the volume up across multiple days (e.g., breaking a 6-mile run into a 2-mile and 4-mile split on consecutive days) to keep the daily time within ~10% of their available time. However, if you believe a single long continuous session is absolutely necessary to reach the optimal performance for their goal, you may keep the longer workout but explicitly mention this in the 'jitPreparationTip' or 'targetInstructions'.
 8. CRITICAL 'type' Validation: The 'type' field of a workout MUST be exactly one of these strings: "run", "walk", "bike", "swim", "easy", "fast", "long", "tempo", "interval", "recovery", "base", "aerobic", "strength", "rest". Do not invent new types.
+9. CRITICAL STRIDES & INTERVAL REPS RULE: For any secondary running activity such as Strides, Sprints, Intervals, Hill Repeats, or Short Reps (e.g. 'Strides', 'Hill Sprints'), you MUST explicitly state the REP COUNT at the start of 'repsDistanceTime' (e.g. '4 x 100m at ~80% effort', '6 x 200m'). NEVER return a single distance string without the rep count (e.g. NEVER output '100m at ~80% effort' alone).
 
 Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
 {
@@ -259,7 +260,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
           "name": "String (e.g., Warmup, Interval, Squats)",
           "type": "String (prep, work, cool)",
           "sets": Number,
-          "repsDistanceTime": "String (e.g., 10 reps, 400m, 5 mins)",
+          "repsDistanceTime": "String (e.g., '4 x 100m at ~80% effort', '6 x 200m', '10 reps', '5 mins') - MUST include rep count at start for strides/intervals!",
           "isCircuit": Boolean,
           "circuitRounds": Number
         }

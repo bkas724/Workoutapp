@@ -327,11 +327,15 @@
                 </button>
             </div>
 
-            <div class="absolute top-4 right-4 md:top-6 md:right-6 z-20">
+            <div class="absolute top-4 right-4 md:top-6 md:right-6 z-20 flex flex-col items-end gap-2">
                 <span id="sync-badge"
                     class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Offline
                 </span>
+                
+                <div id="jit-consistency-badge" class="flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-emerald-400 font-bold text-xs shadow-sm">
+                    <i class="fa-solid fa-fire text-amber-400"></i> <span id="jit-consistency-val">100% Consistency</span>
+                </div>
             </div>
 
             <!-- Header Content -->
@@ -399,6 +403,9 @@
         <div id="next-activity-focus"
             class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/40 rounded-2xl p-4 md:p-6 shadow-xl transition-all duration-500">
             <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
+            <div id="jit-consistency-header-bar" class="flex items-center justify-between mb-4 border-b border-indigo-500/20 pb-3">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-300">Up Next</span>
+            </div>
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
                 <div id="focus-content" class="w-full">
                     <div class="animate-pulse flex gap-4">
@@ -4612,6 +4619,83 @@
             }
         }
 
+        function calculateRollingJITConsistency(historyWorkouts, activeWorkouts) {
+            const allCompleted = [];
+
+            if (historyWorkouts && Array.isArray(historyWorkouts)) {
+                historyWorkouts.forEach(w => {
+                    if (w.completed && w.dateExecuted) allCompleted.push(w);
+                });
+            }
+
+            if (activeWorkouts && Array.isArray(activeWorkouts)) {
+                activeWorkouts.forEach(w => {
+                    if (w.completed && w.dateExecuted && !allCompleted.some(h => h.id === w.id)) {
+                        allCompleted.push(w);
+                    }
+                });
+            }
+
+            if (allCompleted.length === 0) return 100;
+
+            allCompleted.sort((a, b) => new Date(a.dateExecuted) - new Date(b.dateExecuted));
+
+            const blocks = [];
+            for (let i = 0; i < allCompleted.length; i += 7) {
+                blocks.push(allCompleted.slice(i, i + 7));
+            }
+
+            const recentBlocks = blocks.slice(-5);
+            const blockScores = [];
+
+            recentBlocks.forEach(chunk => {
+                if (chunk.length < 2) return;
+                const startDate = new Date(chunk[0].dateExecuted);
+                const endDate = new Date(chunk[chunk.length - 1].dateExecuted);
+
+                const diffTime = Math.abs(endDate - startDate);
+                const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+
+                const targetDays = 7;
+                const score = Math.min(100, Math.round((targetDays / diffDays) * 100));
+                blockScores.push(score);
+            });
+
+            if (blockScores.length === 0) return 100;
+            const avgScore = Math.round(blockScores.reduce((sum, s) => sum + s, 0) / blockScores.length);
+            return Math.min(100, Math.max(10, avgScore));
+        }
+
+        async function updateJITConsistencyBadge() {
+            const badgeContainer = document.getElementById('jit-consistency-badge');
+            const badgeValEl = document.getElementById('jit-consistency-val');
+            if (!badgeContainer && !badgeValEl) return;
+
+            let historyWorkouts = [];
+            if (typeof userId !== 'undefined' && userId) {
+                historyWorkouts = await getOrFetchHistoryWorkouts(userId);
+            }
+            const activeWorkouts = typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : [];
+            const score = calculateRollingJITConsistency(historyWorkouts, activeWorkouts);
+
+            if (badgeValEl) badgeValEl.innerText = `${score}% Consistency`;
+            if (badgeContainer) {
+                if (score >= 90) {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-emerald-400 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-fire text-amber-400"></i> ${score}% Consistency`;
+                } else if (score >= 75) {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-sky-950/60 border border-sky-500/30 px-3 py-1 rounded-full text-sky-400 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-bolt text-amber-300"></i> ${score}% Consistency`;
+                } else if (score >= 60) {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/30 px-3 py-1 rounded-full text-amber-400 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-chart-line text-amber-400"></i> ${score}% Consistency`;
+                } else {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-rose-950/60 border border-rose-500/30 px-3 py-1 rounded-full text-rose-400 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-dumbbell text-rose-400"></i> ${score}% Consistency`;
+                }
+            }
+        }
+
         function getISOWeekString(d = new Date()) {
             const date = new Date(d.getTime());
             date.setHours(0, 0, 0, 0);
@@ -4665,24 +4749,28 @@
 
             if (renderSequenceOrder === null) {
                 container.innerHTML = `
-                    <div class="flex flex-col md:flex-row items-center md:items-start justify-between w-full gap-4 p-4 text-emerald-400">
+                    <div class="flex flex-col md:flex-row items-center md:items-start justify-between w-full gap-4 p-5 bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-xl text-emerald-400">
                         <div class="flex items-center gap-4">
-                            <i class="fa-solid fa-trophy text-4xl"></i>
+                            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
                             <div>
-                                <h2 class="text-2xl font-black uppercase tracking-wider">All Phase Workouts Complete!</h2>
-                                <p class="text-slate-300 mt-1">Ask Coach for your next training block.</p>
+                                <h2 class="text-xl font-extrabold text-white tracking-tight">Phase Block Complete! 🎉</h2>
+                                <p class="text-xs text-slate-300 mt-1">Great job finishing your 7-day training block. Ask Coach for your next block.</p>
                             </div>
                         </div>
-                        <button onclick="proceedToNextPhase()" class="shrink-0 bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] whitespace-nowrap">
-                            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate Next Phase
+                        <button id="gen-next-phase-btn-home" onclick="proceedToNextPhase()" class="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md whitespace-nowrap flex items-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Next Phase
                         </button>
                     </div>`;
+                updateJITConsistencyBadge();
                 return;
             }
 
             const dailySlate = activePhaseWorkouts.filter(w => w.sequenceOrder === renderSequenceOrder);
 
             let allCompleted = dailySlate.every(w => w.completed);
+            let isBlockFullyFinished = activeSequenceOrder === null;
             let slateLabel = allCompleted ? 'Completed Today' : 'Todays Flow';
             let slateColor = allCompleted ? 'text-emerald-400 bg-emerald-950/50 border-emerald-500/30' : 'text-indigo-400 bg-indigo-950/50 border-indigo-500/30';
 
@@ -5082,6 +5170,31 @@
                                 });
                             });
 
+                            function formatActivityRepsDisplay(actItem) {
+                                if (!actItem) return '';
+                                let text = (actItem.repsDistanceTime || '').trim();
+                                if (!text && !actItem.sets) return '';
+
+                                const hasRepsRegex = /\b(\d+)\s*(?:x|reps?|sets?|times)\b/i;
+                                const hasLeadingMultiplier = /^(\d+)\s*x\b/i;
+
+                                if (hasRepsRegex.test(text) || hasLeadingMultiplier.test(text)) {
+                                    return text;
+                                }
+
+                                if (actItem.sets && actItem.sets > 1) {
+                                    return `${actItem.sets} x ${text}`;
+                                }
+
+                                const actName = (actItem.name || '').toLowerCase();
+                                const isStrideOrRepeat = ['stride', 'sprint', 'repeat', 'interval', 'hill'].some(keyword => actName.includes(keyword));
+                                if (isStrideOrRepeat && text) {
+                                    return `4 x ${text}`;
+                                }
+
+                                return text;
+                            }
+
                             let hasShownTargetInstructions = false;
                             let renderedCircuitTrackerFor = null;
 
@@ -5148,7 +5261,7 @@
                                                             </div>
                                                         </div>
                                                         <div id="act-subtitle-${nextStep.id}-${actIdx}" class="flex items-center gap-3 mt-1 flex-wrap transition-all duration-300">
-                                                            <span class="text-xs text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
+                                                            <span class="text-xs text-slate-400 font-medium">${formatActivityRepsDisplay(act)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -5174,7 +5287,7 @@
                                                     <span class="text-[10px] font-bold uppercase tracking-wider ${act.type === 'prep' ? 'text-amber-500' : 'text-sky-400'}">${act.type === 'prep' ? 'Warm Up' : 'Cool Down'}</span>
                                                     <span class="text-sm font-bold text-slate-300">${act.name}</span>
                                                 </div>
-                                                <span class="text-xs text-slate-400 font-medium">${act.repsDistanceTime || ''}</span>
+                                                <span class="text-xs text-slate-400 font-medium">${formatActivityRepsDisplay(act)}</span>
                                             </div>
                                             `;
                                 }
@@ -5253,6 +5366,25 @@
                 </div>`;
             }
 
+            if (isBlockFullyFinished && allCompleted) {
+                htmlAccumulator += `
+                    <div class="mt-6 bg-slate-900/90 border border-emerald-500/40 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-extrabold text-white tracking-tight">Phase Block Complete! 🎉</h3>
+                                <p class="text-xs text-slate-300 mt-0.5">Great job completing today's workout. Your next 7-day block will begin <strong class="text-amber-400">Tomorrow</strong>.</p>
+                            </div>
+                        </div>
+                        <button id="gen-next-phase-btn-home" onclick="proceedToNextPhase()" class="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Next Phase
+                        </button>
+                    </div>
+                `;
+            }
+
             htmlAccumulator += `</div>`;
             container.innerHTML = htmlAccumulator;
 
@@ -5275,6 +5407,7 @@
             }
 
             calculateTargetPaces();
+            updateJITConsistencyBadge();
         }
 
         function handleWorkoutCheckToggle(activityId, isBenchmark, type, cbElement) {
@@ -6196,6 +6329,19 @@
                 document.getElementById('checkout-gateway-modal').classList.add('hidden');
                 switchTab('profile');
                 return;
+            }
+
+            const homeGenBtn = document.getElementById('gen-next-phase-btn-home');
+            const checklistGenBtn = document.getElementById('gen-next-phase-btn-checklist');
+            if (homeGenBtn) {
+                homeGenBtn.disabled = true;
+                homeGenBtn.className = "shrink-0 bg-slate-800 text-slate-500 border border-slate-700 px-6 py-3 rounded-xl text-xs font-bold transition-all cursor-not-allowed opacity-60 flex items-center gap-2 whitespace-nowrap";
+                homeGenBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-indigo-400"></i> Generating Next Block...`;
+            }
+            if (checklistGenBtn) {
+                checklistGenBtn.disabled = true;
+                checklistGenBtn.className = "shrink-0 bg-slate-800 text-slate-500 border border-slate-700 px-6 py-3 rounded-xl text-xs font-bold transition-all cursor-not-allowed opacity-60 flex items-center gap-2 whitespace-nowrap";
+                checklistGenBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-indigo-400"></i> Generating Next Block...`;
             }
 
             try {
