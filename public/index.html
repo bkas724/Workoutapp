@@ -1706,27 +1706,15 @@
                     <div class="space-y-1">
                         <label class="block font-bold text-slate-400 uppercase tracking-wider">Available
                             Equipment</label>
-                        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="intake-hardware" value="bicycle"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Bicycle</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="intake-hardware" value="dumbbells"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Dumbbells</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="intake-hardware" value="treadmill"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Treadmill</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="intake-hardware" value="pull-up bar"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Pull-up Bar</span>
-                            </label>
+                        <div class="mt-2">
+                            <button type="button" id="intake-select-equipment-btn"
+                                class="w-full bg-slate-900 border border-slate-700 hover:border-indigo-500 hover:bg-slate-800 transition-colors p-2.5 rounded-xl text-white font-bold flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-dumbbell"></i> Select Equipment
+                            </button>
+                            <!-- Container for selected equipment bubbles -->
+                            <div id="intake-equipment-bubbles" class="flex flex-wrap gap-2 mt-3 empty:hidden">
+                                <!-- Bubbles will be injected here via JS -->
+                            </div>
                         </div>
                     </div>
 
@@ -2311,28 +2299,15 @@
                     </div>
                     <div class="col-span-2 border-t border-slate-800/60 pt-2">
                         <span class="text-slate-500 block">Available Equipment:</span>
-                        <div id="modal-hardware-edit"
-                            class="mt-1 grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-850">
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="modal-hardware" value="bicycle"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Bicycle</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="modal-hardware" value="dumbbells"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Dumbbells</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="modal-hardware" value="treadmill"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Treadmill</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                                <input type="checkbox" name="modal-hardware" value="pull-up bar"
-                                    class="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
-                                <span class="text-slate-300 text-[10px]">Pull-up Bar</span>
-                            </label>
+                        <div class="mt-2">
+                            <button type="button" id="modal-select-equipment-btn"
+                                class="w-full bg-slate-900 border border-slate-700 hover:border-indigo-500 hover:bg-slate-800 transition-colors p-2.5 rounded-xl text-white font-bold flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-dumbbell"></i> Select Equipment
+                            </button>
+                            <!-- Container for selected equipment bubbles -->
+                            <div id="modal-equipment-bubbles" class="flex flex-wrap gap-2 mt-3 empty:hidden">
+                                <!-- Bubbles will be injected here via JS -->
+                            </div>
                         </div>
                     </div>
                     <div class="col-span-2 border-t border-slate-800/60 pt-2">
@@ -3953,8 +3928,7 @@
             const targetWeightRaw = document.getElementById('intake-target-weight').value;
             const targetWeight = targetWeightRaw ? parseFloat(targetWeightRaw) : null;
 
-            const equipmentCheckboxes = document.querySelectorAll('input[name="intake-hardware"]:checked');
-            const equipmentList = Array.from(equipmentCheckboxes).map(cb => cb.value);
+            const equipmentList = Array.from(window.selectedEquipment);
 
             let trainingFocusRatio = "auto";
             if (fitnessLevel !== 'brand_new' && fitnessLevel !== 'returning') {
@@ -7531,10 +7505,8 @@
                 document.getElementById('modal-acute-injuries').value = userProfileData.acuteInjuries || "";
 
                 const hwChecked = userProfileData.equipmentList || [];
-                const checkboxes = document.querySelectorAll('input[name="modal-hardware"]');
-                checkboxes.forEach(cb => {
-                    cb.checked = hwChecked.includes(cb.value);
-                });
+                window.selectedEquipment = new Set(hwChecked);
+                if (window.renderBubbles) window.renderBubbles('modal-equipment-bubbles');
 
                 modalGPXCleared = false;
                 const statusEl = document.getElementById('modal-gpx-status');
@@ -7790,8 +7762,7 @@
             const chronicVal = document.getElementById('modal-chronic-limitations').value.trim();
             const acuteVal = document.getElementById('modal-acute-injuries').value.trim();
 
-            const checkboxes = document.querySelectorAll('input[name="modal-hardware"]:checked');
-            const hardwareList = Array.from(checkboxes).map(cb => cb.value);
+            const hardwareList = Array.from(window.selectedEquipment);
 
             const notifToggle = document.getElementById('modal-weight-notifications-toggle');
             const notificationsEnabledVal = notifToggle ? notifToggle.checked : false;
@@ -10510,6 +10481,324 @@
                 }
             }
         };
+
+    </script>
+    <!-- EQUIPMENT SELECTION MODAL -->
+    <div id="equipment-selection-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/90 z-10 sticky top-0">
+                <h3 class="text-xl font-black text-white uppercase tracking-wider">Select Equipment</h3>
+                <button id="close-equipment-modal-btn" class="text-slate-400 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="p-4 overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-4">
+                <!-- Search Bar -->
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                    <input type="text" id="equipment-search-input" placeholder="Search for equipment..." 
+                           class="w-full bg-slate-950 border border-slate-800 pl-10 pr-4 py-3 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500 transition-colors">
+                    <button id="add-custom-equipment-btn" class="hidden absolute right-2 top-1/2 -translate-y-1/2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
+                        Add Custom
+                    </button>
+                </div>
+
+                <!-- Presets -->
+                <div class="flex gap-2">
+                    <button id="preset-commercial-gym" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-bold py-2 px-3 rounded-xl transition-colors text-xs text-center flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-building text-lg"></i>
+                        <span>Commercial Gym</span>
+                    </button>
+                    <button id="preset-home-gym" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-bold py-2 px-3 rounded-xl transition-colors text-xs text-center flex flex-col items-center gap-1">
+                        <i class="fa-solid fa-house text-lg"></i>
+                        <span>Home Gym</span>
+                    </button>
+                </div>
+
+                <!-- Accordion Categories Container -->
+                <div id="equipment-categories-container" class="flex flex-col gap-2">
+                    <!-- Categories will be injected here via JS -->
+                </div>
+
+            </div>
+
+            <!-- Footer / Confirmation -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/90 z-10 sticky bottom-0">
+                <button id="confirm-equipment-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> Confirm Selection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- EQUIPMENT SELECTION MODAL LOGIC ---
+        
+        // 1. Data Structure
+        const equipmentData = {
+            "Cardio & Cross-training": ["Bicycle", "Rowing Machine", "Treadmill", "Elliptical", "Stair Climber", "Swimming Pool", "SkiErg"],
+            "Weights & Free Weights": ["Dumbbells", "Kettlebells", "Barbell", "Weight Plates", "Hex Bar / Trap Bar", "Adjustable Dumbbells"],
+            "Machines": ["Cable Machine", "Leg Press", "Leg Extension", "Leg Curl", "Lat Pulldown", "Seated Row", "Pec Deck / Fly", "Smith Machine", "Hack Squat"],
+            "Racks & Benches": ["Squat Rack / Power Rack", "Bench Press", "Adjustable Bench", "Flat Bench"],
+            "Bodyweight & Accessories": ["Pull-up Bar", "Dip Station", "Resistance Bands", "Yoga Mat", "Jump Rope", "Ab Roller", "Foam Roller", "Battle Ropes", "Plyo Box", "TRX Suspension Trainer", "Sandbag", "Medicine Balls", "Bosu Ball"]
+        };
+
+        const presets = {
+            "commercial": ["Dumbbells", "Kettlebells", "Barbell", "Weight Plates", "Hex Bar / Trap Bar", "Cable Machine", "Leg Press", "Leg Extension", "Leg Curl", "Lat Pulldown", "Seated Row", "Pec Deck / Fly", "Smith Machine", "Hack Squat", "Squat Rack / Power Rack", "Bench Press", "Adjustable Bench", "Flat Bench", "Pull-up Bar", "Dip Station", "Rowing Machine", "Treadmill", "Elliptical", "Stair Climber", "Resistance Bands", "Yoga Mat", "Jump Rope", "Ab Roller", "Foam Roller", "Medicine Balls", "Bosu Ball", "TRX Suspension Trainer", "Plyo Box", "Battle Ropes"],
+            "home": ["Dumbbells", "Kettlebells", "Resistance Bands", "Yoga Mat", "Pull-up Bar", "Jump Rope", "Adjustable Bench"]
+        };
+
+        // State
+        window.selectedEquipment = new Set();
+        let customEquipmentList = [];
+        let currentEditingContext = 'intake'; // 'intake' or 'modal'
+
+        // DOM Elements
+        const equipModal = document.getElementById('equipment-selection-modal');
+        const closeEquipBtn = document.getElementById('close-equipment-modal-btn');
+        const searchInput = document.getElementById('equipment-search-input');
+        const categoriesContainer = document.getElementById('equipment-categories-container');
+        const confirmEquipBtn = document.getElementById('confirm-equipment-btn');
+        const addCustomBtn = document.getElementById('add-custom-equipment-btn');
+        
+        const presetCommercialBtn = document.getElementById('preset-commercial-gym');
+        const presetHomeBtn = document.getElementById('preset-home-gym');
+
+        // Render Categories and Items
+        function renderEquipmentList(filterTerm = '') {
+            categoriesContainer.innerHTML = '';
+            const term = filterTerm.toLowerCase().trim();
+            let hasMatches = false;
+
+            const allCategories = { ...equipmentData, "Custom": customEquipmentList };
+
+            for (const [category, items] of Object.entries(allCategories)) {
+                if (!items || items.length === 0) continue;
+
+                // Filter items based on search
+                const filteredItems = items.filter(item => item.toLowerCase().includes(term));
+                
+                if (filteredItems.length === 0) continue; // Skip category if no matches
+                hasMatches = true;
+
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'bg-slate-950 border border-slate-800 rounded-xl overflow-hidden';
+
+                // Accordion Header
+                const headerBtn = document.createElement('button');
+                headerBtn.type = 'button';
+                // Automatically expand if filtering, otherwise only expand the first one
+                const isExpanded = term !== '' || (category === "Cardio & Cross-training" && categoriesContainer.children.length === 0);
+                
+                headerBtn.className = 'w-full flex justify-between items-center p-3 text-left font-bold text-white bg-slate-900/50 hover:bg-slate-800 transition-colors';
+                
+                // Items Container
+                const itemsDiv = document.createElement('div');
+                itemsDiv.className = `p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-800 ${isExpanded ? '' : 'hidden'}`;
+
+                const renderHeaderContent = () => {
+                    const selectedInCategory = filteredItems.filter(item => window.selectedEquipment.has(item));
+                    let rightSideHtml = '';
+                    
+                    if (selectedInCategory.length > 0) {
+                        rightSideHtml += `<div class="flex items-center gap-1 mr-3">`;
+                        const maxBubbles = 2;
+                        for (let i = 0; i < Math.min(selectedInCategory.length, maxBubbles); i++) {
+                            let displayName = selectedInCategory[i];
+                            if (displayName.length > 12) displayName = displayName.substring(0, 10) + '...';
+                            rightSideHtml += `<div class="bg-indigo-500/20 border border-indigo-500/50 text-indigo-300 px-2 py-0.5 rounded-full text-[9px] font-bold">${displayName}</div>`;
+                        }
+                        if (selectedInCategory.length > maxBubbles) {
+                            rightSideHtml += `<div class="bg-slate-700 border border-slate-600 text-slate-300 px-2 py-0.5 rounded-full text-[9px] font-bold">+${selectedInCategory.length - maxBubbles}</div>`;
+                        }
+                        rightSideHtml += `</div>`;
+                    }
+
+                    const isCurrentlyExpanded = !itemsDiv.classList.contains('hidden');
+                    
+                    headerBtn.innerHTML = `
+                        <span>${category} <span class="text-xs text-slate-500 font-normal ml-2 hidden sm:inline">(${filteredItems.length})</span></span>
+                        <div class="flex items-center">
+                            ${rightSideHtml}
+                            <i class="fa-solid fa-chevron-${isCurrentlyExpanded ? 'up' : 'down'} text-slate-500 transition-transform duration-200"></i>
+                        </div>
+                    `;
+                };
+
+                renderHeaderContent();
+
+                // Toggle Accordion
+                headerBtn.onclick = () => {
+                    if (itemsDiv.classList.contains('hidden')) {
+                        itemsDiv.classList.remove('hidden');
+                    } else {
+                        itemsDiv.classList.add('hidden');
+                    }
+                    renderHeaderContent();
+                };
+
+                // Render Checkboxes
+                filteredItems.forEach(item => {
+                    const label = document.createElement('label');
+                    label.className = 'flex items-center gap-2 cursor-pointer select-none p-2 rounded-lg hover:bg-slate-900 transition-colors';
+                    const isChecked = window.selectedEquipment.has(item);
+                    
+                    label.innerHTML = `
+                        <input type="checkbox" value="${item}" ${isChecked ? 'checked' : ''}
+                               class="w-4 h-4 rounded border-slate-700 bg-slate-900 accent-indigo-500 text-indigo-500 focus:ring-0">
+                        <span class="text-slate-300 text-sm font-semibold">${item}</span>
+                    `;
+
+                    const checkbox = label.querySelector('input');
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            window.selectedEquipment.add(item);
+                        } else {
+                            window.selectedEquipment.delete(item);
+                        }
+                        renderHeaderContent();
+                    });
+
+                    itemsDiv.appendChild(label);
+                });
+
+                categoryDiv.appendChild(headerBtn);
+                categoryDiv.appendChild(itemsDiv);
+                categoriesContainer.appendChild(categoryDiv);
+            }
+
+            // Handle Custom Add Button Visibility
+            if (!hasMatches && term !== '') {
+                addCustomBtn.classList.remove('hidden');
+                addCustomBtn.innerText = `Add "${term}"`;
+            } else if (term !== '' && !Array.from(window.selectedEquipment).some(i => i.toLowerCase() === term)) {
+                 // Even if there are matches, allow adding if exact match doesn't exist
+                let exactMatchFound = false;
+                Object.values(allCategories).flat().forEach(i => {
+                    if(i.toLowerCase() === term) exactMatchFound = true;
+                });
+                if(!exactMatchFound) {
+                    addCustomBtn.classList.remove('hidden');
+                    addCustomBtn.innerText = `Add "${term}"`;
+                } else {
+                    addCustomBtn.classList.add('hidden');
+                }
+            } else {
+                addCustomBtn.classList.add('hidden');
+            }
+        }
+
+        // Search Input Event
+        searchInput.addEventListener('input', (e) => {
+            renderEquipmentList(e.target.value);
+        });
+
+        // Add Custom Equipment Event
+        addCustomBtn.addEventListener('click', () => {
+            const term = searchInput.value.trim();
+            if (term) {
+                // Capitalize first letters
+                const formattedTerm = term.replace(/\b\w/g, l => l.toUpperCase());
+                if(!customEquipmentList.includes(formattedTerm)) {
+                    customEquipmentList.push(formattedTerm);
+                }
+                window.selectedEquipment.add(formattedTerm);
+                searchInput.value = '';
+                addCustomBtn.classList.add('hidden');
+                renderEquipmentList(); // re-render
+            }
+        });
+
+        // Preset Events
+        presetCommercialBtn.addEventListener('click', () => {
+            presets.commercial.forEach(item => window.selectedEquipment.add(item));
+            renderEquipmentList(searchInput.value);
+        });
+
+        presetHomeBtn.addEventListener('click', () => {
+            presets.home.forEach(item => window.selectedEquipment.add(item));
+            renderEquipmentList(searchInput.value);
+        });
+
+        // Bubble Rendering
+        window.renderBubbles = function(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (window.selectedEquipment.size === 0) {
+                container.innerHTML = '<span class="text-xs text-slate-500 italic p-1">No equipment selected</span>';
+                return;
+            }
+
+            Array.from(window.selectedEquipment).forEach(item => {
+                const bubble = document.createElement('div');
+                bubble.className = 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-300 px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1.5';
+                
+                const text = document.createElement('span');
+                text.innerText = item;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'hover:text-white transition-colors cursor-pointer w-4 h-4 flex items-center justify-center rounded-full hover:bg-indigo-500/40';
+                removeBtn.innerHTML = '<i class="fa-solid fa-times text-[10px]"></i>';
+                
+                removeBtn.onclick = () => {
+                    window.selectedEquipment.delete(item);
+                    renderBubbles(containerId);
+                };
+
+                bubble.appendChild(text);
+                bubble.appendChild(removeBtn);
+                container.appendChild(bubble);
+            });
+        };
+
+        // Modal Open/Close
+        function openEquipmentModal(context) {
+            currentEditingContext = context;
+            
+            // Initialize selectedEquipment based on context if needed
+            if (context === 'modal' && typeof userProfileData !== 'undefined' && userProfileData.equipmentList) {
+               // Load from profile if we just opened the settings modal (handled in loadProfileSettings usually, but good to be safe)
+            }
+
+            searchInput.value = '';
+            addCustomBtn.classList.add('hidden');
+            renderEquipmentList();
+            equipModal.classList.remove('hidden');
+            equipModal.classList.add('flex');
+        }
+
+        closeEquipBtn.addEventListener('click', () => {
+            equipModal.classList.add('hidden');
+            equipModal.classList.remove('flex');
+        });
+
+        confirmEquipBtn.addEventListener('click', () => {
+            equipModal.classList.add('hidden');
+            equipModal.classList.remove('flex');
+            
+            // Update the correct bubble container
+            if (currentEditingContext === 'intake') {
+                renderBubbles('intake-equipment-bubbles');
+            } else if (currentEditingContext === 'modal') {
+                renderBubbles('modal-equipment-bubbles');
+            }
+        });
+
+        // Attach listeners to trigger buttons
+        document.getElementById('intake-select-equipment-btn').addEventListener('click', () => {
+            openEquipmentModal('intake');
+        });
+        
+        document.getElementById('modal-select-equipment-btn').addEventListener('click', () => {
+            openEquipmentModal('modal');
+        });
 
     </script>
 </body>
