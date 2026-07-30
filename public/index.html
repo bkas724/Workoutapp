@@ -4641,24 +4641,39 @@
             allCompleted.sort((a, b) => new Date(a.dateExecuted) - new Date(b.dateExecuted));
 
             const blocks = [];
-            for (let i = 0; i < allCompleted.length; i += 7) {
+            for (let i = 0; i + 7 <= allCompleted.length; i += 7) {
                 blocks.push(allCompleted.slice(i, i + 7));
             }
 
             const recentBlocks = blocks.slice(-5);
             const blockScores = [];
 
-            recentBlocks.forEach(chunk => {
-                if (chunk.length < 2) return;
-                const startDate = new Date(chunk[0].dateExecuted);
-                const endDate = new Date(chunk[chunk.length - 1].dateExecuted);
+            let prevEndDate = null;
+            if (blocks.length > recentBlocks.length) {
+                const precedingBlock = blocks[blocks.length - recentBlocks.length - 1];
+                prevEndDate = new Date(precedingBlock[precedingBlock.length - 1].dateExecuted);
+            }
 
-                const diffTime = Math.abs(endDate - startDate);
-                const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+            recentBlocks.forEach(chunk => {
+                if (chunk.length < 7) return;
+                
+                const endDate = new Date(chunk[chunk.length - 1].dateExecuted);
+                let diffDays;
+
+                if (prevEndDate) {
+                    const diffTime = Math.abs(endDate - prevEndDate);
+                    diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+                } else {
+                    const startDate = new Date(chunk[0].dateExecuted);
+                    const diffTime = Math.abs(endDate - startDate);
+                    diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+                }
 
                 const targetDays = 7;
                 const score = Math.min(100, Math.round((targetDays / diffDays) * 100));
                 blockScores.push(score);
+
+                prevEndDate = endDate;
             });
 
             if (blockScores.length === 0) return 100;
@@ -4681,7 +4696,7 @@
             if (badgeContainer) {
                 if (score === 100) {
                     badgeContainer.className = "flex items-center gap-1.5 bg-indigo-950/80 border border-indigo-500/50 px-3 py-1 rounded-full text-indigo-300 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-person-running text-indigo-400"></i> <span id="jit-consistency-val">${score}% Flow State</span>`;
+                    badgeContainer.innerHTML = `<img src="assets/flow-state-icon.jpg" class="w-4 h-4 rounded-full object-cover mix-blend-screen" alt="Flow State"> <span id="jit-consistency-val">${score}% Flow State</span>`;
                 } else if (score >= 90) {
                     badgeContainer.className = "flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/50 px-3 py-1 rounded-full text-amber-300 font-bold text-xs shadow-sm";
                     badgeContainer.innerHTML = `<i class="fa-solid fa-trophy text-amber-400"></i> <span id="jit-consistency-val">${score}% Elite</span>`;
@@ -5739,6 +5754,19 @@
             const type = (workout.type || '').toLowerCase();
             const title = (workout.workoutTitle || '').toLowerCase();
 
+            // Explicit category filtering (much simpler!)
+            if (workout.workoutCategory === 'intervals' || workout.workoutCategory === 'strength' || workout.workoutCategory === 'rest' || workout.workoutCategory === 'cross_training') {
+                return 0;
+            }
+
+            // Exclude cross training and non-mile based sprints
+            if (type.includes('cross') || title.includes('cross training') || title.includes('xt')) {
+                return 0;
+            }
+            if (title.includes('400m') || title.includes('800m') || title.includes('sprint') || title.includes('track')) {
+                return 0;
+            }
+
             // Exclude non-running sessions (Strength, Rest, Recovery) unless GPX file provides actual running distance
             if ((type === 'strength' || type === 'rest' || title.includes('strength') || title.includes('rest day')) && (!workout.uploadedWorkoutFile || !workout.uploadedWorkoutFile.totalDistanceMeters)) {
                 return 0;
@@ -5807,31 +5835,19 @@
 
             const lastTwo = runsWithPace.slice(0, 2);
             let totalEstSec = 0;
+            let validCount = 0;
 
             lastTwo.forEach(w => {
-                const rawPaceStr = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
-                const loggedSec = paceStringToSeconds(rawPaceStr);
-                const type = (w.type || '').toLowerCase();
-                const zone = (w.targetPaceZone || '').toLowerCase();
-
-                let offsetSec = 0;
-                if (type.includes('easy') || zone.includes('easy')) {
-                    offsetSec = -80; // Easy run pace is ~80s slower than 5K pace
-                } else if (type.includes('long') || zone.includes('long')) {
-                    offsetSec = -55; // Long run pace is ~55s slower than 5K pace
-                } else if (type.includes('tempo') || zone.includes('tempo')) {
-                    offsetSec = 25;  // Tempo run pace conversion (+25s to 5K)
-                } else if (type.includes('fast') || type.includes('speed') || type.includes('interval') || w.isBenchmark) {
-                    offsetSec = 0;   // Direct 5K race effort
-                } else {
-                    offsetSec = -30;
+                const est5KSec = convertRunToEst5KPaceSec(w);
+                if (est5KSec !== null) {
+                    totalEstSec += est5KSec;
+                    validCount++;
                 }
-
-                const est5KSec = Math.max(270, loggedSec + offsetSec); // Min clamp 4:30/mi
-                totalEstSec += est5KSec;
             });
 
-            const avg5KSec = Math.round(totalEstSec / lastTwo.length);
+            if (validCount === 0) return baseline5kStr || "8:10";
+
+            const avg5KSec = Math.round(totalEstSec / validCount);
             const mins = Math.floor(avg5KSec / 60);
             const secs = avg5KSec % 60;
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -5919,6 +5935,35 @@
             const rawPaceStr = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
             if (!rawPaceStr) return null;
             const loggedSec = paceStringToSeconds(rawPaceStr);
+
+            let hrInput = (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgHeartRate) || w.actualHeartRate || w.rawHr;
+            if (!hrInput && w.rpeScore) {
+                // Map RPE rating (1-10) to the middle HR value of its corresponding range
+                const rpeToHr = {
+                    1: 95, 2: 108, 3: 123, 4: 138, 5: 150,
+                    6: 160, 7: 168, 8: 173, 9: 178, 10: 185
+                };
+                hrInput = rpeToHr[w.rpeScore];
+            }
+
+            if (hrInput && hrInput > 60) {
+                // Determine user's Age for Max HR calculation
+                let age = 35; // Default age fallback
+                if (typeof userProfileData !== 'undefined' && userProfileData) {
+                    if (userProfileData.age) {
+                        age = userProfileData.age;
+                    } else if (userProfileData.birthYear) {
+                        age = new Date().getFullYear() - userProfileData.birthYear;
+                    }
+                }
+                const maxHr = 220 - age;
+                const raceHr = Math.round(maxHr * 0.92); // Realistic 5K avg \"Race\" HR (approx 92% of Max HR)
+
+                // Dynamic Turkey Trot formula based on User's projected Race HR
+                const projectedPaceSecPerMile = loggedSec * ((hrInput - 60) / (raceHr - 60));
+                return Math.max(270, Math.round(projectedPaceSecPerMile)); // Min clamp 4:30/mi
+            }
+
             const type = (w.type || '').toLowerCase();
             const zone = (w.targetPaceZone || '').toLowerCase();
 

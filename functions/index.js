@@ -247,6 +247,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "sequenceOrder": 1,
       "workoutTitle": "String",
       "type": "String (MUST be exactly one of the validated types above)",
+      "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training'. NOTE: If a run is mostly a continuous distance run but ends with short strides, categorize it as 'continuous_run')",
       "isSpeedWorkout": Boolean,
       "isBenchmark": Boolean,
       "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
@@ -576,6 +577,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
   "workout": {
     "workoutTitle": "String (e.g. 15-Min Core Blast)",
     "type": "${targetType}",
+    "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training'. NOTE: If a run is mostly a continuous distance run but ends with short strides, categorize it as 'continuous_run')",
     "isSpeedWorkout": false,
     "isBenchmark": false,
     "distanceDuration": "String (e.g., 15 mins, or 2.0 mi in 20 mins)",
