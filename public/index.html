@@ -2002,8 +2002,8 @@
                     placeholder="Describe your current injury status..."
                     class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-rose-500 resize-none"></textarea>
             </div>
-            <button onclick="proceedToNextPhase()"
-                class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg text-xs">
+            <button id="gateway-submit-btn" onclick="proceedToNextPhase()"
+                class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg text-xs flex items-center justify-center gap-2">
                 Unlock Next Subphase Autopilot
             </button>
         </div>
@@ -2064,11 +2064,11 @@
                     placeholder="e.g. Left hamstring tightness; need to reduce volume and avoid speedwork for a few days."
                     class="w-full h-20 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500 resize-none"></textarea>
             </div>
-            <div class="flex gap-3 text-xs font-bold">
+            <div class="flex gap-3">
                 <button onclick="closeEmergencyModal()"
-                    class="flex-1 py-3 rounded-xl bg-slate-850 text-slate-300 border border-slate-750 transition-all">Cancel</button>
-                <button onclick="submitEmergencyAdaptation()"
-                    class="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl shadow-lg transition-all">Adapt
+                    class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl transition-colors">Cancel</button>
+                <button id="emergency-submit-btn" onclick="submitEmergencyAdaptation()"
+                    class="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">Adapt
                     Plan Now</button>
             </div>
         </div>
@@ -6232,6 +6232,13 @@
             }
             window.isGeneratingBlock = true;
 
+            const emergencyBtn = document.getElementById('emergency-submit-btn');
+            if (emergencyBtn) {
+                emergencyBtn.disabled = true;
+                emergencyBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> Adapting...`;
+                emergencyBtn.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+
             const notes = document.getElementById('emergency-override-notes').value.trim();
             closeEmergencyModal();
             showAutopilotLoader();
@@ -6350,6 +6357,9 @@
 
             const homeGenBtn = document.getElementById('gen-next-phase-btn-home');
             const checklistGenBtn = document.getElementById('gen-next-phase-btn-checklist');
+            const gatewayBtn = document.getElementById('gateway-submit-btn');
+            const regenBtn = document.getElementById('regenerate-block-btn');
+            
             if (homeGenBtn) {
                 homeGenBtn.disabled = true;
                 homeGenBtn.className = "shrink-0 bg-slate-800 text-slate-500 border border-slate-700 px-6 py-3 rounded-xl text-xs font-bold transition-all cursor-not-allowed opacity-60 flex items-center gap-2 whitespace-nowrap";
@@ -6359,6 +6369,16 @@
                 checklistGenBtn.disabled = true;
                 checklistGenBtn.className = "shrink-0 bg-slate-800 text-slate-500 border border-slate-700 px-6 py-3 rounded-xl text-xs font-bold transition-all cursor-not-allowed opacity-60 flex items-center gap-2 whitespace-nowrap";
                 checklistGenBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-indigo-400"></i> Generating Next Block...`;
+            }
+            if (gatewayBtn) {
+                gatewayBtn.disabled = true;
+                gatewayBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> Generating...`;
+                gatewayBtn.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+            if (regenBtn) {
+                regenBtn.disabled = true;
+                regenBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> Regenerating...`;
+                regenBtn.classList.add('opacity-60', 'cursor-not-allowed');
             }
 
             try {
