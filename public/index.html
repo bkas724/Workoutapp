@@ -4678,20 +4678,22 @@
             const activeWorkouts = typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : [];
             const score = calculateRollingJITConsistency(historyWorkouts, activeWorkouts);
 
-            if (badgeValEl) badgeValEl.innerText = `${score}% Consistency`;
             if (badgeContainer) {
-                if (score >= 90) {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-emerald-400 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-fire text-amber-400"></i> ${score}% Consistency`;
-                } else if (score >= 75) {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-sky-950/60 border border-sky-500/30 px-3 py-1 rounded-full text-sky-400 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-bolt text-amber-300"></i> ${score}% Consistency`;
-                } else if (score >= 60) {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/30 px-3 py-1 rounded-full text-amber-400 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-chart-line text-amber-400"></i> ${score}% Consistency`;
+                if (score === 100) {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-indigo-950/80 border border-indigo-500/50 px-3 py-1 rounded-full text-indigo-300 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-person-running text-indigo-400"></i> <span id="jit-consistency-val">${score}% Flow State</span>`;
+                } else if (score >= 90) {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/50 px-3 py-1 rounded-full text-amber-300 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-trophy text-amber-400"></i> <span id="jit-consistency-val">${score}% Elite</span>`;
+                } else if (score >= 80) {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-slate-800/80 border border-slate-400/50 px-3 py-1 rounded-full text-slate-200 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-medal text-slate-300"></i> <span id="jit-consistency-val">${score}% High Level</span>`;
+                } else if (score >= 70) {
+                    badgeContainer.className = "flex items-center gap-1.5 bg-orange-950/60 border border-orange-700/50 px-3 py-1 rounded-full text-orange-300 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-medal text-orange-600"></i> <span id="jit-consistency-val">${score}% Solid</span>`;
                 } else {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-rose-950/60 border border-rose-500/30 px-3 py-1 rounded-full text-rose-400 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-dumbbell text-rose-400"></i> ${score}% Consistency`;
+                    badgeContainer.className = "flex items-center gap-1.5 bg-slate-900/80 border border-slate-700/50 px-3 py-1 rounded-full text-slate-400 font-bold text-xs shadow-sm";
+                    badgeContainer.innerHTML = `<i class="fa-solid fa-seedling text-emerald-500/70"></i> <span id="jit-consistency-val">Building Flow</span>`;
                 }
             }
         }
@@ -6224,6 +6226,12 @@
         }
 
         async function submitEmergencyAdaptation() {
+            if (window.isGeneratingBlock) {
+                console.warn("Block generation already in progress.");
+                return;
+            }
+            window.isGeneratingBlock = true;
+
             const notes = document.getElementById('emergency-override-notes').value.trim();
             closeEmergencyModal();
             showAutopilotLoader();
@@ -6320,14 +6328,23 @@
                 console.error("Emergency adaptation failure: ", err);
                 hideAutopilotLoader();
                 alert("Failed to adapt plan using AI. Your current workouts were kept safe. Error: " + err.message);
+            } finally {
+                window.isGeneratingBlock = false;
             }
         }
 
         async function proceedToNextPhase() {
+            if (window.isGeneratingBlock) {
+                console.warn("Block generation already in progress.");
+                return;
+            }
+            window.isGeneratingBlock = true;
+
             if (!userProfileData || !userProfileData.primaryGoal || !userProfileData.fitnessLevel || !userProfileData.daysAvailable) {
                 alert("Your profile is missing essential details! Please go to the Profile tab and fill out all categories before generating a new training block.");
                 document.getElementById('checkout-gateway-modal').classList.add('hidden');
                 switchTab('profile');
+                window.isGeneratingBlock = false;
                 return;
             }
 
@@ -6531,12 +6548,14 @@
                 console.log(`Successfully advanced to Phase ${nextPhaseIndex}`);
                 setTimeout(() => {
                     hideAutopilotLoader();
+                    window.isGeneratingBlock = false;
                 }, 3000);
 
             } catch (err) {
                 console.error("Gateway transition failure: ", err);
                 hideAutopilotLoader();
                 alert("Checkout Failed: " + err.message);
+                window.isGeneratingBlock = false;
             }
         }
         async function retryAIBlockGeneration() {
