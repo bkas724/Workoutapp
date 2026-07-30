@@ -646,18 +646,19 @@
 
             <!-- Full-Width Chart Container -->
             <div class="bg-slate-950/30 border border-slate-800/50 rounded-2xl p-4 md:p-5">
-                <div class="flex justify-between items-end mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-bold text-slate-300">Weight & BMI Progression</span>
-                        <button onclick="openFullJourneyModal()"
-                            class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 px-2.5 py-1 rounded-md transition-colors border border-slate-800 flex items-center gap-1 cursor-pointer">
-                            <i class="fa-solid fa-expand text-[10px]"></i> Full Journey
-                        </button>
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <span class="text-sm font-bold text-slate-300">Weight Progression</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span id="bmi-label-current" class="text-xs font-bold text-orange-500">-</span>
+                            <span class="text-slate-600 text-[10px]"><i class="fa-solid fa-arrow-right"></i></span>
+                            <span id="bmi-label-target" class="text-xs font-bold text-sky-500">-</span>
+                        </div>
                     </div>
-                    <div class="text-right flex flex-col items-end">
-                        <span id="bmi-label-current" class="text-sm font-black text-orange-500">-</span>
-                        <span id="bmi-label-target" class="text-xs font-bold text-sky-500">-</span>
-                    </div>
+                    <button onclick="openFullJourneyModal()"
+                        class="text-[10px] md:text-xs font-bold text-slate-400 bg-slate-900 hover:bg-slate-800 px-2.5 py-1.5 rounded-lg transition-colors border border-slate-800 flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-expand"></i> Full Journey
+                    </button>
                 </div>
                 <div class="h-72 md:h-80 w-full relative">
                     <canvas id="bmi-history-chart"></canvas>
@@ -8756,8 +8757,8 @@
                     if (!isFullJourney) {
                         const lblCurr = document.getElementById('bmi-label-current');
                         const lblTarg = document.getElementById('bmi-label-target');
-                        if (lblCurr) lblCurr.innerText = `Current: ${weight} lbs (${currentBmi.toFixed(1)} BMI)`;
-                        if (lblTarg) lblTarg.innerText = `Stage Target: ${stageTargetWeight.toFixed(1)} lbs (${stageTargetBmi.toFixed(1)} BMI)`;
+                        if (lblCurr) lblCurr.innerText = `${weight} lbs`;
+                        if (lblTarg) lblTarg.innerText = `${stageTargetWeight.toFixed(1)} lbs Target`;
                     } else {
                         const modCurr = document.getElementById('modal-bmi-label-current');
                         const modTarg = document.getElementById('modal-bmi-label-target');
@@ -8782,10 +8783,10 @@
                             const obese = obeseThresholdWeight;
 
                             const colors = {
-                                obese: { bg: 'rgba(239, 68, 68, 0.1)', bar: '#b91c1c' }, // Red
-                                overweight: { bg: 'rgba(249, 115, 22, 0.15)', bar: '#c2410c' }, // Orange
-                                healthy: { bg: 'rgba(34, 197, 94, 0.15)', bar: '#15803d' }, // Green
-                                underweight: { bg: 'rgba(148, 163, 184, 0.15)', bar: '#475569' } // Gray
+                                obese: { bg: 'rgba(239, 68, 68, 0.03)', bar: 'rgba(185, 28, 28, 0.5)' }, // Red
+                                overweight: { bg: 'rgba(249, 115, 22, 0.05)', bar: 'rgba(194, 65, 12, 0.5)' }, // Orange
+                                healthy: { bg: 'rgba(34, 197, 94, 0.05)', bar: 'rgba(21, 128, 61, 0.5)' }, // Green
+                                underweight: { bg: 'rgba(148, 163, 184, 0.05)', bar: 'rgba(71, 85, 105, 0.5)' } // Gray
                             };
 
                             const barWidth = 20;
@@ -8839,36 +8840,7 @@
                             ctx.restore();
                         },
                         afterDatasetsDraw: (chart) => {
-                            const { ctx } = chart;
-                            ctx.save();
-                            ctx.font = '10px "Plus Jakarta Sans", sans-serif';
-                            ctx.textAlign = 'center';
-
-                            // Dataset 2: Orange Weekly Log Markers / Phase Starting Weight
-                            const meta2 = chart.getDatasetMeta(2);
-                            if (meta2 && meta2.data) {
-                                meta2.data.forEach((point, index) => {
-                                    const valObj = weeklyPoints[index];
-                                    if (valObj && point) {
-                                        const numVal = parseFloat(valObj.y);
-                                        const numStart = parseFloat(startWeight);
-                                        const loss = (numVal - numStart).toFixed(1);
-                                        const lossText = index === 0 ? 'Start' : (numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`));
-                                        ctx.fillStyle = '#ea580c'; // Orange
-                                        ctx.textBaseline = 'bottom';
-
-                                        if (lossText) {
-                                            ctx.fillText(`${numVal.toFixed(1)} lbs`, point.x, point.y - 18);
-                                            ctx.font = '9px "Plus Jakarta Sans", sans-serif';
-                                            ctx.fillText(lossText, point.x, point.y - 7);
-                                            ctx.font = '10px "Plus Jakarta Sans", sans-serif';
-                                        } else {
-                                            ctx.fillText(`${numVal.toFixed(1)} lbs`, point.x, point.y - 10);
-                                        }
-                                    }
-                                });
-                            }
-                            ctx.restore();
+                            // Text labels removed for a cleaner look. Tooltips will handle hover.
                         },
                         afterDraw: (chart) => {
                             const { ctx } = chart;
@@ -8928,17 +8900,16 @@
                                 {
                                     label: 'Raw Weight Log',
                                     data: allPoints,
-                                    borderColor: 'rgba(148, 163, 184, 0.45)', // Muted Slate
-                                    backgroundColor: 'rgba(148, 163, 184, 0.2)',
-                                    borderWidth: 1.5,
-                                    borderDash: [3, 3],
+                                    borderColor: 'rgba(148, 163, 184, 0.2)', // Very subtle
+                                    backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                                    borderWidth: 1,
+                                    borderDash: [4, 4],
                                     fill: false,
                                     tension: 0.2,
-                                    pointBackgroundColor: '#94a3b8',
-                                    pointBorderColor: '#ffffff',
-                                    pointBorderWidth: 1,
-                                    pointRadius: 3,
-                                    pointHoverRadius: 5,
+                                    pointBackgroundColor: 'rgba(148, 163, 184, 0.5)',
+                                    pointBorderColor: 'transparent',
+                                    pointRadius: 2,
+                                    pointHoverRadius: 4,
                                     z: 10
                                 },
                                 {
@@ -8946,11 +8917,11 @@
                                     data: ma7Points,
                                     borderColor: '#10b981', // Emerald
                                     backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                                    borderWidth: 3.5,
+                                    borderWidth: 3,
                                     fill: false,
                                     tension: 0.25,
                                     pointRadius: 0,
-                                    pointHoverRadius: 6,
+                                    pointHoverRadius: 5,
                                     z: 12
                                 },
                                 {
@@ -8963,17 +8934,17 @@
                                     showLine: false, // Bubbles only
                                     pointBackgroundColor: '#ea580c',
                                     pointBorderColor: '#ffffff',
-                                    pointBorderWidth: 2,
-                                    pointRadius: 6, // Big bubbles
-                                    pointHoverRadius: 8,
+                                    pointBorderWidth: 1.5,
+                                    pointRadius: 4, // Smaller bubbles
+                                    pointHoverRadius: 6,
                                     z: 11
                                 },
                                 {
                                     label: 'Healthy Target',
                                     data: targetPoints,
-                                    borderColor: 'rgba(14, 165, 233, 0.4)', // Light blue thick band
+                                    borderColor: 'rgba(14, 165, 233, 0.2)', // Softer light blue band
                                     backgroundColor: 'transparent',
-                                    borderWidth: 24, // Thick transparent line
+                                    borderWidth: 16, // Thinner transparent line
                                     fill: false,
                                     tension: 0.3,
                                     pointRadius: 0,
