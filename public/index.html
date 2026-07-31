@@ -8604,7 +8604,6 @@
 
                     let labels = [];
                     let fullDates = [];
-                    let weeklyPoints = [];
 
                     const userTargetWeight = data.targetWeight ? parseFloat(data.targetWeight) : maxHealthyWeight; // Fallback to max healthy if unset
 
@@ -8678,24 +8677,6 @@
                     while (curr <= endD) {
                         labels.push(`${pad(curr.getMonth() + 1)}/${pad(curr.getDate())}`);
                         fullDates.push(new Date(curr));
-
-                        // Find if we have a weight recorded for this week (closest date on or after)
-                        let w = null;
-                        let minDiff = Infinity;
-                        let wDate = null;
-                        for (let h of history) {
-                            let hd = new Date(h.date);
-                            let diff = hd - curr;
-                            if (diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000 && diff < minDiff) {
-                                w = h.weight;
-                                minDiff = diff;
-                                wDate = hd;
-                            }
-                        }
-                        if (w !== null) {
-                            let fractionalWeeks = (wDate - startD) / (7 * 24 * 60 * 60 * 1000);
-                            weeklyPoints.push({ x: fractionalWeeks, y: w });
-                        }
                         curr.setDate(curr.getDate() + 7); // weekly steps
                     }
 
@@ -8710,6 +8691,18 @@
                         }
                     }
                     allPoints.sort((a, b) => a.x - b.x);
+
+                    let journeyMarkers = [];
+                    let markerBgColors = [];
+                    if (allPoints.length > 0) {
+                        journeyMarkers.push(allPoints[0]);
+                        markerBgColors.push(allPoints.length > 1 ? '#64748b' : '#ea580c'); // Slate if start, Orange if only point
+                        
+                        if (allPoints.length > 1) {
+                            journeyMarkers.push(allPoints[allPoints.length - 1]);
+                            markerBgColors.push('#ea580c'); // End point is Orange
+                        }
+                    }
 
                     // The starting weight for the trajectory and loss calculation
                     const startWeight = history.length > 0 ? history[0].weight : 0;
@@ -8840,7 +8833,38 @@
                             ctx.restore();
                         },
                         afterDatasetsDraw: (chart) => {
-                            // Text labels removed for a cleaner look. Tooltips will handle hover.
+                            const { ctx } = chart;
+                            ctx.save();
+                            ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+                            ctx.textAlign = 'center';
+
+                            // Dataset 2: Journey Markers
+                            const meta2 = chart.getDatasetMeta(2);
+                            if (meta2 && meta2.data) {
+                                meta2.data.forEach((point, index) => {
+                                    const valObj = journeyMarkers[index];
+                                    if (valObj && point) {
+                                        const numVal = parseFloat(valObj.y);
+                                        const numStart = parseFloat(startWeight);
+                                        const loss = (numVal - numStart).toFixed(1);
+                                        const isStartPoint = (index === 0 && journeyMarkers.length > 1);
+                                        const lossText = isStartPoint ? 'Start' : (numVal === numStart ? '' : (numVal < numStart ? `(${loss})` : `(+${loss})`));
+                                        
+                                        ctx.fillStyle = markerBgColors[index]; 
+                                        ctx.textBaseline = 'bottom';
+
+                                        if (lossText) {
+                                            ctx.fillText(`${numVal.toFixed(1)} lbs`, point.x, point.y - 20);
+                                            ctx.font = '9px "Plus Jakarta Sans", sans-serif';
+                                            ctx.fillText(lossText, point.x, point.y - 9);
+                                            ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+                                        } else {
+                                            ctx.fillText(`${numVal.toFixed(1)} lbs`, point.x, point.y - 12);
+                                        }
+                                    }
+                                });
+                            }
+                            ctx.restore();
                         },
                         afterDraw: (chart) => {
                             const { ctx } = chart;
@@ -8925,18 +8949,18 @@
                                     z: 12
                                 },
                                 {
-                                    label: 'Weekly Markers',
-                                    data: weeklyPoints,
-                                    borderColor: '#ea580c',
-                                    backgroundColor: '#ea580c',
+                                    label: 'Journey Markers',
+                                    data: journeyMarkers,
+                                    borderColor: 'transparent',
+                                    backgroundColor: 'transparent',
                                     borderWidth: 0,
                                     fill: false,
-                                    showLine: false, // Bubbles only
-                                    pointBackgroundColor: '#ea580c',
+                                    showLine: false,
+                                    pointBackgroundColor: markerBgColors,
                                     pointBorderColor: '#ffffff',
-                                    pointBorderWidth: 1.5,
-                                    pointRadius: 4, // Smaller bubbles
-                                    pointHoverRadius: 6,
+                                    pointBorderWidth: 2,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8,
                                     z: 11
                                 },
                                 {
