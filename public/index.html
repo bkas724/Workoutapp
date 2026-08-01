@@ -10716,6 +10716,15 @@
                 spotlight.style.left = `${rect.left - padding}px`;
                 spotlight.style.width = `${rect.width + (padding * 2)}px`;
                 spotlight.style.height = `${rect.height + (padding * 2)}px`;
+
+                const isTabTarget = step.targetId.startsWith('nav-btn-');
+                if (isTabTarget) {
+                    // Tab highlight mode: No dark overlay blocking background. Full tab visibility & scrollability!
+                    spotlight.style.boxShadow = '0 0 25px rgba(99, 102, 241, 0.85), 0 0 10px rgba(99, 102, 241, 0.6)';
+                } else {
+                    // Component highlight mode: gentle dark frame
+                    spotlight.style.boxShadow = '0 0 0 9999px rgba(2, 6, 23, 0.75), 0 0 30px rgba(99, 102, 241, 0.6)';
+                }
             }
         }
 
@@ -10855,34 +10864,34 @@
     <!-- INTERACTIVE APP TOUR OVERLAY -->
     <div id="app-tour-overlay" class="fixed inset-0 z-[9990] hidden pointer-events-none">
         <!-- Dynamic Spotlight Cutout Frame -->
-        <div id="tour-spotlight-box" class="fixed z-[9991] pointer-events-none rounded-2xl border-2 border-indigo-500 transition-all duration-200 ease-out" style="box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.82), 0 0 30px rgba(99, 102, 241, 0.6);"></div>
+        <div id="tour-spotlight-box" class="fixed z-[9991] pointer-events-none rounded-2xl border-2 border-blue-400 transition-all duration-200 ease-out" style="box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.82), 0 0 30px rgba(37, 99, 235, 0.7);"></div>
 
-        <!-- Floating Guide Modal Card -->
-        <div id="tour-card" class="fixed z-[9999] pointer-events-auto max-w-sm w-[92%] md:w-80 bg-slate-900/95 backdrop-blur-md border border-indigo-500/40 rounded-2xl p-4 shadow-2xl space-y-3 transition-all duration-300">
+        <!-- Floating Guide Modal Card (Popout Vibrant Blue) -->
+        <div id="tour-card" class="fixed z-[9999] pointer-events-auto max-w-sm w-[92%] md:w-80 bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 border-2 border-blue-300/60 rounded-2xl p-4 shadow-[0_12px_40px_rgba(37,99,235,0.6)] space-y-3 transition-all duration-300">
             <div class="flex items-center justify-between">
-                <span id="tour-step-badge" class="text-[10px] font-black uppercase tracking-wider text-indigo-400 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+                <span id="tour-step-badge" class="text-[10px] font-black uppercase tracking-wider text-blue-950 bg-white/95 border border-white px-2.5 py-0.5 rounded-full shadow-sm">
                     Step 1 of 8
                 </span>
                 <div class="flex items-center gap-3">
-                    <button id="tour-min-btn" onclick="toggleTourCardMinimize()" class="text-[10px] font-bold text-slate-400 hover:text-indigo-300 transition-colors uppercase tracking-wider cursor-pointer">
+                    <button id="tour-min-btn" onclick="toggleTourCardMinimize()" class="text-[10px] font-bold text-blue-100 hover:text-white transition-colors uppercase tracking-wider cursor-pointer">
                         Minimize
                     </button>
-                    <button onclick="endAppTour()" class="text-[10px] font-bold text-slate-400 hover:text-rose-400 transition-colors uppercase tracking-wider cursor-pointer">
+                    <button onclick="endAppTour()" class="text-[10px] font-bold text-blue-200 hover:text-white transition-colors uppercase tracking-wider cursor-pointer">
                         Skip
                     </button>
                 </div>
             </div>
 
             <div class="space-y-1">
-                <h4 id="tour-title" class="text-sm md:text-base font-extrabold text-white">1. Home Tab</h4>
-                <p id="tour-desc" class="text-xs text-slate-300 leading-snug">Your daily control center! Access your current focus workout, weight progression chart, and health insights at a glance.</p>
+                <h4 id="tour-title" class="text-sm md:text-base font-black text-white drop-shadow-sm">1. Home Tab</h4>
+                <p id="tour-desc" class="text-xs text-blue-50 leading-relaxed font-medium">Your daily control center! Access your current focus workout, weight progression chart, and health insights at a glance.</p>
             </div>
 
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
-                <button id="tour-prev-btn" onclick="prevTourStep()" class="text-xs font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer px-2 py-1">
+            <div class="flex items-center justify-between pt-2 border-t border-blue-400/40">
+                <button id="tour-prev-btn" onclick="prevTourStep()" class="text-xs font-bold text-blue-100 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer px-2 py-1">
                     Back
                 </button>
-                <button id="tour-next-btn" onclick="nextTourStep()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-4 py-1.5 rounded-xl transition-all shadow-md cursor-pointer">
+                <button id="tour-next-btn" onclick="nextTourStep()" class="bg-white text-blue-950 hover:bg-blue-50 font-black text-xs px-4 py-1.5 rounded-xl transition-all shadow-md cursor-pointer">
                     Next Step
                 </button>
             </div>
