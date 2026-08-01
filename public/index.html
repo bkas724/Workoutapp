@@ -400,6 +400,40 @@
             </div>
         </div>
 
+        <!-- New User Onboarding -->
+        <div id="onboarding-guide" class="tab-content tab-home block mb-6 bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden transition-all duration-300">
+            <button onclick="document.getElementById('onboarding-guide').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-900/50 rounded-full w-8 h-8 flex items-center justify-center z-20" title="Dismiss">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="relative z-10 mb-6">
+                <h3 class="text-xl md:text-2xl font-black text-white mb-1">Welcome to MyFlow!</h3>
+                <p class="text-sm text-slate-400">Let's get you set up for success in 3 simple steps.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 relative z-10">
+                <!-- Step 1 -->
+                <div class="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 flex flex-col h-full shadow-lg hover:border-indigo-500/30 transition-colors">
+                    <img src="Images/intro_step1_profile_1785384894678.jpg" alt="Profile" class="w-full h-32 object-cover rounded-lg mb-4 border border-slate-800 shadow-inner">
+                    <h4 class="font-bold text-indigo-400 text-sm mb-2 flex items-center"><span class="bg-indigo-500/20 px-2 py-0.5 rounded text-xs mr-2 border border-indigo-500/30 text-indigo-300">1</span> Generate your profile</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">Enter your basic metrics and let our engine tailor the perfect baseline for your fitness.</p>
+                </div>
+                <!-- Step 2 -->
+                <div class="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 flex flex-col h-full shadow-lg hover:border-amber-500/30 transition-colors">
+                    <img src="Images/intro_step2_journey_1785384903021.jpg" alt="Journey" class="w-full h-32 object-cover rounded-lg mb-4 border border-slate-800 shadow-inner">
+                    <h4 class="font-bold text-amber-400 text-sm mb-2 flex items-center"><span class="bg-amber-500/20 px-2 py-0.5 rounded text-xs mr-2 border border-amber-500/30 text-amber-300">2</span> Create your Journey</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">Plan your upcoming workouts, races, and milestones to map out your long-term success.</p>
+                </div>
+                <!-- Step 3 -->
+                <div class="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 flex flex-col h-full shadow-lg hover:border-emerald-500/30 transition-colors">
+                    <img src="Images/intro_step3_flow_1785384913240.jpg" alt="Flow" class="w-full h-32 object-cover rounded-lg mb-4 border border-slate-800 shadow-inner">
+                    <h4 class="font-bold text-emerald-400 text-sm mb-2 flex items-center"><span class="bg-emerald-500/20 px-2 py-0.5 rounded text-xs mr-2 border border-emerald-500/30 text-emerald-300">3</span> Get in your flow state</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">Complete your Just-In-Time (JIT) tasks daily. Trust the process, execute the plan.</p>
+                </div>
+            </div>
+        </div>
+
         <div id="next-activity-focus"
             class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/40 rounded-2xl p-4 md:p-6 shadow-xl transition-all duration-500">
             <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
@@ -8147,8 +8181,7 @@
 
                 if (!userProfileData) return;
 
-                const d = new Date(dateVal);
-                d.setHours(12, 0, 0, 0);
+                const d = new Date(dateVal + 'T12:00:00');
 
                 let history = userProfileData.bmiHistory || [];
                 if (history.length === 0 && userProfileData.weight) {
