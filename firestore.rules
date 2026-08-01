@@ -6,14 +6,14 @@ service cloud.firestore {
       allow read, write: if true;
       
       match /active_phase/{activityId} {
-        allow read: if true;
-        allow write: if !request.resource.data.keys().hasAny(['workoutCategory']) 
+        allow read, delete: if true;
+        allow create, update: if !request.resource.data.keys().hasAny(['workoutCategory']) 
                      || request.resource.data.workoutCategory in ['continuous_run', 'intervals', 'strength', 'rest', 'cross_training'];
       }
       
       match /history/{activityId} {
-        allow read: if true;
-        allow write: if !request.resource.data.keys().hasAny(['workoutCategory']) 
+        allow read, delete: if true;
+        allow create, update: if !request.resource.data.keys().hasAny(['workoutCategory']) 
                      || request.resource.data.workoutCategory in ['continuous_run', 'intervals', 'strength', 'rest', 'cross_training'];
       }
     }

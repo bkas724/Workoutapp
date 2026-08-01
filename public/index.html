@@ -8611,6 +8611,7 @@
                     const lastHistoryDate = new Date(history[history.length - 1].date);
 
                     let startD = new Date(journeyStart);
+                    startD.setHours(0, 0, 0, 0); // Normalize to start of day so same-day weights aren't negative
                     let endD;
 
                     // Always default to a sensible fallback
