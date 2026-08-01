@@ -320,6 +320,11 @@
                     title="Edit Athlete Profile">
                     <i class="fa-solid fa-pen text-[9px]"></i> Edit
                 </button>
+                <button onclick="startAppTour(true)"
+                    class="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-wider bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 cursor-pointer flex items-center gap-1"
+                    title="Replay App Tour">
+                    <i class="fa-solid fa-compass text-[9px]"></i> Tour
+                </button>
                 <button onclick="signOut()"
                     class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 cursor-pointer flex items-center gap-1"
                     title="Sign Out">
@@ -332,9 +337,11 @@
                     class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Offline
                 </span>
-                
-                <div id="jit-consistency-badge" class="flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-emerald-400 font-bold text-xs shadow-sm">
-                    <i class="fa-solid fa-fire text-amber-400"></i> <span id="jit-consistency-val">100% Consistency</span>
+
+                <div id="jit-consistency-badge"
+                    class="flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-emerald-400 font-bold text-xs shadow-sm">
+                    <i class="fa-solid fa-fire text-amber-400"></i> <span id="jit-consistency-val">100%
+                        Consistency</span>
                 </div>
             </div>
 
@@ -400,44 +407,11 @@
             </div>
         </div>
 
-        <!-- New User Onboarding -->
-        <div id="onboarding-guide" class="tab-content tab-home block mb-6 bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden transition-all duration-300">
-            <button onclick="document.getElementById('onboarding-guide').style.display='none'" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-900/50 rounded-full w-8 h-8 flex items-center justify-center z-20" title="Dismiss">
-                <i class="fa-solid fa-times"></i>
-            </button>
-            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div class="relative z-10 mb-6">
-                <h3 class="text-xl md:text-2xl font-black text-white mb-1">Welcome to MyFlow!</h3>
-                <p class="text-sm text-slate-400">Let's get you set up for success in 3 simple steps.</p>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 relative z-10">
-                <!-- Step 1 -->
-                <div class="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 flex flex-col h-full shadow-lg hover:border-indigo-500/30 transition-colors">
-                    <img src="Images/intro_step1_profile_1785384894678.jpg" alt="Profile" class="w-full h-32 object-cover rounded-lg mb-4 border border-slate-800 shadow-inner">
-                    <h4 class="font-bold text-indigo-400 text-sm mb-2 flex items-center"><span class="bg-indigo-500/20 px-2 py-0.5 rounded text-xs mr-2 border border-indigo-500/30 text-indigo-300">1</span> Generate your profile</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">Enter your basic metrics and let our engine tailor the perfect baseline for your fitness.</p>
-                </div>
-                <!-- Step 2 -->
-                <div class="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 flex flex-col h-full shadow-lg hover:border-amber-500/30 transition-colors">
-                    <img src="Images/intro_step2_journey_1785384903021.jpg" alt="Journey" class="w-full h-32 object-cover rounded-lg mb-4 border border-slate-800 shadow-inner">
-                    <h4 class="font-bold text-amber-400 text-sm mb-2 flex items-center"><span class="bg-amber-500/20 px-2 py-0.5 rounded text-xs mr-2 border border-amber-500/30 text-amber-300">2</span> Create your Journey</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">Plan your upcoming workouts, races, and milestones to map out your long-term success.</p>
-                </div>
-                <!-- Step 3 -->
-                <div class="bg-slate-900/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 flex flex-col h-full shadow-lg hover:border-emerald-500/30 transition-colors">
-                    <img src="Images/intro_step3_flow_1785384913240.jpg" alt="Flow" class="w-full h-32 object-cover rounded-lg mb-4 border border-slate-800 shadow-inner">
-                    <h4 class="font-bold text-emerald-400 text-sm mb-2 flex items-center"><span class="bg-emerald-500/20 px-2 py-0.5 rounded text-xs mr-2 border border-emerald-500/30 text-emerald-300">3</span> Get in your flow state</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">Complete your Just-In-Time (JIT) tasks daily. Trust the process, execute the plan.</p>
-                </div>
-            </div>
-        </div>
-
         <div id="next-activity-focus"
             class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/40 rounded-2xl p-4 md:p-6 shadow-xl transition-all duration-500">
             <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
-            <div id="jit-consistency-header-bar" class="flex items-center justify-between mb-4 border-b border-indigo-500/20 pb-3">
+            <div id="jit-consistency-header-bar"
+                class="flex items-center justify-between mb-4 border-b border-indigo-500/20 pb-3">
                 <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-300">Up Next</span>
             </div>
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
@@ -481,10 +455,12 @@
                 </div>
 
                 <!-- Tiered Nutrition Guides -->
-                <div id="home-insight-nut-card" class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div id="home-insight-nut-card"
+                    class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
-                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                            <h4
+                                class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
                                 <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
                             </h4>
                             <div class="flex items-center gap-2">
@@ -496,7 +472,8 @@
                                     <button onclick="window.switchNutritionTab('hard')" id="home-tab-nut-hard"
                                         class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
                                 </div>
-                                <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
+                                <button onclick="window.refreshNutritionOnly(this)"
+                                    title="Refresh Nutrition Recommendations"
                                     class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-emerald-500/30 cursor-pointer">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
@@ -726,10 +703,12 @@
                 </div>
 
                 <!-- Tiered Nutrition Guides -->
-                <div id="insight-nut-card" class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div id="insight-nut-card"
+                    class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
                     <div>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
-                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                            <h4
+                                class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
                                 <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
                             </h4>
                             <div class="flex items-center gap-2">
@@ -741,7 +720,8 @@
                                     <button onclick="window.switchNutritionTab('hard')" id="tab-nut-hard"
                                         class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
                                 </div>
-                                <button onclick="window.refreshNutritionOnly(this)" title="Refresh Nutrition Recommendations"
+                                <button onclick="window.refreshNutritionOnly(this)"
+                                    title="Refresh Nutrition Recommendations"
                                     class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-emerald-500/30 cursor-pointer">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
@@ -1406,48 +1386,99 @@
 
             <!-- Profile Lookup / Gateway Panel -->
             <div id="profile-lookup-panel" class="space-y-6">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20">
-                        <i class="fa-solid fa-route text-2xl"></i>
-                    </div>
-                    <div>
-                        <h2
-                            class="text-2xl font-black text-white bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
-                            Welcome to MyFlow</h2>
-                        <p class="text-xs text-indigo-400 font-semibold mt-1">Adaptive Just-in-Time Fitness Planning</p>
-                    </div>
+                <!-- Header (Minimal, text-first) -->
+                <div class="text-left space-y-1">
+                    <h2 class="text-2xl md:text-3xl font-black tracking-tight text-white">
+                        Welcome to MyFlow
+                    </h2>
+                    <p class="text-xs text-indigo-400 font-semibold tracking-wide">
+                        Adaptive Just-In-Time Fitness Planning
+                    </p>
                 </div>
 
-                <div class="space-y-3 bg-slate-950 p-5 rounded-2xl border border-slate-800/60 text-xs">
-                    <label class="block font-bold text-slate-400 uppercase tracking-wider">Access Existing Athlete
-                        ID</label>
+                <!-- How It Works & New Profile Creation -->
+                <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-4 shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black uppercase tracking-widest text-indigo-400">
+                            How It Works
+                        </span>
+                        <!-- Randomized Small Badge -->
+                        <span id="gateway-random-badge"
+                            class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full transition-all">
+                            Train At Your Own Pace
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- Step 1 -->
+                        <div
+                            class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-indigo-500/30 transition-all">
+                            <div>
+                                <img src="Images/onboard_step1_goals_1785550290624.jpg" alt="Define Your Goals"
+                                    class="w-full h-28 object-cover rounded-lg border border-slate-800 mb-3 shadow-sm">
+                                <h3 class="text-xs font-extrabold text-white mb-1">
+                                    <span class="text-indigo-400 font-mono font-black mr-1">1.</span> Define Your Goals
+                                </h3>
+                                <p class="text-[11px] text-slate-400 leading-snug">Tailored for any skill level—from
+                                    total beginner to race prep.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div
+                            class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-amber-500/30 transition-all">
+                            <div>
+                                <img src="Images/onboard_step2_journey_1785550057087.jpg" alt="Create Your Journey"
+                                    class="w-full h-28 object-cover rounded-lg border border-slate-800 mb-3 shadow-sm">
+                                <h3 class="text-xs font-extrabold text-white mb-1">
+                                    <span class="text-amber-400 font-mono font-black mr-1">2.</span> Create Your Journey
+                                </h3>
+                                <p class="text-[11px] text-slate-400 leading-snug">Your roadmap & pace targets adapt
+                                    dynamically as you progress.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div
+                            class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-emerald-500/30 transition-all">
+                            <div>
+                                <img src="Images/onboard_step3_flow_1785550064797.jpg" alt="Get In Flow State"
+                                    class="w-full h-28 object-cover rounded-lg border border-slate-800 mb-3 shadow-sm">
+                                <h3 class="text-xs font-extrabold text-white mb-1">
+                                    <span class="text-emerald-400 font-mono font-black mr-1">3.</span> Get In Flow State
+                                </h3>
+                                <p class="text-[11px] text-slate-400 leading-snug">Complete simple daily JIT workouts at
+                                    your own pace without stress.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Create New Profile Primary CTA -->
+                    <button onclick="startNewProfileOnboarding()"
+                        class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-xl font-extrabold transition-all text-xs text-center cursor-pointer shadow-lg shadow-indigo-600/20 uppercase tracking-wider mt-2">
+                        Create New Profile & Start Flow
+                    </button>
+                </div>
+
+                <!-- Returning Athlete Sign-In Section -->
+                <div class="space-y-3 bg-slate-950/60 p-5 rounded-2xl border border-slate-800 text-xs">
+                    <label class="block font-bold text-slate-400 uppercase tracking-wider text-[11px]">Returning
+                        Athlete? Load Athlete ID</label>
                     <div class="flex gap-2">
                         <input type="text" id="lookup-athlete-id" placeholder="Enter Athlete ID"
                             class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/80 font-mono">
                         <button onclick="submitProfileLookup()"
-                            class="bg-indigo-650 hover:bg-indigo-550 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg text-xs cursor-pointer">
-                            Load
+                            class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all border border-slate-700 text-xs cursor-pointer">
+                            Load Profile
                         </button>
                     </div>
                     <p id="lookup-error" class="text-rose-450 font-semibold text-[10px] hidden"></p>
                 </div>
 
-                <div class="relative flex py-2 items-center">
-                    <div class="flex-grow border-t border-slate-800/60"></div>
-                    <span
-                        class="flex-shrink mx-4 text-slate-500 text-[10px] font-bold uppercase tracking-wider">or</span>
-                    <div class="flex-grow border-t border-slate-800/60"></div>
-                </div>
-
-                <button onclick="startNewProfileOnboarding()"
-                    class="w-full bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 py-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-plus text-xs"></i> Create New Profile
-                </button>
-
                 <!-- Guest Turkey Trot Access -->
                 <button onclick="bypassToTurkeyTrot()"
-                    class="w-full bg-gradient-to-r from-amber-600/10 to-yellow-600/10 hover:from-amber-600/20 hover:to-yellow-600/20 border border-yellow-500/20 text-yellow-500 py-3 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-2 cursor-pointer mt-4">
-                    <i class="fa-solid fa-eye text-xs"></i> View Turkey Trot Challenge
+                    class="w-full bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white py-3 rounded-xl font-bold transition-all text-xs text-center cursor-pointer">
+                    Guest Mode / Turkey Trot Challenge
                 </button>
             </div>
 
@@ -2015,10 +2046,13 @@
                 <label class="flex items-center justify-between">
                     <span class="font-bold text-slate-400 uppercase tracking-wider">Coach Override Notes</span>
                     <div class="group relative cursor-help">
-                        <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                        <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                        <i
+                            class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                        <div
+                            class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
                             <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                            Use this for temporary schedule changes (e.g. "I am traveling on Thursday, no gym access") or general tweaks just for this upcoming block.
+                            Use this for temporary schedule changes (e.g. "I am traveling on Thursday, no gym access")
+                            or general tweaks just for this upcoming block.
                         </div>
                     </div>
                 </label>
@@ -2026,14 +2060,16 @@
                     placeholder="Describe any schedule constraints or preferences for the next block..."
                     class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500 resize-none"></textarea>
             </div>
-            <div id="gateway-acute-injury-section" class="hidden space-y-2 text-left text-xs mt-4 border-t border-slate-800 pt-4">
+            <div id="gateway-acute-injury-section"
+                class="hidden space-y-2 text-left text-xs mt-4 border-t border-slate-800 pt-4">
                 <label class="block font-bold text-rose-400 uppercase tracking-wider flex justify-between items-center">
                     <span>Acute Injury Follow-up</span>
-                    <button onclick="document.getElementById('gateway-acute-injury-notes').value=''" class="text-[9px] text-slate-500 hover:text-slate-300">Clear if Healed</button>
+                    <button onclick="document.getElementById('gateway-acute-injury-notes').value=''"
+                        class="text-[9px] text-slate-500 hover:text-slate-300">Clear if Healed</button>
                 </label>
-                <p class="text-[10px] text-slate-500">You previously logged an acute injury. Is it still persisting? Update the status below, or clear it if you are fully healed.</p>
-                <textarea id="gateway-acute-injury-notes"
-                    placeholder="Describe your current injury status..."
+                <p class="text-[10px] text-slate-500">You previously logged an acute injury. Is it still persisting?
+                    Update the status below, or clear it if you are fully healed.</p>
+                <textarea id="gateway-acute-injury-notes" placeholder="Describe your current injury status..."
                     class="w-full h-16 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-rose-500 resize-none"></textarea>
             </div>
             <button id="gateway-submit-btn" onclick="proceedToNextPhase()"
@@ -2373,10 +2409,13 @@
                         <label class="flex items-center justify-between">
                             <span class="text-slate-500 block">Personal Notes (Constraints/Lifestyle):</span>
                             <div class="group relative cursor-help">
-                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                <i
+                                    class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div
+                                    class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
                                     <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                    Tell your AI Coach about your lifestyle, and personal preferences. It uses this context to automatically adjust your workout types, intensities, and schedules.
+                                    Tell your AI Coach about your lifestyle, and personal preferences. It uses this
+                                    context to automatically adjust your workout types, intensities, and schedules.
                                 </div>
                             </div>
                         </label>
@@ -2388,10 +2427,13 @@
                         <label class="flex items-center justify-between">
                             <span class="text-slate-500 block">Chronic Limitations (Long-term):</span>
                             <div class="group relative cursor-help">
-                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                <i
+                                    class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div
+                                    class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
                                     <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                    Log long-term or permanent conditions here (e.g. chronic knee pain, asthma, prior surgeries). The AI will constantly adapt every phase around these.
+                                    Log long-term or permanent conditions here (e.g. chronic knee pain, asthma, prior
+                                    surgeries). The AI will constantly adapt every phase around these.
                                 </div>
                             </div>
                         </label>
@@ -2403,10 +2445,13 @@
                         <label class="flex items-center justify-between">
                             <span class="text-slate-500 block">Acute Injuries (Short-term):</span>
                             <div class="group relative cursor-help">
-                                <i class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
-                                <div class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
+                                <i
+                                    class="fa-solid fa-circle-info text-slate-500 hover:text-indigo-400 transition-colors text-sm"></i>
+                                <div
+                                    class="absolute bottom-full right-0 mb-2 w-56 sm:w-64 bg-slate-800 text-slate-200 text-[10px] p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 normal-case font-medium leading-relaxed text-left pointer-events-none">
                                     <div class="absolute -bottom-1 right-2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                    Log temporary tweaks or sickness here (e.g. rolled ankle, fighting a cold). The AI will adjust your immediate workouts, and you can clear this once healed.
+                                    Log temporary tweaks or sickness here (e.g. rolled ankle, fighting a cold). The AI
+                                    will adjust your immediate workouts, and you can clear this once healed.
                                 </div>
                             </div>
                         </label>
@@ -2415,26 +2460,34 @@
                             class="w-full h-16 mt-1 bg-slate-950 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-indigo-500 resize-none"></textarea>
                     </div>
                     <div class="col-span-2 border-t border-slate-800/60 pt-3">
-                        <span class="text-slate-500 block mb-2 text-[10px] uppercase font-bold tracking-wider">App Features</span>
+                        <span class="text-slate-500 block mb-2 text-[10px] uppercase font-bold tracking-wider">App
+                            Features</span>
                         <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex flex-col gap-3">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
-                                    <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                                    <div
+                                        class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
                                         <i class="fa-solid fa-utensils text-xs"></i>
                                     </div>
                                     <div>
-                                        <span class="text-slate-200 text-xs font-bold block">Prescriptive Meal Recommendations</span>
-                                        <span class="text-slate-500 text-[10px] block">Receive structured Breakfast, Lunch, Dinner, & Snack ideas</span>
+                                        <span class="text-slate-200 text-xs font-bold block">Prescriptive Meal
+                                            Recommendations</span>
+                                        <span class="text-slate-500 text-[10px] block">Receive structured Breakfast,
+                                            Lunch, Dinner, & Snack ideas</span>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="modal-prescriptive-meals-toggle" class="sr-only peer" onchange="window.toggleDietaryNotes(this.checked)">
-                                    <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500">
+                                    <input type="checkbox" id="modal-prescriptive-meals-toggle" class="sr-only peer"
+                                        onchange="window.toggleDietaryNotes(this.checked)">
+                                    <div
+                                        class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500">
                                     </div>
                                 </label>
                             </div>
-                            <div id="modal-dietary-notes-container" class="hidden flex-col gap-1.5 pt-2.5 border-t border-slate-800/80">
-                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Allergies & Meal Preferences</label>
+                            <div id="modal-dietary-notes-container"
+                                class="hidden flex-col gap-1.5 pt-2.5 border-t border-slate-800/80">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Allergies &
+                                    Meal Preferences</label>
                                 <textarea id="modal-dietary-notes"
                                     placeholder="e.g. Vegetarian, peanut allergy, prefer high-protein breakfasts, lactose intolerant..."
                                     class="w-full h-16 bg-slate-900 border border-slate-800 p-2 rounded-xl text-white font-semibold text-xs focus:outline-none focus:border-emerald-500 resize-none"></textarea>
@@ -3435,6 +3488,9 @@
                 if (userProfileData && typeof updatePaceAndVolumeHub === 'function') {
                     updatePaceAndVolumeHub(userProfileData);
                 }
+                setTimeout(() => {
+                    if (typeof startAppTour === 'function') startAppTour();
+                }, 800);
             }, (error) => {
                 console.error("Workouts channel sync error: ", error);
             });
@@ -3551,6 +3607,26 @@
             window.location.reload();
         }
 
+        function randomizeGatewayBadge() {
+            const badges = [
+                'Train At Your Own Pace',
+                'Fitness Made Simple',
+                'Smart Meal & Fuel Guides',
+                'Zero Guesswork',
+                'Your goals, your pace',
+                'Simple daily activities',
+                'Target-Driven Roadmap',
+                'Zero Overwhelm',
+                'Tailored daily tips',
+                'Paced For Success'
+            ];
+            const badgeEl = document.getElementById('gateway-random-badge');
+            if (badgeEl) {
+                const picked = badges[Math.floor(Math.random() * badges.length)];
+                badgeEl.innerText = picked;
+            }
+        }
+
         function showProfileLookupPanel(prefilledId) {
             document.getElementById('onboarding-modal').classList.remove('hidden');
             document.getElementById('profile-lookup-panel').classList.remove('hidden');
@@ -3558,6 +3634,7 @@
             document.getElementById('onboarding-form-panel').classList.add('hidden');
             const errorEl = document.getElementById('lookup-error');
             if (errorEl) errorEl.classList.add('hidden');
+            randomizeGatewayBadge();
             const inputEl = document.getElementById('lookup-athlete-id');
             if (inputEl) inputEl.value = prefilledId || "";
         }
@@ -4691,7 +4768,7 @@
 
             recentBlocks.forEach(chunk => {
                 if (chunk.length < 7) return;
-                
+
                 const endDate = new Date(chunk[chunk.length - 1].dateExecuted);
                 let diffDays;
 
@@ -6327,7 +6404,7 @@
 
             try {
                 const currentPhaseIndex = userProfileData.currentPhaseIndex || 1;
-                
+
                 // 1. Update Profile with new Acute Injury locally first (so it gets sent to AI)
                 let newAcute = (userProfileData.acuteInjuries || "").trim();
                 if (notes) {
@@ -6343,7 +6420,7 @@
 
                 const recentHistory = [];
                 historySnapshot.forEach(doc => recentHistory.push(doc.data()));
-                
+
                 // Append the locally completed active workouts to history for the AI's context
                 activePhaseWorkouts.forEach(w => {
                     if (w.completed) recentHistory.push(w);
@@ -6385,7 +6462,7 @@
                         batchArchive.set(userDocRef.collection("history").doc(w.id), w);
                     }
                 });
-                
+
                 // Fetch fresh active docs to ensure we don't miss any orphans during wipe
                 const activeDocs = await userDocRef.collection("active_phase").get();
                 activeDocs.forEach(doc => {
@@ -6439,7 +6516,7 @@
             const checklistGenBtn = document.getElementById('gen-next-phase-btn-checklist');
             const gatewayBtn = document.getElementById('gateway-submit-btn');
             const regenBtn = document.getElementById('regenerate-block-btn');
-            
+
             if (homeGenBtn) {
                 homeGenBtn.disabled = true;
                 homeGenBtn.className = "shrink-0 bg-slate-800 text-slate-500 border border-slate-700 px-6 py-3 rounded-xl text-xs font-bold transition-all cursor-not-allowed opacity-60 flex items-center gap-2 whitespace-nowrap";
@@ -6544,7 +6621,7 @@
                         .orderBy("dateExecuted", "desc")
                         .limit(14)
                         .get();
-                } catch(e) {
+                } catch (e) {
                     throw new Error("History Fetch Error: " + e.message);
                 }
 
@@ -6552,7 +6629,7 @@
                 historySnapshot.forEach(doc => {
                     recentHistory.push(doc.data());
                 });
-                
+
                 activePhaseWorkouts.forEach(w => {
                     if (w.completed) recentHistory.push(w);
                 });
@@ -6588,20 +6665,20 @@
                     const strengthGuides = aiResult.data.strengthGuides || [];
                     const healthInsights = aiResult.data.healthInsights || null;
                     let profileUpdates = {};
-                    
+
                     profileUpdates.currentPhaseIndex = nextPhaseIndex;
                     profileUpdates.lastPhaseComments = notes;
                     profileUpdates.lastPhaseAverageRPE = avgRpe ? parseFloat(avgRpe) : null;
                     profileUpdates.journeyComments = coachComments;
                     profileUpdates.acuteInjuries = acuteNotes;
-                    
+
                     if (newWeight && !isNaN(newWeight)) {
                         profileUpdates.weight = newWeight;
                     }
                     if (bmiHistoryUpdate) {
                         profileUpdates.bmiHistory = bmiHistoryUpdate;
                     }
-                    
+
                     if (strengthGuides.length > 0) {
                         profileUpdates.currentStrengthGuides = strengthGuides;
                         profileUpdates.simpleStrengthGuides = firebase.firestore.FieldValue.delete();
@@ -6611,9 +6688,9 @@
                     if (healthInsights) {
                         profileUpdates.healthInsights = healthInsights;
                     }
-                    
+
                     await userDocRef.update(profileUpdates);
-                    
+
                 } catch (error) {
                     console.error("Failed to generate AI workouts, falling back to defaults.", error);
                     alert("AI Generation Error: " + error.message + "\n\nFalling back to default workouts instead.");
@@ -6627,7 +6704,7 @@
                         batchArchive.set(userDocRef.collection("history").doc(w.id), w);
                     }
                 });
-                
+
                 const activeDocs = await userDocRef.collection("active_phase").get();
                 activeDocs.forEach(doc => {
                     batchArchive.delete(doc.ref);
@@ -7555,7 +7632,7 @@
                 document.getElementById('modal-include-strength').value = userProfileData.strengthType || "runner_specific";
                 document.getElementById('modal-why-notes').value = userProfileData.why || "";
                 document.getElementById('modal-baseline-notes').value = userProfileData.userBaselineNotes || "";
-                
+
                 // Fix for users who had their personal notes accidentally copied to chronic limitations
                 let chronic = userProfileData.chronicLimitations || "";
                 if (chronic === (userProfileData.userBaselineNotes || "")) {
@@ -8542,8 +8619,8 @@
                         const hardTxt = data.healthInsights.nutritionHeuristics.hardActivity;
 
                         const isComplexNutrition = (restTxt && typeof restTxt === 'object') ||
-                                                   (lightTxt && typeof lightTxt === 'object') ||
-                                                   (hardTxt && typeof hardTxt === 'object');
+                            (lightTxt && typeof lightTxt === 'object') ||
+                            (hardTxt && typeof hardTxt === 'object');
 
                         const updateLayoutForComplexity = (containerId, cardId) => {
                             const container = document.getElementById(containerId);
@@ -10544,7 +10621,273 @@
             }
         };
 
+        // --- INTERACTIVE APP TOUR LOGIC ---
+        const tourSteps = [
+            {
+                targetId: 'nav-btn-home',
+                tab: 'home',
+                title: '1. Home Tab',
+                desc: 'Your daily control center! Access your current focus workout, weight progression chart, and health insights at a glance.'
+            },
+            {
+                targetId: 'journey-header-card',
+                tab: 'home',
+                title: '2. Athlete Profile & Header',
+                desc: 'Your main dashboard header! View your active Athlete ID, sync status, and click "Edit" to adjust your baseline pace, weight, or target goals anytime.'
+            },
+            {
+                targetId: 'next-activity-focus',
+                tab: 'home',
+                title: '3. Up Next (Daily JIT Task)',
+                desc: 'This is your primary Daily Focus Card! It shows today\'s workout, preparation notes and a preview of tomorrow when the daily activities are complete. '
+            },
+            {
+                targetId: 'home-health-insights-card',
+                tab: 'home',
+                title: '4. AI Recovery & Meal Insights',
+                desc: 'Dynamically calculated movement tips, hydration guidelines, and tiered nutrition meals tailored to rest, light, or hard workout days.'
+            },
+            {
+                targetId: 'nav-btn-analytics',
+                tab: 'analytics',
+                title: '5. Analytics Tab',
+                desc: 'Track your long-term progress! View your weight & BMI trend lines, 5K estimated race pace improvements, and weekly volume graphs.'
+            },
+            {
+                targetId: 'nav-btn-checklist',
+                tab: 'checklist',
+                title: '6. JIT Checklist Tab',
+                desc: 'Your full workout sequence! Check off completed activities, swap training days around, or request an adaptive plan update.'
+            },
+            {
+                targetId: 'nav-btn-strength',
+                tab: 'strength',
+                title: '7. Strength Tab',
+                desc: 'Customized bodyweight & equipment-based strength circuits designed to build core stability and prevent injuries.'
+            },
+            {
+                targetId: 'nav-btn-journey',
+                tab: 'journey',
+                title: '8. Journey Roadmap Tab',
+                desc: 'Your macrocycle timeline! View your current training phase, milestone target dates, and long-term training strategies/ goals.'
+            }
+        ];
+
+        let currentTourIndex = 0;
+        let tourCardMinimized = false;
+
+        function startAppTour(force = false) {
+            console.log("🚩 startAppTour triggered, force=", force);
+            if (!force && localStorage.getItem('myflow_tour_completed')) return;
+            currentTourIndex = 0;
+            tourCardMinimized = false;
+            const overlay = document.getElementById('app-tour-overlay');
+            if (overlay) {
+                overlay.style.display = 'block';
+                overlay.classList.remove('hidden');
+            }
+            renderTourStep();
+        }
+        window.startAppTour = startAppTour;
+
+        function toggleTourCardMinimize() {
+            tourCardMinimized = !tourCardMinimized;
+            const descEl = document.getElementById('tour-desc');
+            const minBtn = document.getElementById('tour-min-btn');
+            if (tourCardMinimized) {
+                if (descEl) descEl.classList.add('hidden');
+                if (minBtn) minBtn.innerText = 'Expand';
+            } else {
+                if (descEl) descEl.classList.remove('hidden');
+                if (minBtn) minBtn.innerText = 'Minimize';
+            }
+        }
+        window.toggleTourCardMinimize = toggleTourCardMinimize;
+
+        function updateSpotlightPos() {
+            const step = tourSteps[currentTourIndex];
+            if (!step) return;
+            const targetEl = document.getElementById(step.targetId);
+            const spotlight = document.getElementById('tour-spotlight-box');
+            if (targetEl && spotlight) {
+                const rect = targetEl.getBoundingClientRect();
+                const padding = 6;
+                spotlight.style.top = `${rect.top - padding}px`;
+                spotlight.style.left = `${rect.left - padding}px`;
+                spotlight.style.width = `${rect.width + (padding * 2)}px`;
+                spotlight.style.height = `${rect.height + (padding * 2)}px`;
+            }
+        }
+
+        window.addEventListener('scroll', updateSpotlightPos, { passive: true });
+        window.addEventListener('resize', updateSpotlightPos, { passive: true });
+
+        function renderTourStep() {
+            const step = tourSteps[currentTourIndex];
+            if (!step) {
+                endAppTour();
+                return;
+            }
+
+            // Switch to required tab if needed
+            if (typeof switchTab === 'function' && step.tab) {
+                switchTab(step.tab);
+            }
+
+            // Update badge, title, desc
+            const badge = document.getElementById('tour-step-badge');
+            if (badge) badge.innerText = `Step ${currentTourIndex + 1} of ${tourSteps.length}`;
+
+            const title = document.getElementById('tour-title');
+            if (title) title.innerText = step.title;
+
+            const desc = document.getElementById('tour-desc');
+            if (desc) desc.innerText = step.desc;
+
+            // Reset minimize state if expanded
+            if (!tourCardMinimized) {
+                const descEl = document.getElementById('tour-desc');
+                if (descEl) descEl.classList.remove('hidden');
+                const minBtn = document.getElementById('tour-min-btn');
+                if (minBtn) minBtn.innerText = 'Minimize';
+            }
+
+            // Prev button state
+            const prevBtn = document.getElementById('tour-prev-btn');
+            if (prevBtn) prevBtn.disabled = (currentTourIndex === 0);
+
+            // Next button text
+            const nextBtn = document.getElementById('tour-next-btn');
+            if (nextBtn) {
+                nextBtn.innerText = (currentTourIndex === tourSteps.length - 1) ? 'Finish Tour' : 'Next Step';
+            }
+
+            // Position tour card & spotlight cutout near target element
+            setTimeout(() => {
+                const targetEl = document.getElementById(step.targetId);
+                const tourCard = document.getElementById('tour-card');
+
+                if (targetEl && tourCard) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    setTimeout(() => {
+                        updateSpotlightPos();
+                        const rect = targetEl.getBoundingClientRect();
+
+                        const isTabTarget = step.targetId.startsWith('nav-btn-');
+
+                        if (window.innerWidth >= 768) {
+                            // Desktop positioning: nav tabs are at the TOP, so place instruction card BELOW them
+                            if (isTabTarget) {
+                                let top = rect.bottom + 20;
+                                let left = Math.max(16, Math.min(rect.left - 40, window.innerWidth - tourCard.offsetWidth - 16));
+                                tourCard.style.top = `${top}px`;
+                                tourCard.style.bottom = 'auto';
+                                tourCard.style.left = `${left}px`;
+                                tourCard.style.transform = 'none';
+                            } else {
+                                let top = rect.bottom + 20;
+                                if (top + tourCard.offsetHeight > window.innerHeight) {
+                                    top = Math.max(20, rect.top - tourCard.offsetHeight - 20);
+                                }
+                                let left = Math.max(20, Math.min(rect.left, window.innerWidth - tourCard.offsetWidth - 20));
+                                tourCard.style.top = `${top}px`;
+                                tourCard.style.bottom = 'auto';
+                                tourCard.style.left = `${left}px`;
+                                tourCard.style.transform = 'none';
+                            }
+                        } else {
+                            // Mobile positioning: ensure card sits NEAR tabs with clearance, never covering
+                            if (isTabTarget) {
+                                // Bottom nav bar tab: position card cleanly ABOVE the tab spotlight
+                                const cardTop = Math.max(16, rect.top - tourCard.offsetHeight - 24);
+                                tourCard.style.top = `${cardTop}px`;
+                                tourCard.style.bottom = 'auto';
+                            } else {
+                                const elementCenterY = rect.top + (rect.height / 2);
+                                if (elementCenterY > (window.innerHeight / 2)) {
+                                    tourCard.style.top = '16px';
+                                    tourCard.style.bottom = 'auto';
+                                } else {
+                                    tourCard.style.top = 'auto';
+                                    tourCard.style.bottom = '16px';
+                                }
+                            }
+                            tourCard.style.left = '50%';
+                            tourCard.style.transform = 'translateX(-50%)';
+                        }
+                    }, 150);
+                }
+            }, 100);
+        }
+
+        function nextTourStep() {
+            if (currentTourIndex < tourSteps.length - 1) {
+                currentTourIndex++;
+                renderTourStep();
+            } else {
+                endAppTour();
+            }
+        }
+        window.nextTourStep = nextTourStep;
+
+        function prevTourStep() {
+            if (currentTourIndex > 0) {
+                currentTourIndex--;
+                renderTourStep();
+            }
+        }
+        window.prevTourStep = prevTourStep;
+
+        function endAppTour() {
+            const overlay = document.getElementById('app-tour-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+                overlay.classList.add('hidden');
+            }
+            localStorage.setItem('myflow_tour_completed', 'true');
+            if (typeof switchTab === 'function') switchTab('home');
+        }
+        window.endAppTour = endAppTour;
+
     </script>
+
+    <!-- INTERACTIVE APP TOUR OVERLAY -->
+    <div id="app-tour-overlay" class="fixed inset-0 z-[9990] hidden pointer-events-none">
+        <!-- Dynamic Spotlight Cutout Frame -->
+        <div id="tour-spotlight-box" class="fixed z-[9991] pointer-events-none rounded-2xl border-2 border-indigo-500 transition-all duration-200 ease-out" style="box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.82), 0 0 30px rgba(99, 102, 241, 0.6);"></div>
+
+        <!-- Floating Guide Modal Card -->
+        <div id="tour-card" class="fixed z-[9999] pointer-events-auto max-w-sm w-[92%] md:w-80 bg-slate-900/95 backdrop-blur-md border border-indigo-500/40 rounded-2xl p-4 shadow-2xl space-y-3 transition-all duration-300">
+            <div class="flex items-center justify-between">
+                <span id="tour-step-badge" class="text-[10px] font-black uppercase tracking-wider text-indigo-400 bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+                    Step 1 of 8
+                </span>
+                <div class="flex items-center gap-3">
+                    <button id="tour-min-btn" onclick="toggleTourCardMinimize()" class="text-[10px] font-bold text-slate-400 hover:text-indigo-300 transition-colors uppercase tracking-wider cursor-pointer">
+                        Minimize
+                    </button>
+                    <button onclick="endAppTour()" class="text-[10px] font-bold text-slate-400 hover:text-rose-400 transition-colors uppercase tracking-wider cursor-pointer">
+                        Skip
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <h4 id="tour-title" class="text-sm md:text-base font-extrabold text-white">1. Home Tab</h4>
+                <p id="tour-desc" class="text-xs text-slate-300 leading-snug">Your daily control center! Access your current focus workout, weight progression chart, and health insights at a glance.</p>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                <button id="tour-prev-btn" onclick="prevTourStep()" class="text-xs font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer px-2 py-1">
+                    Back
+                </button>
+                <button id="tour-next-btn" onclick="nextTourStep()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-4 py-1.5 rounded-xl transition-all shadow-md cursor-pointer">
+                    Next Step
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
