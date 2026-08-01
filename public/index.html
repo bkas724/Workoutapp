@@ -8147,8 +8147,7 @@
 
                 if (!userProfileData) return;
 
-                const d = new Date(dateVal);
-                d.setHours(12, 0, 0, 0);
+                const d = new Date(dateVal + 'T12:00:00');
 
                 let history = userProfileData.bmiHistory || [];
                 if (history.length === 0 && userProfileData.weight) {
