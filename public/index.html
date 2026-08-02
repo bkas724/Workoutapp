@@ -311,55 +311,65 @@
                 class="absolute bottom-0 left-0 -mb-12 -ml-12 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none">
             </div>
 
-            <!-- Profile Switcher & Sync Badge -->
-            <div class="absolute top-4 left-4 z-20 flex items-center gap-2 pointer-events-auto">
-                <span id="active-athlete-id-display"
-                    class="bg-slate-950/80 border border-slate-800 text-slate-105 text-xs font-bold px-3 py-1 rounded-full transition-colors font-mono"></span>
-                <button id="profile-edit-btn" onclick="openProfileModal()"
-                    class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 cursor-pointer flex items-center gap-1"
-                    title="Edit Athlete Profile">
-                    <i class="fa-solid fa-pen text-[9px]"></i> Edit
-                </button>
-                <button onclick="startAppTour(true)"
-                    class="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-wider bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 cursor-pointer flex items-center gap-1"
-                    title="Replay App Tour">
-                    <i class="fa-solid fa-compass text-[9px]"></i> Tour
-                </button>
-                <button onclick="signOut()"
-                    class="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider bg-indigo-500/10 px-2.5 py-1 rounded border border-indigo-500/20 cursor-pointer flex items-center gap-1"
-                    title="Sign Out">
-                    <i class="fa-solid fa-sign-out-alt text-[9px]"></i> Sign Out
-                </button>
-            </div>
+            <!-- Top Control Bar (Flex container - prevents overlaps on mobile) -->
+            <div class="relative z-20 flex items-center justify-between gap-2 mb-4 w-full">
+                <!-- Profile Switcher & Action Buttons -->
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <span id="active-athlete-id-display"
+                        class="bg-slate-950/80 border border-slate-800 text-slate-100 text-xs font-bold px-2.5 py-1 rounded-full transition-colors font-mono flex items-center gap-1.5"></span>
+                    <button id="profile-edit-btn" onclick="openProfileModal()"
+                        class="p-1.5 sm:px-2.5 sm:py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
+                        title="Edit Athlete Profile">
+                        <i class="fa-solid fa-pen text-[10px]"></i>
+                        <span class="hidden sm:inline uppercase text-[10px] tracking-wider">Edit</span>
+                    </button>
+                    <button onclick="signOut()"
+                        class="p-1.5 sm:px-2.5 sm:py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
+                        title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        <span class="hidden sm:inline uppercase text-[10px] tracking-wider">Sign Out</span>
+                    </button>
+                    <button onclick="startAppTour(true)"
+                        class="p-1.5 sm:px-2.5 sm:py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
+                        title="Replay App Tour">
+                        <i class="fa-solid fa-compass text-[10px]"></i>
+                        <span class="hidden sm:inline uppercase text-[10px] tracking-wider">Tour</span>
+                    </button>
+                </div>
 
-            <div class="absolute top-4 right-4 md:top-6 md:right-6 z-20 flex flex-col items-end gap-2">
-                <span id="sync-badge"
-                    class="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Offline
-                </span>
-
-                <div id="jit-consistency-badge"
-                    class="flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-full text-emerald-400 font-bold text-xs shadow-sm">
-                    <i class="fa-solid fa-fire text-amber-400"></i> <span id="jit-consistency-val">100%
-                        Consistency</span>
+                <!-- Sync Status Badge -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <span id="sync-badge" title="Sync Status: Synced"
+                        class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all cursor-default">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="hidden sm:inline">Synced</span>
+                    </span>
                 </div>
             </div>
 
             <!-- Header Content -->
-            <div class="relative z-10 mt-6">
-                <div class="space-y-6">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-4">
-                        <div id="header-text-toggle" class="space-y-2 max-w-xl pr-4">
-                            <h1 id="plan-title" contenteditable="true"
-                                class="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent caret-white focus:outline-none rounded transition-all cursor-text px-2 py-1 -mx-2 -my-1 focus:bg-slate-950/40 focus:ring-1 focus:ring-indigo-500/30">
-                                MyFlow
-                            </h1>
-                            <p id="plan-desc" contenteditable="true"
-                                class="text-slate-400 text-sm md:text-base leading-relaxed focus:outline-none rounded transition-all cursor-text px-2 py-1 -mx-2 -my-1 focus:bg-slate-950/40 focus:ring-1 focus:ring-indigo-500/30">
-                                Achieve my goals
-                            </p>
+            <div class="relative z-10">
+                <div id="header-text-toggle" class="space-y-2 w-full">
+                    <h1 id="plan-title" contenteditable="true"
+                        class="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent caret-white focus:outline-none rounded transition-all cursor-text px-2 py-1 -mx-2 -my-1 focus:bg-slate-950/40 focus:ring-1 focus:ring-indigo-500/30">
+                        MyFlow
+                    </h1>
+                    <div class="flex items-center justify-between gap-3 w-full">
+                        <p id="plan-desc" contenteditable="true"
+                            class="text-slate-400 text-sm md:text-base leading-relaxed focus:outline-none rounded transition-all cursor-text px-2 py-1 -mx-2 -my-1 focus:bg-slate-950/40 focus:ring-1 focus:ring-indigo-500/30 flex-1 min-w-0">
+                            Achieve my goals
+                        </p>
+                        <div id="jit-consistency-badge"
+                            class="flex flex-col items-center justify-center bg-amber-950/60 border border-amber-500/50 px-3 py-1 rounded-xl text-amber-300 shadow-sm shrink-0 text-center cursor-default">
+                            <div class="flex items-center gap-1 font-black text-sm leading-none">
+                                <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+                                <span>100%</span>
+                            </div>
+                            <span class="text-[9px] font-bold uppercase tracking-wider text-amber-400/90 leading-tight mt-0.5" id="jit-consistency-val">Elite</span>
                         </div>
                     </div>
+                </div>
+            </div>
 
         </header>
 
@@ -384,35 +394,17 @@
             </div>
         </div>
 
-        <!-- Turkey Trot Challenge Banner -->
-        <div class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-amber-900/60 to-yellow-600/40 border border-yellow-500/50 rounded-2xl p-4 shadow-xl cursor-pointer hover:border-yellow-400 transition-all duration-300"
-            onclick="switchTab('turkey-trot')">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none">
-            </div>
-            <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-3 w-full">
-                    <div class="p-3 bg-yellow-500/20 text-yellow-400 rounded-xl border border-yellow-500/30">
-                        <i class="fa-solid fa-trophy text-2xl"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-extrabold text-white text-lg drop-shadow-md">Turkey Trot Challenge</h3>
-                        <p class="text-xs text-yellow-200 font-bold tracking-wider">$500 on the line!</p>
-                    </div>
-                    <div class="bg-yellow-500/20 px-3 py-1.5 rounded-lg border border-yellow-500/30 md:block hidden">
-                        <span
-                            class="text-xs font-bold text-yellow-300 uppercase tracking-widest flex items-center gap-1">View
-                            <i class="fa-solid fa-arrow-right"></i></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div id="next-activity-focus"
             class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/40 rounded-2xl p-4 md:p-6 shadow-xl transition-all duration-500">
             <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
             <div id="jit-consistency-header-bar"
                 class="flex items-center justify-between mb-4 border-b border-indigo-500/20 pb-3">
-                <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-300">Up Next</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-300">Today's Flow</span>
+                    <span id="todays-flow-completed-badge" class="hidden text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-0.5 rounded-full items-center">
+                        Completed
+                    </span>
+                </div>
             </div>
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
                 <div id="focus-content" class="w-full">
@@ -424,6 +416,27 @@
                             <div class="h-4 bg-slate-800 rounded w-3/4"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Turkey Trot Challenge Slim Bar (Placed below Today's Activity) -->
+        <div class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-amber-900/60 to-yellow-600/40 border border-yellow-500/50 rounded-xl px-4 py-2.5 shadow-lg cursor-pointer hover:border-yellow-400 transition-all duration-300 group"
+            onclick="switchTab('turkey-trot')">
+            <div class="absolute top-0 right-0 w-48 h-48 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="relative z-10 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="p-2 bg-yellow-500/20 text-yellow-400 rounded-lg border border-yellow-500/30 shrink-0">
+                        <i class="fa-solid fa-trophy text-base"></i>
+                    </div>
+                    <div class="min-w-0 flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        <h4 class="font-extrabold text-white text-xs sm:text-sm truncate drop-shadow-md">Turkey Trot Challenge</h4>
+                        <span class="text-[11px] text-yellow-200 font-bold tracking-wider whitespace-nowrap bg-yellow-500/15 px-2 py-0.5 rounded border border-yellow-500/30">$500 on the line!</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 text-xs font-bold text-yellow-300 group-hover:text-yellow-200 transition-colors shrink-0">
+                    <span class="hidden sm:inline uppercase text-[10px] tracking-widest">View</span>
+                    <i class="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-0.5"></i>
                 </div>
             </div>
         </div>
@@ -3237,8 +3250,9 @@
             if (!db) {
                 console.warn("Sync Offline: Firestore unreachable.");
                 if (syncBadge) {
-                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
-                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Offline`;
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> <span class="hidden sm:inline">Offline</span>`;
+                    syncBadge.title = "Sync Status: Offline";
                 }
                 return;
             }
@@ -3248,8 +3262,9 @@
 
             // Show immediate syncing state feedback on the badge
             if (syncBadge) {
-                syncBadge.className = "inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
-                syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Syncing...`;
+                syncBadge.className = "inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> <span class="hidden sm:inline">Syncing...</span>`;
+                syncBadge.title = "Sync Status: Syncing...";
             }
 
             // Unsubscribe existing snapshot streams
@@ -3275,8 +3290,9 @@
             const connectionTimeout = setTimeout(() => {
                 console.warn("Sync Timeout: Connection delayed for profile:", userId);
                 if (syncBadge) {
-                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
-                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Timeout`;
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> <span class="hidden sm:inline">Timeout</span>`;
+                    syncBadge.title = "Sync Status: Timeout";
                 }
                 document.getElementById('timeout-error-modal').classList.remove('hidden');
                 hideAutopilotLoader();
@@ -3423,14 +3439,16 @@
                     updateTimelineView(data.currentPhaseIndex || 1);
 
                     if (syncBadge) {
-                        syncBadge.className = "inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
-                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Synced`;
+                        syncBadge.className = "inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> <span class="hidden sm:inline">Synced</span>`;
+                        syncBadge.title = "Sync Status: Synced";
                     }
                 } else {
                     console.log("Profile empty. Displaying lookup panel.");
                     if (syncBadge) {
-                        syncBadge.className = "inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
-                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Onboarding`;
+                        syncBadge.className = "inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                        syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> <span class="hidden sm:inline">Onboarding</span>`;
+                        syncBadge.title = "Sync Status: Onboarding";
                     }
                     showProfileLookupPanel(userId);
                     const errorEl = document.getElementById('lookup-error');
@@ -3444,8 +3462,9 @@
                 hideAutopilotLoader();
                 console.error("Profile channel sync error: ", error);
                 if (syncBadge) {
-                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
-                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Error`;
+                    syncBadge.className = "inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase";
+                    syncBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> <span class="hidden sm:inline">Error</span>`;
+                    syncBadge.title = "Sync Status: Error";
                 }
             });
 
@@ -4782,20 +4801,20 @@
 
             if (badgeContainer) {
                 if (score === 100) {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-indigo-950/80 border border-indigo-500/50 px-3 py-1 rounded-full text-indigo-300 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<img src="assets/flow-state-icon.jpg" class="w-4 h-4 rounded-full object-cover mix-blend-screen" alt="Flow State"> <span id="jit-consistency-val">${score}% Flow State</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-indigo-950/80 border border-indigo-500/50 px-3 py-1 rounded-xl text-indigo-300 shadow-sm shrink-0 text-center cursor-default";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><img src="assets/flow-state-icon.jpg" class="w-3.5 h-3.5 rounded-full object-cover mix-blend-screen" alt="Flow State"><span>100%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-indigo-300/90 leading-tight mt-0.5" id="jit-consistency-val">Flow State</span>`;
                 } else if (score >= 90) {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/50 px-3 py-1 rounded-full text-amber-300 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-trophy text-amber-400"></i> <span id="jit-consistency-val">${score}% Elite</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-amber-950/60 border border-amber-500/50 px-3 py-1 rounded-xl text-amber-300 shadow-sm shrink-0 text-center cursor-default";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-trophy text-amber-400 text-xs"></i><span>${score}%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-amber-400/90 leading-tight mt-0.5" id="jit-consistency-val">Elite</span>`;
                 } else if (score >= 80) {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-slate-800/80 border border-slate-400/50 px-3 py-1 rounded-full text-slate-200 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-medal text-slate-300"></i> <span id="jit-consistency-val">${score}% High Level</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-slate-800/80 border border-slate-400/50 px-3 py-1 rounded-xl text-slate-200 shadow-sm shrink-0 text-center cursor-default";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-medal text-slate-300 text-xs"></i><span>${score}%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-slate-300/90 leading-tight mt-0.5" id="jit-consistency-val">High Level</span>`;
                 } else if (score >= 70) {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-orange-950/60 border border-orange-700/50 px-3 py-1 rounded-full text-orange-300 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-medal text-orange-600"></i> <span id="jit-consistency-val">${score}% Solid</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-orange-950/60 border border-orange-700/50 px-3 py-1 rounded-xl text-orange-300 shadow-sm shrink-0 text-center cursor-default";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-medal text-orange-600 text-xs"></i><span>${score}%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-orange-400/90 leading-tight mt-0.5" id="jit-consistency-val">Solid</span>`;
                 } else {
-                    badgeContainer.className = "flex items-center gap-1.5 bg-slate-900/80 border border-slate-700/50 px-3 py-1 rounded-full text-slate-400 font-bold text-xs shadow-sm";
-                    badgeContainer.innerHTML = `<i class="fa-solid fa-seedling text-emerald-500/70"></i> <span id="jit-consistency-val">Building Flow</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-slate-900/80 border border-slate-700/50 px-3 py-1 rounded-xl text-slate-400 shadow-sm shrink-0 text-center cursor-default";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-seedling text-emerald-500/70 text-xs"></i><span>${score > 0 ? score + '%' : 'Flow'}</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-slate-400/90 leading-tight mt-0.5" id="jit-consistency-val">Building Flow</span>`;
                 }
             }
         }
@@ -4852,6 +4871,11 @@
             }
 
             if (renderSequenceOrder === null) {
+                const completedBadgeEl = document.getElementById('todays-flow-completed-badge');
+                if (completedBadgeEl) {
+                    completedBadgeEl.classList.add('hidden');
+                    completedBadgeEl.classList.remove('inline-flex', 'flex');
+                }
                 container.innerHTML = `
                     <div class="flex flex-col md:flex-row items-center md:items-start justify-between w-full gap-4 p-5 bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-xl text-emerald-400">
                         <div class="flex items-center gap-4">
@@ -4873,18 +4897,21 @@
 
             const dailySlate = activePhaseWorkouts.filter(w => w.sequenceOrder === renderSequenceOrder);
 
-            let allCompleted = dailySlate.every(w => w.completed);
+            let allCompleted = dailySlate.length > 0 && dailySlate.every(w => w.completed);
             let isBlockFullyFinished = activeSequenceOrder === null;
-            let slateLabel = allCompleted ? 'Completed Today' : 'Todays Flow';
-            let slateColor = allCompleted ? 'text-emerald-400 bg-emerald-950/50 border-emerald-500/30' : 'text-indigo-400 bg-indigo-950/50 border-indigo-500/30';
 
-            let htmlAccumulator = `
-                <div class="mb-4">
-                    <span class="text-[10px] font-bold uppercase tracking-widest ${slateColor} px-3 py-1 rounded-full border">
-                        ${slateLabel}
-                    </span>
-                </div>
-                <div class="space-y-8">`;
+            const completedBadgeEl = document.getElementById('todays-flow-completed-badge');
+            if (completedBadgeEl) {
+                if (allCompleted) {
+                    completedBadgeEl.classList.remove('hidden');
+                    completedBadgeEl.classList.add('inline-flex');
+                } else {
+                    completedBadgeEl.classList.add('hidden');
+                    completedBadgeEl.classList.remove('inline-flex', 'flex');
+                }
+            }
+
+            let htmlAccumulator = `<div class="space-y-8">`;
             let modalsAccumulator = '';
 
             for (let i = 0; i < dailySlate.length; i++) {

@@ -1767,7 +1767,7 @@
             const dailySlate = activePhaseWorkouts.filter(w => w.sequenceOrder === renderSequenceOrder);
 
             let allCompleted = dailySlate.every(w => w.completed);
-            let slateLabel = allCompleted ? 'Completed Today' : 'Up Next Today';
+            let slateLabel = allCompleted ? 'Completed Today' : 'Scheduled';
             let slateColor = allCompleted ? 'text-emerald-400 bg-emerald-950/50 border-emerald-500/30' : 'text-indigo-400 bg-indigo-950/50 border-indigo-500/30';
 
             let htmlAccumulator = `
