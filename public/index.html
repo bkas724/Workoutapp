@@ -4914,7 +4914,8 @@
                 }
             }
 
-            let htmlAccumulator = `<div class="space-y-8">`;
+            let htmlAccumulator = `<div class="space-y-6">
+                <div class="grid grid-cols-1 ${dailySlate.length > 1 ? 'md:grid-cols-2' : ''} gap-4">`;
             let modalsAccumulator = '';
 
             for (let i = 0; i < dailySlate.length; i++) {
@@ -4993,7 +4994,7 @@
                     (nextStep.activities && nextStep.activities.filter(a => a.type === 'work').length > 1);
 
                 htmlAccumulator += `
-                    <div id="focus-card-${nextStep.id}" class="relative ${opacityClass} transition-all duration-300 mb-6">
+                    <div id="focus-card-${nextStep.id}" class="relative ${opacityClass} transition-all duration-300">
                         <!-- Outer Card Container -->
                         <div class="w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-xl relative group">
                             ${nextStep.completed ? `
@@ -5448,6 +5449,8 @@
                 </div>
                 `;
             }
+
+            htmlAccumulator += `</div>`;
 
             const isSlateFullyCompleted = dailySlate.every(w => w.completed);
             if (isSlateFullyCompleted && renderSequenceOrder === (lastCompletedStep ? lastCompletedStep.sequenceOrder : null)) {
