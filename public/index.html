@@ -3306,6 +3306,9 @@
                     console.log("☁️ User profile change detected.");
                     const data = docSnapshot.data();
                     userProfileData = data;
+                    if (data && (data.hasCompletedTour || data.tourCompleted)) {
+                        localStorage.setItem('myflow_tour_completed', 'true');
+                    }
 
                     if (data.journeyStatus === 'pending_review') {
                         // Render Review Panel
@@ -10998,7 +11001,9 @@
 
         function startAppTour(force = false) {
             console.log("🚩 startAppTour triggered, force=", force);
-            if (!force && localStorage.getItem('myflow_tour_completed')) return;
+            const isLocalDone = localStorage.getItem('myflow_tour_completed') === 'true';
+            const isRemoteDone = userProfileData && (userProfileData.hasCompletedTour || userProfileData.tourCompleted);
+            if (!force && (isLocalDone || isRemoteDone)) return;
             currentTourIndex = 0;
             tourCardMinimized = false;
             const overlay = document.getElementById('app-tour-overlay');
@@ -11175,6 +11180,19 @@
                 overlay.classList.add('hidden');
             }
             localStorage.setItem('myflow_tour_completed', 'true');
+            if (typeof userProfileData !== 'undefined' && userProfileData) {
+                userProfileData.hasCompletedTour = true;
+                userProfileData.tourCompleted = true;
+            }
+            if (typeof userId !== 'undefined' && userId && typeof db !== 'undefined') {
+                db.collection('users').doc(userId).set({
+                    hasCompletedTour: true,
+                    tourCompleted: true,
+                    tourCompletedAt: new Date().toISOString()
+                }, { merge: true }).then(() => {
+                    console.log("☁️ Saved tour completion status to Firestore user document.");
+                }).catch(err => console.warn("Firestore tour status save notice:", err));
+            }
             if (typeof switchTab === 'function') switchTab('home');
         }
         window.endAppTour = endAppTour;
