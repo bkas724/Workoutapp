@@ -360,12 +360,12 @@
                             Achieve my goals
                         </p>
                         <div id="jit-consistency-badge"
-                            class="flex flex-col items-center justify-center bg-amber-950/60 border border-amber-500/50 px-3 py-1 rounded-xl text-amber-300 shadow-sm shrink-0 text-center cursor-default">
-                            <div class="flex items-center gap-1 font-black text-sm leading-none">
-                                <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+                            class="flex flex-col items-center justify-center bg-amber-950/60 border border-amber-500/50 px-3 py-1.5 md:px-6 md:py-3.5 lg:px-8 lg:py-4 xl:px-10 xl:py-5 rounded-xl md:rounded-2xl lg:rounded-3xl text-amber-300 shadow-xl shrink-0 text-center cursor-default transition-all duration-300">
+                            <div class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none">
+                                <i class="fa-solid fa-trophy text-amber-400 text-xs md:text-xl lg:text-2xl xl:text-3xl"></i>
                                 <span>100%</span>
                             </div>
-                            <span class="text-[9px] font-bold uppercase tracking-wider text-amber-400/90 leading-tight mt-0.5" id="jit-consistency-val">Elite</span>
+                            <span class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-amber-400/90 leading-tight mt-0.5 md:mt-1.5" id="jit-consistency-val">Elite</span>
                         </div>
                     </div>
                 </div>
@@ -2246,7 +2246,10 @@
                         class="w-8 h-8 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl flex items-center justify-center shadow-inner">
                         <i class="fa-solid fa-map-location-dot text-sm"></i>
                     </div>
-                    <h3 class="text-sm font-bold text-indigo-400 uppercase tracking-widest">Macrocycle Roadmap</h3>
+                    <h3 class="text-sm font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                        Journey Roadmap
+                        <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Your high-level training plan divided into strategic stages.">?</span>
+                    </h3>
                     <label class="ml-4 text-xs text-slate-300 flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="detailed-plan-toggle" checked
                             class="rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500/50"
@@ -2733,8 +2736,10 @@
                             class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-indigo-500/80 cursor-pointer select-none">
                     </div>
                     <div class="flex-1" id="alt-rpe-container">
-                        <label class="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider mb-1">RPE
-                            Score</label>
+                        <label class="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                            Effort Score
+                            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Exertion score from 1 (very light) to 10 (max effort).">?</span>
+                        </label>
                         <select id="alt-rpe"
                             class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-slate-200 font-bold text-sm focus:outline-none focus:border-indigo-500/80 cursor-pointer">
                             <option value="" disabled selected>Effort</option>
@@ -4804,20 +4809,20 @@
 
             if (badgeContainer) {
                 if (score === 100) {
-                    badgeContainer.className = "flex flex-col items-center justify-center bg-indigo-950/80 border border-indigo-500/50 px-3 py-1 rounded-xl text-indigo-300 shadow-sm shrink-0 text-center cursor-default";
-                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><img src="assets/flow-state-icon.jpg" class="w-3.5 h-3.5 rounded-full object-cover mix-blend-screen" alt="Flow State"><span>100%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-indigo-300/90 leading-tight mt-0.5" id="jit-consistency-val">Flow State</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-indigo-950/80 border border-indigo-500/50 px-3 py-1.5 md:px-6 md:py-3.5 lg:px-8 lg:py-4 xl:px-10 xl:py-5 rounded-xl md:rounded-2xl lg:rounded-3xl text-indigo-300 shadow-xl shrink-0 text-center cursor-default transition-all duration-300";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none"><img src="assets/flow-state-icon.jpg" class="w-3.5 h-3.5 md:w-6 md:h-6 lg:w-8 lg:h-8 xl:w-9 xl:h-9 rounded-full object-cover mix-blend-screen" alt="Flow State"><span>100%</span></div><span class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-indigo-300/90 leading-tight mt-0.5 md:mt-1.5" id="jit-consistency-val">Flow State</span>`;
                 } else if (score >= 90) {
-                    badgeContainer.className = "flex flex-col items-center justify-center bg-amber-950/60 border border-amber-500/50 px-3 py-1 rounded-xl text-amber-300 shadow-sm shrink-0 text-center cursor-default";
-                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-trophy text-amber-400 text-xs"></i><span>${score}%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-amber-400/90 leading-tight mt-0.5" id="jit-consistency-val">Elite</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-amber-950/60 border border-amber-500/50 px-3 py-1.5 md:px-6 md:py-3.5 lg:px-8 lg:py-4 xl:px-10 xl:py-5 rounded-xl md:rounded-2xl lg:rounded-3xl text-amber-300 shadow-xl shrink-0 text-center cursor-default transition-all duration-300";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none"><i class="fa-solid fa-trophy text-amber-400 text-xs md:text-xl lg:text-2xl xl:text-3xl"></i><span>${score}%</span></div><span class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-amber-400/90 leading-tight mt-0.5 md:mt-1.5" id="jit-consistency-val">Elite</span>`;
                 } else if (score >= 80) {
-                    badgeContainer.className = "flex flex-col items-center justify-center bg-slate-800/80 border border-slate-400/50 px-3 py-1 rounded-xl text-slate-200 shadow-sm shrink-0 text-center cursor-default";
-                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-medal text-slate-300 text-xs"></i><span>${score}%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-slate-300/90 leading-tight mt-0.5" id="jit-consistency-val">High Level</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-slate-800/80 border border-slate-400/50 px-3 py-1.5 md:px-6 md:py-3.5 lg:px-8 lg:py-4 xl:px-10 xl:py-5 rounded-xl md:rounded-2xl lg:rounded-3xl text-slate-200 shadow-xl shrink-0 text-center cursor-default transition-all duration-300";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none"><i class="fa-solid fa-medal text-slate-300 text-xs md:text-xl lg:text-2xl xl:text-3xl"></i><span>${score}%</span></div><span class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-slate-300/90 leading-tight mt-0.5 md:mt-1.5" id="jit-consistency-val">High Level</span>`;
                 } else if (score >= 70) {
-                    badgeContainer.className = "flex flex-col items-center justify-center bg-orange-950/60 border border-orange-700/50 px-3 py-1 rounded-xl text-orange-300 shadow-sm shrink-0 text-center cursor-default";
-                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-medal text-orange-600 text-xs"></i><span>${score}%</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-orange-400/90 leading-tight mt-0.5" id="jit-consistency-val">Solid</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-orange-950/60 border border-orange-700/50 px-3 py-1.5 md:px-6 md:py-3.5 lg:px-8 lg:py-4 xl:px-10 xl:py-5 rounded-xl md:rounded-2xl lg:rounded-3xl text-orange-300 shadow-xl shrink-0 text-center cursor-default transition-all duration-300";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none"><i class="fa-solid fa-medal text-orange-600 text-xs md:text-xl lg:text-2xl xl:text-3xl"></i><span>${score}%</span></div><span class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-orange-400/90 leading-tight mt-0.5 md:mt-1.5" id="jit-consistency-val">Solid</span>`;
                 } else {
-                    badgeContainer.className = "flex flex-col items-center justify-center bg-slate-900/80 border border-slate-700/50 px-3 py-1 rounded-xl text-slate-400 shadow-sm shrink-0 text-center cursor-default";
-                    badgeContainer.innerHTML = `<div class="flex items-center gap-1 font-black text-sm leading-none"><i class="fa-solid fa-seedling text-emerald-500/70 text-xs"></i><span>${score > 0 ? score + '%' : 'Flow'}</span></div><span class="text-[9px] font-bold uppercase tracking-wider text-slate-400/90 leading-tight mt-0.5" id="jit-consistency-val">Building Flow</span>`;
+                    badgeContainer.className = "flex flex-col items-center justify-center bg-slate-900/80 border border-slate-700/50 px-3 py-1.5 md:px-6 md:py-3.5 lg:px-8 lg:py-4 xl:px-10 xl:py-5 rounded-xl md:rounded-2xl lg:rounded-3xl text-slate-400 shadow-xl shrink-0 text-center cursor-default transition-all duration-300";
+                    badgeContainer.innerHTML = `<div class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none"><i class="fa-solid fa-seedling text-emerald-500/70 text-xs md:text-xl lg:text-2xl xl:text-3xl"></i><span>${score > 0 ? score + '%' : 'Flow'}</span></div><span class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-slate-400/90 leading-tight mt-0.5 md:mt-1.5" id="jit-consistency-val">Building Flow</span>`;
                 }
             }
         }
@@ -5129,7 +5134,7 @@
                                                             <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
                                                             <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
                                                         </div>
-                                                        ${isSpeed ? `<span class="text-[9px] text-slate-500 italic ml-1">Enter total mileage and avg. sprint pace.</span>` : ''}
+                                                        ${isSpeed ? `<span class="text-[9px] text-indigo-400 font-semibold ml-1 flex items-center gap-1">⚡ Interval Workout Pace <span class="inline-flex items-center justify-center w-3 h-3 rounded-full bg-slate-800 text-slate-400 text-[8px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Your average pace for the hard work portions of speed workouts. Exclude warm-up/cool-down.">?</span></span>` : ''}
                                                     </div>
                                             ` : `
                                             <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800">
