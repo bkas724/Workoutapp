@@ -1395,7 +1395,9 @@
 
         // 5. Unified Workout Submission & Recalculation Engine
         function submitWorkout(activityId, isBenchmark, defaultType) {
-            const typeClass = ['run', 'walk', 'bike', 'swim', 'easy', 'fast'].includes(defaultType) ? 'distance' : 'duration';
+            const hasDistInput = !!document.getElementById(`logged-distance-${activityId}`);
+            const isDistType = hasDistInput || ['run', 'walk', 'bike', 'swim', 'easy', 'fast', 'long', 'tempo', 'interval', 'recovery', 'base', 'aerobic'].includes(defaultType?.toLowerCase());
+            const typeClass = isDistType ? 'distance' : 'duration';
             
             const rpeSelect = document.getElementById(`logged-rpe-${activityId}`);
             const warning = document.getElementById(`gatekeeper-warn-${activityId}`);

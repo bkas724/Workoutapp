@@ -5565,7 +5565,9 @@
 
         // 5. Unified Workout Submission & Recalculation Engine
         function submitWorkout(activityId, isBenchmark, defaultType, cbElement) {
-            const typeClass = ['run', 'walk', 'bike', 'swim', 'easy', 'fast'].includes(defaultType) ? 'distance' : 'duration';
+            const hasDistInput = !!document.getElementById(`logged-distance-${activityId}`);
+            const isDistType = hasDistInput || ['run', 'walk', 'bike', 'swim', 'easy', 'fast', 'long', 'tempo', 'interval', 'recovery', 'base', 'aerobic'].includes(defaultType?.toLowerCase());
+            const typeClass = isDistType ? 'distance' : 'duration';
 
             const rpeSelect = document.getElementById(`logged-rpe-${activityId}`);
             const warning = document.getElementById(`gatekeeper-warn-${activityId}`);
@@ -5868,30 +5870,38 @@
         function extractWorkoutMileage(workout) {
             if (!workout) return 0;
 
+            // 1. Primary priority: User's explicitly logged distance (stored as double/float)
+            if (workout.actualLoggedDistance !== null && workout.actualLoggedDistance !== undefined && workout.actualLoggedDistance !== "") {
+                const distNum = parseFloat(workout.actualLoggedDistance);
+                if (!isNaN(distNum) && distNum > 0) {
+                    return distNum;
+                }
+            }
+
+            // 2. Secondary priority: GPX / TCX uploaded file
+            if (workout.uploadedWorkoutFile && workout.uploadedWorkoutFile.totalDistanceMeters) {
+                return workout.uploadedWorkoutFile.totalDistanceMeters / 1609.344;
+            }
+
+            // 3. Explicit target distance field if present
+            if (workout.targetDistance !== null && workout.targetDistance !== undefined && workout.targetDistance !== "") {
+                const targetDistNum = parseFloat(workout.targetDistance);
+                if (!isNaN(targetDistNum) && targetDistNum > 0) {
+                    return targetDistNum;
+                }
+            }
+
             const type = (workout.type || '').toLowerCase();
             const title = (workout.workoutTitle || '').toLowerCase();
 
-            // Explicit category filtering (much simpler!)
-            if (workout.workoutCategory === 'intervals' || workout.workoutCategory === 'strength' || workout.workoutCategory === 'rest' || workout.workoutCategory === 'cross_training') {
-                return 0;
-            }
-
-            // Exclude cross training and non-mile based sprints
+            // Exclude cross training and non-mile based activities
             if (type.includes('cross') || title.includes('cross training') || title.includes('xt')) {
                 return 0;
             }
-            if (title.includes('400m') || title.includes('800m') || title.includes('sprint') || title.includes('track')) {
-                return 0;
-            }
 
-            // Exclude non-running sessions (Strength, Rest, Recovery) unless GPX file provides actual running distance
+            // Exclude non-running sessions (Strength, Rest, Recovery) unless GPX or logged distance exists
             if ((type === 'strength' || type === 'rest' || title.includes('strength') || title.includes('rest day')) && (!workout.uploadedWorkoutFile || !workout.uploadedWorkoutFile.totalDistanceMeters)) {
                 return 0;
-            }
-
-            // High priority: GPX / TCX uploaded file
-            if (workout.uploadedWorkoutFile && workout.uploadedWorkoutFile.totalDistanceMeters) {
-                return workout.uploadedWorkoutFile.totalDistanceMeters / 1609.34;
             }
 
             if (!workout.distanceDuration) return 0;
@@ -5999,7 +6009,7 @@
 
             const completedRuns = allWorkouts.filter(w => {
                 if (!w) return false;
-                return w.completed === true || w.completed === "true" || !!w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
+                return w.completed === true || w.completed === "true" || (w.actualLoggedDistance !== undefined && w.actualLoggedDistance !== null && w.actualLoggedDistance !== "") || !!w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
             });
 
             let totalMiles = 0;
