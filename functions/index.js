@@ -691,3 +691,98 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
         throw new HttpsError("internal", "Failed to refresh nutrition recommendations.", error.message);
     }
 });
+
+exports.modifySingleWorkout = onCall({
+    secrets: [geminiApiKey],
+    cors: true,
+    timeoutSeconds: 60
+}, async (request) => {
+    const { profile, currentWorkout, userNotes } = request.data;
+    if (!currentWorkout || !userNotes) {
+        throw new HttpsError("invalid-argument", "Missing currentWorkout or userNotes.");
+    }
+
+    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const prompt = `You are an elite endurance training coach AI.
+The user wants to replace/modify a single workout in their current training block due to schedule changes, fatigue, or preferences.
+
+User Profile:
+- Goal: ${profile?.primaryGoal || 'general fitness'}
+- Fitness Level: ${profile?.fitnessLevel || 'intermediate'}
+- Minutes Available per Day: ${profile?.desiredWorkoutLength || 'Unlimited'}
+- Personal Notes: ${profile?.userBaselineNotes || 'None'}
+
+Current Workout Being Replaced:
+- Title: ${currentWorkout.workoutTitle}
+- Type: ${currentWorkout.type}
+- Target Instructions: ${currentWorkout.targetInstructions || 'N/A'}
+- Sequence Order: ${currentWorkout.sequenceOrder}
+
+Athlete's Adjustment Request / Context:
+"${userNotes}"
+
+Generate a single replacement workout object that directly fulfills their request (e.g., if they asked for non-impact cardio, shorter duration, or specific leg soreness adaptation). Keep targetInstructions under 100 characters.
+
+Return ONLY a valid JSON object matching exactly this structure without any markdown wrappers or text:
+{
+  "workout": {
+    "id": "${currentWorkout.id}",
+    "phaseNumber": ${currentWorkout.phaseNumber || 1},
+    "sequenceOrder": ${currentWorkout.sequenceOrder || 1},
+    "workoutTitle": "String",
+    "type": "String (MUST be exactly one of: run, walk, bike, swim, easy, fast, long, tempo, interval, recovery, base, aerobic, strength, rest)",
+    "workoutCategory": "String (MUST be exactly one of: continuous_run, intervals, strength, rest, cross_training)",
+    "isSpeedWorkout": Boolean,
+    "isBenchmark": Boolean,
+    "targetDistance": "Number (or null)",
+    "targetDuration": "Number (or null)",
+    "targetInstructions": "String (under 100 chars)",
+    "targetPaceZone": "String (or null)",
+    "jitPreparationTip": "String",
+    "strengthGuideReference": null,
+    "activities": [
+      {
+        "name": "String",
+        "type": "work",
+        "sets": 1,
+        "repsDistanceTime": "String"
+      }
+    ]
+  }
+}`;
+
+    try {
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        let parsedData;
+        try {
+            parsedData = JSON.parse(responseText);
+        } catch (e) {
+            const match = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (match) {
+                parsedData = JSON.parse(match[0]);
+            } else {
+                throw new Error("Could not parse JSON from response: " + responseText);
+            }
+        }
+
+        const replacement = parsedData.workout || parsedData;
+        return {
+            workout: {
+                ...replacement,
+                id: currentWorkout.id,
+                phaseNumber: currentWorkout.phaseNumber || 1,
+                sequenceOrder: currentWorkout.sequenceOrder || 1,
+                completed: false,
+                dateExecuted: null,
+                actualLoggedPace: null,
+                rpeScore: null
+            }
+        };
+    } catch (error) {
+        console.error("Error modifying single workout:", error);
+        throw new HttpsError("internal", "Failed to generate replacement workout.", error.message);
+    }
+});

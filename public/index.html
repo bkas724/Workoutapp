@@ -361,11 +361,15 @@
                         </p>
                         <div id="jit-consistency-badge"
                             class="flex flex-col items-center justify-center bg-amber-950/60 border border-amber-500/50 px-3 py-1.5 md:px-6 md:py-3.5 lg:px-8 lg:py-4 xl:px-10 xl:py-5 rounded-xl md:rounded-2xl lg:rounded-3xl text-amber-300 shadow-xl shrink-0 text-center cursor-default transition-all duration-300">
-                            <div class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none">
-                                <i class="fa-solid fa-trophy text-amber-400 text-xs md:text-xl lg:text-2xl xl:text-3xl"></i>
+                            <div
+                                class="flex items-center gap-1.5 md:gap-2.5 font-black text-sm md:text-2xl lg:text-3xl xl:text-4xl leading-none">
+                                <i
+                                    class="fa-solid fa-trophy text-amber-400 text-xs md:text-xl lg:text-2xl xl:text-3xl"></i>
                                 <span>100%</span>
                             </div>
-                            <span class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-amber-400/90 leading-tight mt-0.5 md:mt-1.5" id="jit-consistency-val">Elite</span>
+                            <span
+                                class="text-[9px] md:text-xs lg:text-sm xl:text-base font-extrabold uppercase tracking-wider md:tracking-widest text-amber-400/90 leading-tight mt-0.5 md:mt-1.5"
+                                id="jit-consistency-val">Elite</span>
                         </div>
                     </div>
                 </div>
@@ -401,10 +405,15 @@
                 class="flex items-center justify-between mb-4 border-b border-indigo-500/20 pb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-300">Today's Flow</span>
-                    <span id="todays-flow-completed-badge" class="hidden text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-0.5 rounded-full items-center">
+                    <span id="todays-flow-completed-badge"
+                        class="hidden text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-0.5 rounded-full items-center">
                         Completed
                     </span>
                 </div>
+                <button onclick="event.stopPropagation(); switchTab('checklist');" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 border border-indigo-500/35 hover:border-indigo-400/50 text-indigo-200 hover:text-white text-xs font-extrabold tracking-wide transition-all shadow-sm cursor-pointer select-none relative z-20" title="Go to JIT Checklist to Modify Plan">
+                    <i class="fa-solid fa-arrows-rotate text-[11px] text-indigo-400 pointer-events-none"></i>
+                    <span class="pointer-events-none">Modify Plan</span>
+                </button>
             </div>
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
                 <div id="focus-content" class="w-full">
@@ -423,18 +432,23 @@
         <!-- Turkey Trot Challenge Slim Bar (Placed below Today's Activity) -->
         <div class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-amber-900/60 to-yellow-600/40 border border-yellow-500/50 rounded-xl px-4 py-2.5 shadow-lg cursor-pointer hover:border-yellow-400 transition-all duration-300 group"
             onclick="switchTab('turkey-trot')">
-            <div class="absolute top-0 right-0 w-48 h-48 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute top-0 right-0 w-48 h-48 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none">
+            </div>
             <div class="relative z-10 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="p-2 bg-yellow-500/20 text-yellow-400 rounded-lg border border-yellow-500/30 shrink-0">
                         <i class="fa-solid fa-trophy text-base"></i>
                     </div>
                     <div class="min-w-0 flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                        <h4 class="font-extrabold text-white text-xs sm:text-sm truncate drop-shadow-md">Turkey Trot Challenge</h4>
-                        <span class="text-[11px] text-yellow-200 font-bold tracking-wider whitespace-nowrap bg-yellow-500/15 px-2 py-0.5 rounded border border-yellow-500/30">$500 on the line!</span>
+                        <h4 class="font-extrabold text-white text-xs sm:text-sm truncate drop-shadow-md">Turkey Trot
+                            Challenge</h4>
+                        <span
+                            class="text-[11px] text-yellow-200 font-bold tracking-wider whitespace-nowrap bg-yellow-500/15 px-2 py-0.5 rounded border border-yellow-500/30">$500
+                            on the line!</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-1 text-xs font-bold text-yellow-300 group-hover:text-yellow-200 transition-colors shrink-0">
+                <div
+                    class="flex items-center gap-1 text-xs font-bold text-yellow-300 group-hover:text-yellow-200 transition-colors shrink-0">
                     <span class="hidden sm:inline uppercase text-[10px] tracking-widest">View</span>
                     <i class="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-0.5"></i>
                 </div>
@@ -806,7 +820,7 @@
                     </button>
                     <!-- Swap Days Button -->
                     <button onclick="openSwapDaysModal()"
-                        class="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/30 transition-all flex items-center gap-1.5">
+                        class="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
@@ -2248,7 +2262,9 @@
                     </div>
                     <h3 class="text-sm font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                         Journey Roadmap
-                        <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Your high-level training plan divided into strategic stages.">?</span>
+                        <span
+                            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors"
+                            title="Your high-level training plan divided into strategic stages.">?</span>
                     </h3>
                     <label class="ml-4 text-xs text-slate-300 flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="detailed-plan-toggle" checked
@@ -2736,9 +2752,12 @@
                             class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-indigo-500/80 cursor-pointer select-none">
                     </div>
                     <div class="flex-1" id="alt-rpe-container">
-                        <label class="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <label
+                            class="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
                             Effort Score
-                            <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Exertion score from 1 (very light) to 10 (max effort).">?</span>
+                            <span
+                                class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors"
+                                title="Exertion score from 1 (very light) to 10 (max effort).">?</span>
                         </label>
                         <select id="alt-rpe"
                             class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-slate-200 font-bold text-sm focus:outline-none focus:border-indigo-500/80 cursor-pointer">
@@ -2764,6 +2783,80 @@
                 <button onclick="submitAlternativeActivity()"
                     class="flex-1 bg-indigo-650 hover:bg-indigo-550 text-white py-3 rounded-xl shadow-lg transition-all cursor-pointer">Log
                     Activity</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Swap / Modify Workout Modal -->
+    <div id="swap-modify-modal"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-md p-4 transition-all duration-300">
+        <div
+            class="bg-slate-900 border border-slate-700/50 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative space-y-5">
+            <button onclick="closeSwapModifyModal()"
+                class="absolute top-5 right-5 text-slate-400 hover:text-white transition-colors cursor-pointer">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-lg shrink-0">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-black uppercase tracking-wider text-white">Modify or Swap Workout</h2>
+                    <p id="swap-modify-subtitle" class="text-xs text-slate-400">Adapt today's activity or change its
+                        position</p>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 gap-1 text-xs font-bold">
+                <button id="swap-tab-ai" onclick="switchSwapModalTab('ai')"
+                    class="flex-1 py-2 rounded-lg bg-indigo-600 text-white transition-all cursor-pointer">
+                    ❔Ask Coach to Modify
+                </button>
+                <button id="swap-tab-order" onclick="switchSwapModalTab('order')"
+                    class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer">
+                    🔄 Swap workouts
+                </button>
+            </div>
+
+            <!-- Tab 1 Content: AI Modify -->
+            <div id="swap-content-ai" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Tell Coach what
+                        needs adjusting</label>
+                    <textarea id="swap-ai-notes" rows="3"
+                        placeholder="e.g. Legs are sore, prefer 20 min stationary bike today; or I only have 15 mins available..."
+                        class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500/80 resize-none"></textarea>
+                </div>
+                <div id="swap-ai-warning"
+                    class="hidden text-rose-400 text-xs font-semibold bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
+                </div>
+                <button id="swap-ai-submit-btn" onclick="submitSingleWorkoutModification()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-xs">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Request AI Replacement Workout
+                </button>
+            </div>
+
+            <!-- Tab 2 Content: Order Swap -->
+            <div id="swap-content-order" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Tap Destination Day</label>
+                    <div id="swap-tiles-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[260px] overflow-y-auto pr-1">
+                        <!-- Rendered dynamically via renderSwapDayTiles() -->
+                    </div>
+                </div>
+                <div id="swap-action-preview" class="hidden text-xs font-semibold bg-indigo-500/10 border border-indigo-500/20 p-2.5 rounded-xl text-indigo-300 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-indigo-400 shrink-0"></i>
+                    <span id="swap-action-preview-text"></span>
+                </div>
+                <div id="swap-order-warning"
+                    class="hidden text-amber-400 text-xs font-semibold bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
+                </div>
+                <button id="swap-order-submit-btn" onclick="submitWorkoutOrderSwap()"
+                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-xs">
+                    <i class="fa-solid fa-right-left"></i> Confirm Swap / Move
+                </button>
             </div>
         </div>
     </div>
@@ -4323,11 +4416,11 @@
                 const hasRest = dayWorkouts.some(w => w.type === 'rest');
                 const canAddSecondary = dayWorkouts.length === 1 && !hasRest;
 
-                let dayHTML = `<div class="mb-4">`;
+                let dayHTML = `<div class="mb-6 border-b border-slate-800/60 pb-5 last:border-b-0 last:pb-0">`;
                 dayHTML += `
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Day ${day}</h3>
-                    ${canAddSecondary ? `<button onclick="openAddActivityModal(${day})" class="w-11 h-11 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 transition-colors flex items-center justify-center border border-transparent hover:border-indigo-500/30 shadow-sm" title="Add Workout"><i class="fa-solid fa-plus text-lg"></i></button>` : ''}
+                <div class="flex items-center gap-3 mb-3">
+                    <h3 class="text-xs font-black text-slate-300 uppercase tracking-widest bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-700/50">Day ${day}</h3>
+                    ${canAddSecondary ? `<button onclick="openAddActivityModal(${day})" class="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-extrabold transition-all flex items-center gap-1 cursor-pointer shadow-sm active:scale-95" title="Add Activity to Day ${day}"><i class="fa-solid fa-plus text-[9px]"></i> activity</button>` : ''}
                 </div>`;
                 dayHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
 
@@ -4337,13 +4430,32 @@
                     const cardBg = step.completed ? "bg-emerald-900/20 border-emerald-500/30" : "bg-slate-900/30 border-slate-800/55";
                     const showDeleteButton = dayWorkouts.length > 1 && !step.completed;
 
-                    let paceHintText = "";
-                    if (step.targetPaceZone) {
-                        if (step.targetPaceZone === 'easy') paceHintText = "Easy/Recovery Target";
-                        else if (step.targetPaceZone === 'long') paceHintText = "Long Aerobic Target";
-                        else if (step.targetPaceZone === 'tempo') paceHintText = "Tempo Target";
-                        else if (step.targetPaceZone === 'goal') paceHintText = `Goal Target: ${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
-                        else paceHintText = step.targetPaceZone;
+                    let plannedDist = "";
+                    let plannedPace = "";
+                    let plannedTime = "";
+
+                    if (!step.completed) {
+                        if (step.targetDistance) {
+                            plannedDist = `${step.targetDistance} mi`;
+                        } else if (step.distanceDuration && (step.distanceDuration.includes('mi') || step.distanceDuration.includes('Mile'))) {
+                            plannedDist = step.distanceDuration;
+                        }
+
+                        if (step.targetPaceZone) {
+                            if (step.targetPaceZone === 'easy') plannedPace = "Easy Pace";
+                            else if (step.targetPaceZone === 'long') plannedPace = "Long Pace";
+                            else if (step.targetPaceZone === 'tempo') plannedPace = "Tempo Pace";
+                            else if (step.targetPaceZone === 'goal') plannedPace = `Goal: ${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                            else plannedPace = step.targetPaceZone;
+                        }
+
+                        if (step.targetDuration) {
+                            plannedTime = `${step.targetDuration} mins`;
+                        } else if (getDisplayDuration(step) && !getDisplayDuration(step).includes('mi') && !getDisplayDuration(step).includes('Mile')) {
+                            plannedTime = getDisplayDuration(step);
+                        } else if (step.distanceDuration && !step.distanceDuration.includes('mi') && !step.distanceDuration.includes('Mile')) {
+                            plannedTime = step.distanceDuration;
+                        }
                     }
 
                     dayHTML += `
@@ -4354,23 +4466,67 @@
                                 ${step.completed ? `<div class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-slate-950 shadow-sm border-2 border-slate-950 z-10"><i class="fa-solid fa-check text-[9px] font-black"></i></div>` : ''}
                             </div>
 
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-baseline justify-between flex-wrap gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs font-bold text-slate-200 truncate pr-2 ${step.completed ? 'opacity-70' : ''}">${step.workoutTitle} ${getDisplayDuration(step) ? `<span class="text-[10px] text-slate-500 font-normal">(${getDisplayDuration(step)})</span>` : ''}</span>
+                            <div class="flex-1 min-w-0 flex flex-col gap-1.5">
+                                <!-- Row 1: Workout Title (Left) & Modify Button (Right) -->
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="text-xs font-extrabold text-slate-200 truncate ${step.completed ? 'opacity-70' : ''}" title="${step.workoutTitle}">
+                                        ${step.workoutTitle}
+                                    </h4>
+                                    ${!step.completed ? `
+                                    <button onclick="openSwapModifyModal('${step.id}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 border border-indigo-500/30 text-indigo-300 hover:text-white text-[10px] font-bold transition-all cursor-pointer select-none shrink-0" title="Modify or Swap Workout">
+                                        <i class="fa-solid fa-sliders text-[9px]"></i> Modify
+                                    </button>
+                                    ` : ''}
+                                </div>
+
+                                <!-- Row 2: Metric Badges (Grey when incomplete, Green when complete) -->
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    ${!step.completed ? `
+                                        <!-- UNCOMPLETED: Planned Metrics in Grey Boxes -->
+                                        ${plannedDist ? `<span class="text-[10px] text-slate-300 font-bold font-mono bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/80" title="Planned Distance">${plannedDist}</span>` : ''}
+                                        ${plannedPace ? `<span class="text-[10px] text-slate-300 font-bold font-mono bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/80" title="Planned Pace">${plannedPace}</span>` : ''}
+                                        ${plannedTime ? `<span class="text-[10px] text-slate-300 font-bold font-mono bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/80" title="Planned Duration">${plannedTime}</span>` : ''}
+                                    ` : `
+                                        <!-- COMPLETED: Actual Logged Metrics in Green Boxes (Planned Grey Boxes Removed) -->
+                                        ${step.actualLoggedDistance ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20" title="Actual Logged Distance">${step.actualLoggedDistance} mi</span>` : ''}
+                                        ${step.actualLoggedDuration ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20" title="Actual Logged Duration">${step.actualLoggedDuration} min</span>` : ''}
+                                        ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20" title="Actual Logged Pace">${step.actualLoggedPace} /mi</span>` : ''}
+                                        ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20" title="Effort Score">RPE: ${step.rpeScore}/10</span>` : ''}
+                                    `}
+                                </div>
+
+                                <!-- Row 3: Target Instructions (Uncompleted) or User Notes (Completed) -->
+                                ${!step.completed ? `
+                                    <div class="flex items-start justify-between mt-0.5 gap-2">
+                                        <p class="text-xs text-slate-400 leading-relaxed line-clamp-2">${step.targetInstructions}</p>
+                                        ${showDeleteButton ? `<button onclick="removeSecondaryWorkout('${step.id}')" class="text-slate-500 hover:text-rose-400 transition-colors shrink-0 ml-2" title="Remove Activity"><i class="fa-solid fa-times"></i></button>` : ''}
                                     </div>
-                                    <div class="flex items-center gap-2 shrink-0">
-                                        ${step.targetPaceZone && !step.completed ? `<span class="text-[10px] font-extrabold text-indigo-400 font-mono hidden sm:inline-block">${paceHintText}</span>` : ''}
-                                        ${step.actualLoggedDistance ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">${step.actualLoggedDistance} mi</span>` : ''}
-                                        ${step.actualLoggedDuration ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">${step.actualLoggedDuration} min</span>` : ''}
-                                        ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Pace: ${step.actualLoggedPace}</span>` : ''}
-                                        ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">RPE: ${step.rpeScore}</span>` : ''}
+                                ` : `
+                                    ${(() => {
+                                        const note = step.userWorkoutNotes || step.userNotes || step.notes || step.workoutNotes;
+                                        return note ? `
+                                        <div class="mt-1 bg-indigo-950/40 border border-indigo-500/20 px-3 py-1.5 rounded-xl text-xs text-indigo-200/90 italic flex items-center gap-2">
+                                            <i class="fa-regular fa-comment-dots text-indigo-400 not-italic shrink-0 text-xs"></i>
+                                            <span class="truncate">"${note}"</span>
+                                        </div>
+                                        ` : '';
+                                    })()}
+                                `}
+                                ${step.completed && step.repSplits && step.repSplits.length > 0 ? `
+                                <div class="mt-2 w-full">
+                                    <button onclick="event.stopPropagation(); toggleRepSplitsDrawer('${step.id}')" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 transition-colors cursor-pointer select-none">
+                                        <i class="fa-solid fa-stopwatch text-[9px]"></i> View ${step.repSplits.length} Rep Splits <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-200" id="rep-chevron-${step.id}"></i>
+                                    </button>
+                                    <div id="rep-drawer-${step.id}" class="hidden mt-1.5 p-2 bg-slate-950/90 rounded-xl border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                        ${step.repSplits.map((split, idx) => `
+                                        <div class="text-[10px] font-mono text-slate-300 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 flex justify-between items-center">
+                                            <span class="text-slate-500 font-bold">R${idx+1}:</span>
+                                            <span class="font-bold text-emerald-400">${split}</span>
+                                        </div>
+                                        `).join('')}
                                     </div>
                                 </div>
-                                <div class="flex items-start justify-between mt-1 gap-2">
-                                    <p class="text-xs text-slate-400 leading-relaxed line-clamp-2 ${step.completed ? 'opacity-70' : ''}">${step.targetInstructions}</p>
-                                    ${showDeleteButton ? `<button onclick="removeSecondaryWorkout('${step.id}')" class="text-slate-500 hover:text-rose-400 transition-colors shrink-0 ml-2" title="Remove Activity"><i class="fa-solid fa-times"></i></button>` : ''}
-                                </div>
+                                ` : ''}
                                 ${step.completed && step.dateExecuted ? `
                                 <div class="flex items-center gap-2 mt-1.5">
                                     <span class="text-[9px] text-slate-500 font-semibold">Completed on:</span>
@@ -4681,6 +4837,7 @@
             const cardBody = document.getElementById(`card-body-${id}`);
             const logBtn = document.getElementById(`log-btn-${id}`);
             const cancelBtn = document.getElementById(`cancel-btn-${id}`);
+            const quickBtn = document.getElementById(`quick-btn-${id}`);
             const workout = activePhaseWorkouts ? activePhaseWorkouts.find(w => w.id === id) : null;
 
             const isCurrentlyHidden = rightCol ? rightCol.classList.contains('hidden') : true;
@@ -4691,10 +4848,26 @@
                 if (rightCol) rightCol.classList.remove('hidden');
                 if (prepTip) prepTip.classList.add('hidden');
                 if (cardBody) cardBody.classList.remove('hidden');
+                if (workout) {
+                    const intervalMeta = getIntervalMetadata(workout);
+                    const intervalContainer = document.getElementById(`interval-splits-container-${id}`);
+                    const intervalTitle = document.getElementById(`interval-splits-title-${id}`);
+                    if (intervalMeta && intervalContainer) {
+                        intervalContainer.classList.remove('hidden');
+                        if (intervalTitle) {
+                            intervalTitle.innerHTML = `<i class="fa-solid fa-stopwatch text-indigo-400"></i> Rep Splits (${intervalMeta.repCount} x ${intervalMeta.repDistance})`;
+                        }
+                        const minInput = document.getElementById(`logged-min-${id}`);
+                        const secInput = document.getElementById(`logged-sec-${id}`);
+                        const defaultMin = minInput ? minInput.value : "";
+                        const defaultSec = secInput ? secInput.value : "";
+                        renderRepRows(id, intervalMeta.repCount, defaultMin, defaultSec);
+                    }
+                }
 
                 if (logBtn) {
                     logBtn.innerText = "Submit";
-                    logBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1 rounded-lg text-[11px] transition-all shadow-md cursor-pointer flex items-center justify-center";
+                    logBtn.className = "w-full h-8 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center";
                     const isBenchmark = workout ? workout.isBenchmark : false;
                     const type = workout ? workout.type : 'easy';
                     logBtn.onclick = function (e) {
@@ -4717,10 +4890,11 @@
                 if (rightCol) rightCol.classList.add('hidden');
                 if (prepTip) prepTip.classList.remove('hidden');
                 if (cardBody) cardBody.classList.add('hidden');
+                if (quickBtn) quickBtn.classList.remove('hidden');
 
                 if (logBtn) {
                     logBtn.innerText = "Log";
-                    logBtn.className = "bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer";
+                    logBtn.className = "w-full h-6 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center";
                     logBtn.onclick = function (e) {
                         e.stopPropagation();
                         toggleGatekeeper(id);
@@ -5031,28 +5205,55 @@
                                     ${nextStep.actualLoggedPace ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">${nextStep.actualLoggedPace} /mi</span>` : ''}
                                     ${nextStep.rpeScore ? `<span class="text-[10px] text-violet-400 font-bold font-mono bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">RPE: ${nextStep.rpeScore}/10</span>` : ''}
                                 </div>
+                                ${nextStep.repSplits && nextStep.repSplits.length > 0 ? `
+                                <div class="mt-2 w-full">
+                                    <button onclick="event.stopPropagation(); toggleRepSplitsDrawer('${nextStep.id}')" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 transition-colors cursor-pointer select-none">
+                                        <i class="fa-solid fa-stopwatch text-[9px]"></i> View ${nextStep.repSplits.length} Rep Splits <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-200" id="rep-chevron-${nextStep.id}"></i>
+                                    </button>
+                                    <div id="rep-drawer-${nextStep.id}" class="hidden mt-1.5 p-2 bg-slate-950/90 rounded-xl border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                        ${nextStep.repSplits.map((split, idx) => `
+                                        <div class="text-[10px] font-mono text-slate-300 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 flex justify-between items-center">
+                                            <span class="text-slate-500 font-bold">R${idx+1}:</span>
+                                            <span class="font-bold text-emerald-400">${split}</span>
+                                        </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : ''}
                             </div>
+                            <!-- Option B: Post-Execution Smart Button (Visible ONLY after today's workout is completed) -->
+                            <button onclick="event.stopPropagation(); openAddActivityModal(${nextStep.sequenceOrder || 1});" class="mt-3 w-full py-2.5 rounded-xl bg-slate-900/90 hover:bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 border border-slate-800 hover:border-indigo-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98" title="Add a secondary activity to today's log">
+                                <i class="fa-solid fa-plus text-xs text-indigo-400"></i> Add Secondary Activity Today
+                            </button>
                             ` : `
                             <!-- NORMAL UNCOMPLETED STATE -->
                             <!-- Ultra-Minimal Top Header -->
                             <div onclick="if(!event.target.closest('input') && !event.target.closest('button') && !event.target.closest('label')) openWorkoutModal('${nextStep.id}')" class="p-4 md:p-5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/80 transition-colors">
-                                <div class="flex items-center gap-4">
-                                    <div class="flex flex-col items-center justify-center shrink-0 gap-1.5">
-                                        <div class="w-8 h-8 text-slate-300 opacity-90 flex items-center justify-center">${iconSVG}</div>
-                                        ${nextStep.jitPreparationTip ? `<button id="jit-badge-${nextStep.id}" onclick="event.stopPropagation(); openPrepTipModal(event, '${nextStep.id}')" class="text-[9px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 border border-amber-500/30 px-1.5 py-0.5 rounded-full hover:bg-amber-900/50 transition-colors cursor-pointer ${!nextStep.hasReadJitTip ? 'pulse-slow' : ''}">🔥 Prep</button>` : ''}
+                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                    <!-- Left: Icon Container -->
+                                    <div class="w-9 h-9 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center shrink-0 text-slate-200">
+                                        ${iconSVG}
                                     </div>
-                                    <div class="flex flex-col">
-                                        <div class="flex items-center gap-2">
-                                            ${isBenchmark ? `<span class="text-[9px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-500/30">Benchmark</span>` : ''}
-                                            <h2 class="text-lg md:text-xl font-extrabold text-white tracking-tight leading-none">${nextStep.workoutTitle}</h2>
+                                    
+                                    <!-- Middle: Content Container -->
+                                    <div class="flex flex-col min-w-0 flex-1">
+                                        <!-- Top Badge Row (Benchmark & Prep Badges) -->
+                                        <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                            ${isBenchmark ? `<span class="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/30">Benchmark</span>` : ''}
+                                            ${nextStep.jitPreparationTip ? `<button id="jit-badge-${nextStep.id}" onclick="event.stopPropagation(); openPrepTipModal(event, '${nextStep.id}')" class="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full hover:bg-amber-900/60 transition-colors cursor-pointer ${!nextStep.hasReadJitTip ? 'pulse-slow' : ''}">🔥 Prep</button>` : ''}
                                         </div>
-                                        <div class="flex items-center gap-2 mt-1.5">
+
+                                        <!-- Workout Title -->
+                                        <h2 class="text-base md:text-xl font-extrabold text-white tracking-tight leading-snug">${nextStep.workoutTitle}</h2>
+
+                                        <!-- Subtext / Planned Metrics -->
+                                        <div class="flex items-center gap-1.5 mt-1 flex-wrap text-xs text-slate-400 font-medium">
                                             ${(() => {
                         if (nextStep.type === 'rest') {
-                            return `<span class="text-xs font-medium text-slate-400">Rest & Recovery • Hydration</span>`;
+                            return `<span class="text-xs font-semibold text-slate-400">Rest & Recovery • Hydration</span>`;
                         } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
                             const exCount = (nextStep.activities ? nextStep.activities.length : 4);
-                            return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5"><span>${exCount} Exercises</span> <span class="text-slate-650">•</span> <span>${getDisplayDuration(nextStep) || '30 mins'}</span></span>`;
+                            return `<span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5"><span>${exCount} Exercises</span> <span class="text-slate-650">•</span> <span>${getDisplayDuration(nextStep) || '30 mins'}</span></span>`;
                         } else {
                             let parts = [];
                             if (nextStep.targetDistance) parts.push(`${nextStep.targetDistance} mi`);
@@ -5068,29 +5269,27 @@
                             else if (getDisplayDuration(nextStep) && !parts.some(p => p.includes('mi') || p.includes('Mile'))) parts.push(getDisplayDuration(nextStep));
 
                             if (parts.length === 0 && getDisplayDuration(nextStep)) parts.push(getDisplayDuration(nextStep));
-                            return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5">${parts.map(p => `<span>${p}</span>`).join('<span class="text-slate-650">•</span>')}</span>`;
+                            return `<div class="flex items-center gap-1.5 flex-wrap mt-0.5">${parts.map(p => `<span class="text-[11px] font-bold font-mono text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700/80 whitespace-nowrap">${p}</span>`).join('')}</div>`;
                         }
                     })()}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-slate-600 shrink-0 flex flex-col items-end gap-1.5 z-10">
+                                <div class="text-slate-600 shrink-0 flex flex-col items-end gap-1 w-14 z-10">
                                     ${nextStep.type === 'rest' ? `
-                                    <button onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', false, 'rest');" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
-                                        <i class="fa-solid fa-check"></i> Confirm Rest Day
+                                    <button onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', false, 'rest');" class="w-full h-16 rounded-xl bg-slate-800 hover:bg-teal-500/20 text-slate-300 hover:text-teal-400 border border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95" title="Confirm Rest Day">
+                                        <i class="fa-solid fa-check text-lg font-black"></i>
                                     </button>
                                     ` : `
-                                    <button onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}');" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-teal-500/20 text-slate-400 hover:text-teal-400 border border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-sm" title="Quick Log Target Defaults">
-                                        <i class="fa-solid fa-check text-xs"></i>
+                                    <button id="quick-btn-${nextStep.id}" onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}');" class="w-full h-9 rounded-xl bg-slate-800 hover:bg-teal-500/20 text-slate-300 hover:text-teal-400 border border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-sm" title="Quick Complete (Target Defaults)">
+                                        <i class="fa-solid fa-check text-sm font-black"></i>
                                     </button>
-                                    <div class="flex items-center gap-1.5 mt-0.5">
-                                        <button id="log-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}');" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer">
-                                            Log
-                                        </button>
-                                        <button id="cancel-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="hidden bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 w-6 h-6 rounded-lg text-xs font-bold transition-all flex items-center justify-center cursor-pointer" title="Cancel">
-                                            <i class="fa-solid fa-xmark text-[10px]"></i>
-                                        </button>
-                                    </div>
+                                    <button id="log-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}');" class="w-full h-6 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center">
+                                        Log
+                                    </button>
+                                    <button id="cancel-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="hidden w-full h-6 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center cursor-pointer" title="Cancel">
+                                        <i class="fa-solid fa-xmark text-[10px] mr-1"></i> Cancel
+                                    </button>
                                     `}
                                 </div>
                             </div>
@@ -5133,6 +5332,22 @@
                                                             <span class="text-slate-650 font-bold text-xs">:</span>
                                                             <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
                                                             <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                                        </div>
+                                                        <!-- Interval Rep Splits Container (Revealed for speed/interval sessions) -->
+                                                        <div id="interval-splits-container-${nextStep.id}" class="hidden flex flex-col gap-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 mt-1">
+                                                            <div class="flex items-center justify-between">
+                                                                <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5" id="interval-splits-title-${nextStep.id}">
+                                                                    <i class="fa-solid fa-stopwatch text-indigo-400"></i> Rep Splits
+                                                                </span>
+                                                                <div class="flex items-center gap-1.5">
+                                                                    <button type="button" onclick="autoFillIntervalTargetPace('${nextStep.id}')" class="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 text-[10px] font-bold border border-indigo-500/30 transition-all active:scale-95 cursor-pointer" title="Pre-fill all reps with target split">
+                                                                        ⚡ Auto-Fill Target
+                                                                    </button>
+                                                                    <button type="button" onclick="adjustRepCount('${nextStep.id}', -1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Remove last rep">-</button>
+                                                                    <button type="button" onclick="adjustRepCount('${nextStep.id}', 1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Add extra rep">+</button>
+                                                                </div>
+                                                            </div>
+                                                            <div id="rep-rows-grid-${nextStep.id}" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1"></div>
                                                         </div>
                                                         ${isSpeed ? `<span class="text-[9px] text-indigo-400 font-semibold ml-1 flex items-center gap-1">⚡ Interval Workout Pace <span class="inline-flex items-center justify-center w-3 h-3 rounded-full bg-slate-800 text-slate-400 text-[8px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Your average pace for the hard work portions of speed workouts. Exclude warm-up/cool-down.">?</span></span>` : ''}
                                                     </div>
@@ -5497,16 +5712,7 @@
                 }
             }
 
-            // Add secondary workout button logic
-            const hasRest = dailySlate.some(w => w.type === 'rest');
-            if (dailySlate.length === 1 && !hasRest && !isSlateFullyCompleted) {
-                htmlAccumulator += `
-                <div class="mt-4 w-full">
-                    <button onclick="openAddActivityModal(${renderSequenceOrder})" class="w-full bg-slate-900 border border-slate-700 border-dashed hover:border-slate-500 hover:bg-slate-800 text-slate-400 hover:text-slate-200 py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm font-bold shadow-sm">
-                        <i class="fa-solid fa-plus"></i> Add Workout
-                    </button>
-                </div>`;
-            }
+
 
             if (isBlockFullyFinished && allCompleted) {
                 htmlAccumulator += `
@@ -5569,6 +5775,86 @@
             }).catch(err => {
                 console.error("Failed to unsubmit workout:", err);
             });
+        }
+
+        // Component 3: Interval Session Rep Split Logging Helpers
+        function getIntervalMetadata(workout) {
+            if (!workout) return null;
+            if (workout.isIntervalWorkout && workout.intervalRepCount) {
+                return {
+                    repCount: parseInt(workout.intervalRepCount) || 1,
+                    repDistance: workout.intervalRepDistance || "Rep"
+                };
+            }
+            const textToSearch = `${workout.workoutTitle || ''} ${workout.targetInstructions || ''}`;
+            const match = textToSearch.match(/(\d+)\s*x\s*([\d\.]+\s*(?:m|meter|meters|mi|mile|miles|k|km)?)/i);
+            if (match) {
+                const count = parseInt(match[1]);
+                const dist = match[2].trim();
+                if (count && count > 1) {
+                    return { repCount: count, repDistance: dist };
+                }
+            }
+            return null;
+        }
+
+        function renderRepRows(id, repCount, defaultMin, defaultSec) {
+            const grid = document.getElementById(`rep-rows-grid-${id}`);
+            if (!grid) return;
+            let html = '';
+            for (let i = 1; i <= repCount; i++) {
+                html += `
+                <div class="rep-split-row flex items-center justify-between bg-slate-900 px-2 py-1.5 rounded-lg border border-slate-800/80">
+                    <span class="text-[10px] font-bold text-slate-400 font-mono">R${i}</span>
+                    <div class="flex items-center gap-0.5">
+                        <input type="number" min="0" max="60" placeholder="0" value="${defaultMin || ''}" class="rep-min-input w-7 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
+                        <span class="text-slate-500 font-bold text-xs">:</span>
+                        <input type="number" min="0" max="59" placeholder="00" value="${defaultSec || ''}" class="rep-sec-input w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
+                    </div>
+                </div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function autoFillIntervalTargetPace(id) {
+            const minInput = document.getElementById(`logged-min-${id}`);
+            const secInput = document.getElementById(`logged-sec-${id}`);
+            const targetMin = minInput ? minInput.value : "1";
+            const targetSec = secInput ? secInput.value : "30";
+
+            const grid = document.getElementById(`rep-rows-grid-${id}`);
+            if (!grid) return;
+
+            const minInputs = grid.querySelectorAll('.rep-min-input');
+            const secInputs = grid.querySelectorAll('.rep-sec-input');
+            minInputs.forEach(i => i.value = targetMin);
+            secInputs.forEach(i => i.value = targetSec);
+        }
+
+        function adjustRepCount(id, delta) {
+            const grid = document.getElementById(`rep-rows-grid-${id}`);
+            if (!grid) return;
+            const currentRows = grid.querySelectorAll('.rep-split-row').length;
+            const newCount = Math.max(1, currentRows + delta);
+            const minInput = document.getElementById(`logged-min-${id}`);
+            const secInput = document.getElementById(`logged-sec-${id}`);
+            const defaultMin = minInput ? minInput.value : "";
+            const defaultSec = secInput ? secInput.value : "";
+            renderRepRows(id, newCount, defaultMin, defaultSec);
+        }
+
+        function toggleRepSplitsDrawer(id) {
+            const drawer = document.getElementById(`rep-drawer-${id}`);
+            const chevron = document.getElementById(`rep-chevron-${id}`);
+            if (!drawer) return;
+            const isHidden = drawer.classList.contains('hidden');
+            if (isHidden) {
+                drawer.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                drawer.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
         }
 
         // 5. Unified Workout Submission & Recalculation Engine
@@ -5672,6 +5958,20 @@
                 });
             }
 
+            const repSplits = [];
+            const repGrid = document.getElementById(`rep-rows-grid-${activityId}`);
+            if (repGrid) {
+                const rows = repGrid.querySelectorAll('.rep-split-row');
+                rows.forEach(row => {
+                    const minVal = row.querySelector('.rep-min-input')?.value || "0";
+                    const secVal = row.querySelector('.rep-sec-input')?.value || "00";
+                    if (minVal !== "" || secVal !== "") {
+                        const formattedSec = parseInt(secVal || 0) < 10 ? `0${parseInt(secVal || 0)}` : `${parseInt(secVal || 0)}`;
+                        repSplits.push(`${minVal || 0}:${formattedSec}`);
+                    }
+                });
+            }
+
             emaPromise.then(() => {
                 const updatePayload = {
                     completed: true,
@@ -5682,6 +5982,9 @@
                     rpeScore: (rpeVal && !isNaN(parseInt(rpeVal))) ? parseInt(rpeVal) : null,
                     dateExecuted: completionDate
                 };
+                if (repSplits.length > 0) {
+                    updatePayload.repSplits = repSplits;
+                }
                 if (notesVal) {
                     updatePayload.userWorkoutNotes = notesVal;
                 }
@@ -5810,6 +6113,275 @@
             setTimeout(() => {
                 card.classList.remove('border-emerald-500/80', 'bg-emerald-950/20', 'shadow-emerald-500/10');
             }, 1500);
+        }
+
+        // Swap / Modify Workout Modal Logic
+        let activeSwapWorkoutId = null;
+        let selectedTargetDay = null;
+
+        function openSwapModifyModal(workoutId) {
+            activeSwapWorkoutId = workoutId;
+            selectedTargetDay = null;
+            const workout = activePhaseWorkouts ? activePhaseWorkouts.find(w => w.id === workoutId) : null;
+            if (!workout) return;
+
+            document.getElementById('swap-modify-subtitle').innerText = `Modifying: ${workout.workoutTitle}`;
+            document.getElementById('swap-ai-notes').value = '';
+            document.getElementById('swap-ai-warning').classList.add('hidden');
+            document.getElementById('swap-order-warning').classList.add('hidden');
+
+            const previewEl = document.getElementById('swap-action-preview');
+            if (previewEl) previewEl.classList.add('hidden');
+
+            renderSwapDayTiles();
+
+            switchSwapModalTab('ai');
+            const modal = document.getElementById('swap-modify-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function renderSwapDayTiles() {
+            const grid = document.getElementById('swap-tiles-grid');
+            const previewEl = document.getElementById('swap-action-preview');
+            const previewText = document.getElementById('swap-action-preview-text');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const sourceWorkout = activePhaseWorkouts ? activePhaseWorkouts.find(w => w.id === activeSwapWorkoutId) : null;
+            if (!sourceWorkout) return;
+
+            const daysMap = {};
+            for (let d = 1; d <= 7; d++) {
+                daysMap[d] = [];
+            }
+            if (activePhaseWorkouts) {
+                activePhaseWorkouts.forEach(w => {
+                    const dayNum = w.sequenceOrder || 1;
+                    if (daysMap[dayNum]) {
+                        daysMap[dayNum].push(w);
+                    }
+                });
+            }
+
+            const sourceDay = sourceWorkout.sequenceOrder || 1;
+
+            for (let d = 1; d <= 7; d++) {
+                const isCurrentDay = d === sourceDay;
+                const dayWorkouts = daysMap[d] || [];
+                const isSelected = selectedTargetDay === d;
+
+                let badgeHtml = '';
+                let actionDescription = '';
+
+                if (isCurrentDay) {
+                    badgeHtml = `<span class="text-[9px] font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">Current Day</span>`;
+                    actionDescription = `Current position of ${sourceWorkout.workoutTitle}.`;
+                } else {
+                    const typeA = sourceWorkout.type === 'strength' ? 'strength' : (sourceWorkout.type === 'rest' ? 'rest' : 'cardio');
+                    const sameTypeMatch = dayWorkouts.find(w => {
+                        const typeB = w.type === 'strength' ? 'strength' : (w.type === 'rest' ? 'rest' : 'cardio');
+                        return typeA === typeB;
+                    });
+
+                    if (sameTypeMatch) {
+                        badgeHtml = `<span class="text-[9px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/40">🔄 Swap</span>`;
+                        actionDescription = `Will swap ${sourceWorkout.workoutTitle} with ${sameTypeMatch.workoutTitle} on Day ${d}.`;
+                    } else if (dayWorkouts.length === 1 && dayWorkouts[0].type !== 'rest') {
+                        badgeHtml = `<span class="text-[9px] font-bold text-teal-300 bg-teal-500/20 px-1.5 py-0.5 rounded border border-teal-500/40">➕ Combine</span>`;
+                        actionDescription = `Will move ${sourceWorkout.workoutTitle} to Day ${d} alongside ${dayWorkouts[0].workoutTitle}.`;
+                    } else {
+                        badgeHtml = `<span class="text-[9px] font-bold text-emerald-300 bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/40">➡️ Move</span>`;
+                        actionDescription = `Will move ${sourceWorkout.workoutTitle} to Day ${d}.`;
+                    }
+                }
+
+                const tileBorder = isSelected 
+                    ? 'border-indigo-500 bg-indigo-950/80 ring-2 ring-indigo-500/60 shadow-lg' 
+                    : (isCurrentDay ? 'border-slate-800 bg-slate-950/40 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-slate-950 hover:border-indigo-500/40 hover:bg-slate-900 cursor-pointer');
+
+                const tile = document.createElement('div');
+                tile.className = `p-3 rounded-2xl border transition-all flex flex-col justify-between gap-2 text-left relative ${tileBorder}`;
+
+                let itemsSummary = dayWorkouts.map(w => `<span class="truncate block text-[10px] text-slate-300 font-medium">• ${w.workoutTitle}</span>`).join('') || `<span class="text-[10px] text-slate-500 italic">Rest Day</span>`;
+
+                tile.innerHTML = `
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-xs font-extrabold text-white">Day ${d}</span>
+                        ${badgeHtml}
+                    </div>
+                    <div class="space-y-0.5">
+                        ${itemsSummary}
+                    </div>
+                `;
+
+                if (!isCurrentDay) {
+                    tile.onclick = function() {
+                        selectedTargetDay = d;
+                        renderSwapDayTiles();
+                        if (previewEl && previewText) {
+                            previewText.innerText = actionDescription;
+                            previewEl.classList.remove('hidden');
+                        }
+                    };
+                }
+
+                grid.appendChild(tile);
+            }
+        }
+
+        function closeSwapModifyModal() {
+            const modal = document.getElementById('swap-modify-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            activeSwapWorkoutId = null;
+            selectedTargetDay = null;
+        }
+
+        function switchSwapModalTab(tab) {
+            const aiTabBtn = document.getElementById('swap-tab-ai');
+            const orderTabBtn = document.getElementById('swap-tab-order');
+            const aiContent = document.getElementById('swap-content-ai');
+            const orderContent = document.getElementById('swap-content-order');
+
+            if (tab === 'ai') {
+                aiTabBtn.className = 'flex-1 py-2 rounded-lg bg-indigo-600 text-white font-bold transition-all cursor-pointer';
+                orderTabBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white font-bold transition-all cursor-pointer';
+                aiContent.classList.remove('hidden');
+                orderContent.classList.add('hidden');
+            } else {
+                orderTabBtn.className = 'flex-1 py-2 rounded-lg bg-indigo-600 text-white font-bold transition-all cursor-pointer';
+                aiTabBtn.className = 'flex-1 py-2 rounded-lg text-slate-400 hover:text-white font-bold transition-all cursor-pointer';
+                orderContent.classList.remove('hidden');
+                aiContent.classList.add('hidden');
+                renderSwapDayTiles();
+            }
+        }
+
+        async function submitSingleWorkoutModification() {
+            if (!activeSwapWorkoutId) return;
+            const currentWorkout = activePhaseWorkouts.find(w => w.id === activeSwapWorkoutId);
+            const notesVal = document.getElementById('swap-ai-notes').value.trim();
+            const warnEl = document.getElementById('swap-ai-warning');
+            const submitBtn = document.getElementById('swap-ai-submit-btn');
+
+            if (!notesVal) {
+                warnEl.innerText = "Please describe what adjustment or replacement you need.";
+                warnEl.classList.remove('hidden');
+                return;
+            }
+            warnEl.classList.add('hidden');
+
+            const origBtnHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Coach is generating replacement...`;
+
+            try {
+                const modifySingleWorkout = firebase.functions().httpsCallable('modifySingleWorkout');
+                const result = await modifySingleWorkout({
+                    profile: userProfileData,
+                    currentWorkout: currentWorkout,
+                    userNotes: notesVal
+                });
+
+                if (result.data && result.data.workout) {
+                    const newWorkout = result.data.workout;
+                    const workoutDocRef = db.collection("users").doc(userId).collection("active_phase").doc(activeSwapWorkoutId);
+                    await workoutDocRef.set(newWorkout, { merge: true });
+
+                    const idx = activePhaseWorkouts.findIndex(w => w.id === activeSwapWorkoutId);
+                    if (idx !== -1) {
+                        activePhaseWorkouts[idx] = newWorkout;
+                    }
+
+                    closeSwapModifyModal();
+                    renderNextActivityCard();
+                    buildActivePhaseHTML();
+                } else {
+                    throw new Error("Invalid response structure from AI Coach.");
+                }
+            } catch (err) {
+                console.error("Error modifying single workout:", err);
+                warnEl.innerText = "⚠️ Failed to modify workout: " + (err.message || "Unknown error");
+                warnEl.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origBtnHtml;
+            }
+        }
+
+        async function submitWorkoutOrderSwap() {
+            if (!activeSwapWorkoutId) return;
+            const warnEl = document.getElementById('swap-order-warning');
+            const submitBtn = document.getElementById('swap-order-submit-btn');
+
+            if (!selectedTargetDay) {
+                warnEl.innerText = "Please tap a destination day tile above to swap or move this workout.";
+                warnEl.classList.remove('hidden');
+                return;
+            }
+            warnEl.classList.add('hidden');
+
+            const sourceWorkout = activePhaseWorkouts.find(w => w.id === activeSwapWorkoutId);
+            if (!sourceWorkout) return;
+
+            const sourceDay = sourceWorkout.sequenceOrder || 1;
+            const targetDay = selectedTargetDay;
+
+            if (sourceDay === targetDay) return;
+
+            const targetWorkouts = activePhaseWorkouts.filter(w => (w.sequenceOrder || 1) === targetDay);
+            const typeA = sourceWorkout.type === 'strength' ? 'strength' : (sourceWorkout.type === 'rest' ? 'rest' : 'cardio');
+
+            const sameTypeMatch = targetWorkouts.find(w => {
+                const typeB = w.type === 'strength' ? 'strength' : (w.type === 'rest' ? 'rest' : 'cardio');
+                return typeA === typeB;
+            });
+
+            const origHtml = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Saving changes...`;
+            }
+
+            try {
+                if (sameTypeMatch) {
+                    const docRefA = db.collection("users").doc(userId).collection("active_phase").doc(sourceWorkout.id);
+                    const docRefB = db.collection("users").doc(userId).collection("active_phase").doc(sameTypeMatch.id);
+
+                    await Promise.all([
+                        docRefA.update({ sequenceOrder: targetDay }),
+                        docRefB.update({ sequenceOrder: sourceDay })
+                    ]);
+
+                    sourceWorkout.sequenceOrder = targetDay;
+                    sameTypeMatch.sequenceOrder = sourceDay;
+                } else {
+                    const docRefA = db.collection("users").doc(userId).collection("active_phase").doc(sourceWorkout.id);
+                    await docRefA.update({ sequenceOrder: targetDay });
+                    sourceWorkout.sequenceOrder = targetDay;
+
+                    const restOnTarget = targetWorkouts.find(w => w.type === 'rest');
+                    if (restOnTarget) {
+                        const docRefRest = db.collection("users").doc(userId).collection("active_phase").doc(restOnTarget.id);
+                        await docRefRest.update({ sequenceOrder: sourceDay });
+                        restOnTarget.sequenceOrder = sourceDay;
+                    }
+                }
+
+                closeSwapModifyModal();
+                renderNextActivityCard();
+                buildActivePhaseHTML();
+            } catch (err) {
+                console.error("Error swapping/moving workout:", err);
+                warnEl.innerText = "⚠️ Failed to move workout: " + (err.message || "Unknown error");
+                warnEl.classList.remove('hidden');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origHtml;
+                }
+            }
         }
 
         function getCheckpointIndex(phase, activityId) {
