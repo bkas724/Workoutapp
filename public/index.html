@@ -5,6 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyFlow</title>
+    
+    <!-- Favicon & Mobile Home Screen App Icons -->
+    <link rel="icon" type="image/jpeg" href="assets/flow-state-icon.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="assets/flow-state-icon.jpg">
+    <link rel="apple-touch-icon" href="assets/flow-state-icon.jpg">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Mobile Web App Capable Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="MyFlow">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#020617">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         function submitSpeedWorkout(stepId, subId, isBenchmark) {
@@ -1412,85 +1426,84 @@
             </div>
 
             <!-- Profile Lookup / Gateway Panel -->
-            <div id="profile-lookup-panel" class="space-y-6">
+            <div id="profile-lookup-panel" class="space-y-4">
                 <!-- Header (Minimal, text-first) -->
-                <div class="text-left space-y-1">
+                <div class="text-left space-y-0.5">
                     <h2 class="text-2xl md:text-3xl font-black tracking-tight text-white">
-                        Welcome to MyFlow
+                        MyFlow
                     </h2>
                     <p class="text-xs text-indigo-400 font-semibold tracking-wide">
-                        Adaptive Just-In-Time Fitness Planning
+                        Adaptive Fitness Planning
                     </p>
                 </div>
 
-                <!-- How It Works & New Profile Creation -->
-                <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 md:p-5 space-y-4 shadow-inner">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-black uppercase tracking-widest text-indigo-400">
-                            How It Works
-                        </span>
-                        <!-- Randomized Small Badge -->
-                        <span id="gateway-random-badge"
-                            class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full transition-all">
-                            Train At Your Own Pace
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <!-- Step 1 -->
-                        <div
-                            class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-indigo-500/30 transition-all">
-                            <div>
-                                <img src="Images/onboard_step1_goals_1785550290624.jpg" alt="Define Your Goals"
-                                    class="w-full h-28 object-cover rounded-lg border border-slate-800 mb-3 shadow-sm">
-                                <h3 class="text-xs font-extrabold text-white mb-1">
-                                    <span class="text-indigo-400 font-mono font-black mr-1">1.</span> Define Your Goals
-                                </h3>
-                                <p class="text-[11px] text-slate-400 leading-snug">Tailored for any skill level—from
-                                    total beginner to race prep.</p>
-                            </div>
-                        </div>
-
-                        <!-- Step 2 -->
-                        <div
-                            class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-amber-500/30 transition-all">
-                            <div>
-                                <img src="Images/onboard_step2_journey_1785550057087.jpg" alt="Create Your Journey"
-                                    class="w-full h-28 object-cover rounded-lg border border-slate-800 mb-3 shadow-sm">
-                                <h3 class="text-xs font-extrabold text-white mb-1">
-                                    <span class="text-amber-400 font-mono font-black mr-1">2.</span> Create Your Journey
-                                </h3>
-                                <p class="text-[11px] text-slate-400 leading-snug">Your roadmap & pace targets adapt
-                                    dynamically as you progress.</p>
-                            </div>
-                        </div>
-
-                        <!-- Step 3 -->
-                        <div
-                            class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-emerald-500/30 transition-all">
-                            <div>
-                                <img src="Images/onboard_step3_flow_1785550064797.jpg" alt="Get In Flow State"
-                                    class="w-full h-28 object-cover rounded-lg border border-slate-800 mb-3 shadow-sm">
-                                <h3 class="text-xs font-extrabold text-white mb-1">
-                                    <span class="text-emerald-400 font-mono font-black mr-1">3.</span> Get In Flow State
-                                </h3>
-                                <p class="text-[11px] text-slate-400 leading-snug">Complete simple daily JIT workouts at
-                                    your own pace without stress.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Create New Profile Primary CTA -->
-                    <button onclick="startNewProfileOnboarding()"
-                        class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-xl font-extrabold transition-all text-xs text-center cursor-pointer shadow-lg shadow-indigo-600/20 uppercase tracking-wider mt-2">
-                        Create New Profile & Start Flow
-                    </button>
+                <!-- How It Works Section Header -->
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-xs font-black uppercase tracking-widest text-indigo-400">
+                        How It Works
+                    </span>
+                    <!-- Randomized Small Badge -->
+                    <span id="gateway-random-badge"
+                        class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full transition-all">
+                        Train At Your Own Pace
+                    </span>
                 </div>
+
+                <!-- 3 Stage Cards (No outer box wrapper, distinct stage colors, number on left, content on right) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    <!-- Step 1 (Indigo Theme) -->
+                    <div
+                        class="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-3 flex items-start gap-2.5 hover:border-indigo-400/50 transition-all">
+                        <div
+                            class="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-mono font-black flex items-center justify-center text-xs shrink-0 mt-0.5">
+                            01
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-extrabold text-white mb-0.5">Build Profile & Goals</h3>
+                            <p class="text-[11px] text-slate-300 leading-snug">Define your baseline metrics and target
+                                goals.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 (Amber Theme) -->
+                    <div
+                        class="bg-amber-950/35 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2.5 hover:border-amber-400/50 transition-all">
+                        <div
+                            class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-black flex items-center justify-center text-xs shrink-0 mt-0.5">
+                            02
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-extrabold text-white mb-0.5">Get Your Tailored Journey</h3>
+                            <p class="text-[11px] text-slate-300 leading-snug">Built just for you with adaptive targets
+                                that evolve as you progress.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 (Emerald Theme) -->
+                    <div
+                        class="bg-emerald-950/35 border border-emerald-500/30 rounded-xl p-3 flex items-start gap-2.5 hover:border-emerald-400/50 transition-all">
+                        <div
+                            class="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono font-black flex items-center justify-center text-xs shrink-0 mt-0.5">
+                            03
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-xs font-extrabold text-white mb-0.5">Execute Your Flow</h3>
+                            <p class="text-[11px] text-slate-300 leading-snug">Receive 7 activities at a time. Execute
+                                at your own pace without clutter or guesswork.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create New Profile Primary CTA -->
+                <button onclick="startNewProfileOnboarding()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-extrabold transition-all text-xs text-center cursor-pointer shadow-lg shadow-indigo-600/20 uppercase tracking-wider">
+                    Create Your Profile
+                </button>
 
                 <!-- Returning Athlete Sign-In Section -->
                 <div class="space-y-3 bg-slate-950/60 p-5 rounded-2xl border border-slate-800 text-xs">
                     <label class="block font-bold text-slate-400 uppercase tracking-wider text-[11px]">Returning
-                        Athlete? Load Athlete ID</label>
+                        Athlete?</label>
                     <div class="flex gap-2">
                         <input type="text" id="lookup-athlete-id" placeholder="Enter Athlete ID"
                             class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/80 font-mono">
@@ -5341,9 +5354,9 @@
                                                 <div class="flex flex-wrap items-center gap-3">
                                                     ${(nextStep.targetDistance || ['run', 'walk', 'bike', 'swim', 'easy', 'fast', 'long', 'tempo', 'interval', 'recovery', 'base', 'aerobic'].includes(nextStep.type?.toLowerCase())) ? `
                                                     ${(() => {
-                                                        const intervalMeta = getIntervalMetadata(nextStep);
-                                                        if (intervalMeta) {
-                                                            return `
+                                const intervalMeta = getIntervalMetadata(nextStep);
+                                if (intervalMeta) {
+                                    return `
                                                              <!-- Simplified Interval Entry Deck (Clean & Un-nested) -->
                                                                  <div class="flex flex-col gap-2 w-full">
                                                                      <div class="w-full flex items-stretch justify-center gap-4 py-1 max-w-md mx-auto">
@@ -5405,8 +5418,8 @@
                                                                  <input id="logged-sec-${nextStep.id}" type="hidden" value="${defaultSec}">
                                                              </div>
                                                              `;
-                                                        } else {
-                                                            return `
+                                } else {
+                                    return `
                                                             <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
                                                                 <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
                                                                 <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
@@ -5419,8 +5432,8 @@
                                                                 <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
                                                             </div>
                                                             `;
-                                                        }
-                                                    })()}
+                                }
+                            })()}
                                                 </div>
                                                         <!-- Interval Rep Splits Container (Collapsible Accordion, Collapsed by Default) -->
                                                         <div id="interval-splits-container-${nextStep.id}" class="hidden flex flex-col gap-2 border-t border-slate-800/40 pt-2 mt-1">

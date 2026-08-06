@@ -1,0 +1,16 @@
+{
+  "short_name": "MyFlow",
+  "name": "MyFlow - Adaptive Fitness Planning",
+  "icons": [
+    {
+      "src": "assets/flow-state-icon.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#020617",
+  "background_color": "#020617"
+}
