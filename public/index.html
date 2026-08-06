@@ -398,11 +398,8 @@
             </div>
         </div>
 
-        <div id="next-activity-focus"
-            class="tab-content tab-home block mb-6 relative overflow-hidden bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/40 rounded-2xl p-4 md:p-6 shadow-xl transition-all duration-500">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
-            <div id="jit-consistency-header-bar"
-                class="flex items-center justify-between mb-4 border-b border-indigo-500/20 pb-3">
+        <div id="next-activity-focus" class="tab-content tab-home block mb-6 relative max-w-4xl mx-auto">
+            <div id="jit-consistency-header-bar" class="flex items-center justify-between mb-3 px-1">
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-300">Today's Flow</span>
                     <span id="todays-flow-completed-badge"
@@ -410,12 +407,14 @@
                         Completed
                     </span>
                 </div>
-                <button onclick="event.stopPropagation(); switchTab('checklist');" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 border border-indigo-500/35 hover:border-indigo-400/50 text-indigo-200 hover:text-white text-xs font-extrabold tracking-wide transition-all shadow-sm cursor-pointer select-none relative z-20" title="Go to JIT Checklist to Modify Plan">
+                <button onclick="event.stopPropagation(); switchTab('checklist');"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 border border-indigo-500/35 hover:border-indigo-400/50 text-indigo-200 hover:text-white text-xs font-extrabold tracking-wide transition-all shadow-sm cursor-pointer select-none relative z-20"
+                    title="Go to JIT Checklist to Modify Plan">
                     <i class="fa-solid fa-arrows-rotate text-[11px] text-indigo-400 pointer-events-none"></i>
                     <span class="pointer-events-none">Modify Plan</span>
                 </button>
             </div>
-            <div class="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
+            <div class="relative z-10 w-full">
                 <div id="focus-content" class="w-full">
                     <div class="animate-pulse flex gap-4">
                         <div class="w-12 h-12 bg-slate-800 rounded-xl"></div>
@@ -2841,12 +2840,15 @@
             <!-- Tab 2 Content: Order Swap -->
             <div id="swap-content-order" class="hidden space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Tap Destination Day</label>
-                    <div id="swap-tiles-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[260px] overflow-y-auto pr-1">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Tap Destination
+                        Day</label>
+                    <div id="swap-tiles-grid"
+                        class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[260px] overflow-y-auto pr-1">
                         <!-- Rendered dynamically via renderSwapDayTiles() -->
                     </div>
                 </div>
-                <div id="swap-action-preview" class="hidden text-xs font-semibold bg-indigo-500/10 border border-indigo-500/20 p-2.5 rounded-xl text-indigo-300 flex items-center gap-2">
+                <div id="swap-action-preview"
+                    class="hidden text-xs font-semibold bg-indigo-500/10 border border-indigo-500/20 p-2.5 rounded-xl text-indigo-300 flex items-center gap-2">
                     <i class="fa-solid fa-circle-info text-indigo-400 shrink-0"></i>
                     <span id="swap-action-preview-text"></span>
                 </div>
@@ -4503,14 +4505,14 @@
                                     </div>
                                 ` : `
                                     ${(() => {
-                                        const note = step.userWorkoutNotes || step.userNotes || step.notes || step.workoutNotes;
-                                        return note ? `
+                            const note = step.userWorkoutNotes || step.userNotes || step.notes || step.workoutNotes;
+                            return note ? `
                                         <div class="mt-1 bg-indigo-950/40 border border-indigo-500/20 px-3 py-1.5 rounded-xl text-xs text-indigo-200/90 italic flex items-center gap-2">
                                             <i class="fa-regular fa-comment-dots text-indigo-400 not-italic shrink-0 text-xs"></i>
                                             <span class="truncate">"${note}"</span>
                                         </div>
                                         ` : '';
-                                    })()}
+                        })()}
                                 `}
                                 ${step.completed && step.repSplits && step.repSplits.length > 0 ? `
                                 <div class="mt-2 w-full">
@@ -4520,7 +4522,7 @@
                                     <div id="rep-drawer-${step.id}" class="hidden mt-1.5 p-2 bg-slate-950/90 rounded-xl border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                                         ${step.repSplits.map((split, idx) => `
                                         <div class="text-[10px] font-mono text-slate-300 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 flex justify-between items-center">
-                                            <span class="text-slate-500 font-bold">R${idx+1}:</span>
+                                            <span class="text-slate-500 font-bold">R${idx + 1}:</span>
                                             <span class="font-bold text-emerald-400">${split}</span>
                                         </div>
                                         `).join('')}
@@ -4838,6 +4840,7 @@
             const logBtn = document.getElementById(`log-btn-${id}`);
             const cancelBtn = document.getElementById(`cancel-btn-${id}`);
             const quickBtn = document.getElementById(`quick-btn-${id}`);
+            const watermark = document.getElementById(`watermark-icon-${id}`);
             const workout = activePhaseWorkouts ? activePhaseWorkouts.find(w => w.id === id) : null;
 
             const isCurrentlyHidden = rightCol ? rightCol.classList.contains('hidden') : true;
@@ -4852,16 +4855,38 @@
                     const intervalMeta = getIntervalMetadata(workout);
                     const intervalContainer = document.getElementById(`interval-splits-container-${id}`);
                     const intervalTitle = document.getElementById(`interval-splits-title-${id}`);
+                    const badgeCount = document.getElementById(`rep-split-count-badge-${id}`);
                     if (intervalMeta && intervalContainer) {
                         intervalContainer.classList.remove('hidden');
                         if (intervalTitle) {
-                            intervalTitle.innerHTML = `<i class="fa-solid fa-stopwatch text-indigo-400"></i> Rep Splits (${intervalMeta.repCount} x ${intervalMeta.repDistance})`;
+                            intervalTitle.innerText = "Advanced Rep splits";
                         }
+                        if (badgeCount) {
+                            badgeCount.innerText = "";
+                            badgeCount.classList.add('hidden');
+                        }
+
+                        // Compute default raw rep time from target pace (e.g. 6:00 /mi -> 1:29 for 400m)
                         const minInput = document.getElementById(`logged-min-${id}`);
                         const secInput = document.getElementById(`logged-sec-${id}`);
-                        const defaultMin = minInput ? minInput.value : "";
-                        const defaultSec = secInput ? secInput.value : "";
-                        renderRepRows(id, intervalMeta.repCount, defaultMin, defaultSec);
+                        let targetPaceSecPerMile = 360;
+                        if (minInput && minInput.value !== "") {
+                            const m = parseInt(minInput.value) || 6;
+                            const s = parseInt(secInput ? secInput.value : 0) || 0;
+                            targetPaceSecPerMile = (m * 60) + s;
+                        }
+                        const repDistMiles = parseRepDistanceInMiles(intervalMeta.repDistance);
+                        const rawRepSecTotal = Math.round(targetPaceSecPerMile * repDistMiles);
+                        const defaultRepMin = Math.floor(rawRepSecTotal / 60);
+                        const defaultRepSec = rawRepSecTotal % 60;
+
+                        const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
+                        const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
+                        if (avgMinInput && !avgMinInput.value) avgMinInput.value = defaultRepMin;
+                        if (avgSecInput && !avgSecInput.value) avgSecInput.value = defaultRepSec < 10 ? '0' + defaultRepSec : defaultRepSec;
+
+                        renderRepRows(id, intervalMeta.repCount, defaultRepMin, defaultRepSec < 10 ? '0' + defaultRepSec : defaultRepSec);
+                        recalculateIntervalPace(id);
                     }
                 }
 
@@ -4891,6 +4916,7 @@
                 if (prepTip) prepTip.classList.remove('hidden');
                 if (cardBody) cardBody.classList.add('hidden');
                 if (quickBtn) quickBtn.classList.remove('hidden');
+                if (watermark) watermark.classList.remove('hidden');
 
                 if (logBtn) {
                     logBtn.innerText = "Log";
@@ -5094,7 +5120,7 @@
             }
 
             let htmlAccumulator = `<div class="space-y-6">
-                <div class="grid grid-cols-1 ${dailySlate.length > 1 ? 'md:grid-cols-2' : ''} gap-4">`;
+                <div class="grid grid-cols-1 ${dailySlate.length > 1 ? 'lg:grid-cols-2' : ''} gap-4 items-start">`;
             let modalsAccumulator = '';
 
             for (let i = 0; i < dailySlate.length; i++) {
@@ -5213,7 +5239,7 @@
                                     <div id="rep-drawer-${nextStep.id}" class="hidden mt-1.5 p-2 bg-slate-950/90 rounded-xl border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                                         ${nextStep.repSplits.map((split, idx) => `
                                         <div class="text-[10px] font-mono text-slate-300 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800 flex justify-between items-center">
-                                            <span class="text-slate-500 font-bold">R${idx+1}:</span>
+                                            <span class="text-slate-500 font-bold">R${idx + 1}:</span>
                                             <span class="font-bold text-emerald-400">${split}</span>
                                         </div>
                                         `).join('')}
@@ -5230,12 +5256,12 @@
                             <!-- Ultra-Minimal Top Header -->
                             <div onclick="if(!event.target.closest('input') && !event.target.closest('button') && !event.target.closest('label')) openWorkoutModal('${nextStep.id}')" class="p-4 md:p-5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/80 transition-colors relative overflow-hidden group">
                                 
-                                <!-- Oversized Background Watermark Icon (25% Left Crop, 192px Height for Vertical Overhang) -->
-                                <div class="absolute top-1/2 left-0 -translate-x-[25%] -translate-y-1/2 w-48 h-48 pointer-events-none select-none z-0 overflow-hidden flex items-center justify-center opacity-15 transition-opacity group-hover:opacity-25 [&>div]:!w-full [&>div]:!h-full [&>svg]:!w-full [&>svg]:!h-full [&>i]:text-[160px]">
+                                <!-- Oversized Background Watermark Icon -->
+                                <div id="watermark-icon-${nextStep.id}" class="absolute top-1/2 left-0 -translate-x-[25%] -translate-y-1/2 w-48 h-48 pointer-events-none select-none z-0 overflow-hidden flex items-center justify-center opacity-15 transition-opacity group-hover:opacity-25 [&>div]:!w-full [&>div]:!h-full [&>svg]:!w-full [&>svg]:!h-full [&>i]:text-[160px]">
                                     ${iconSVG}
                                 </div>
 
-                                <!-- Main Content Area: Reclaims full left width! -->
+                                <!-- Main Content Area -->
                                 <div class="flex flex-col min-w-0 flex-1 relative z-10">
                                     <!-- Top Badge Row (Benchmark & Prep Badges) -->
                                     <div class="flex items-center gap-1.5 flex-wrap mb-1">
@@ -5249,29 +5275,29 @@
                                     <!-- Subtext / Planned Metrics -->
                                     <div class="flex items-center gap-2 mt-1.5 flex-wrap text-xs text-slate-400 font-medium">
                                         ${(() => {
-                    if (nextStep.type === 'rest') {
-                        return `<span class="text-xs font-semibold text-slate-400">Rest & Recovery • Hydration</span>`;
-                    } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
-                        const exCount = (nextStep.activities ? nextStep.activities.length : 4);
-                        return `<span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5"><span>${exCount} Exercises</span> <span class="text-slate-650">•</span> <span>${getDisplayDuration(nextStep) || '30 mins'}</span></span>`;
-                    } else {
-                        let parts = [];
-                        if (nextStep.targetDistance) parts.push(`${nextStep.targetDistance} mi`);
-                        else if (getDisplayDuration(nextStep) && getDisplayDuration(nextStep).includes('Mile')) parts.push(getDisplayDuration(nextStep));
+                        if (nextStep.type === 'rest') {
+                            return `<span class="text-xs font-semibold text-slate-400">Rest & Recovery • Hydration</span>`;
+                        } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
+                            const exCount = (nextStep.activities ? nextStep.activities.length : 4);
+                            return `<span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5"><span>${exCount} Exercises</span> <span class="text-slate-650">•</span> <span>${getDisplayDuration(nextStep) || '30 mins'}</span></span>`;
+                        } else {
+                            let parts = [];
+                            if (nextStep.targetDistance) parts.push(`${nextStep.targetDistance} mi`);
+                            else if (getDisplayDuration(nextStep) && getDisplayDuration(nextStep).includes('Mile')) parts.push(getDisplayDuration(nextStep));
 
-                        if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
-                            parts.push(`Target: ${defaultMin}:${defaultSec} /mi`);
-                        } else if (nextStep.targetPaceZone) {
-                            parts.push(`Pace: ${nextStep.targetPaceZone}`);
+                            if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
+                                parts.push(`Target: ${defaultMin}:${defaultSec} /mi`);
+                            } else if (nextStep.targetPaceZone) {
+                                parts.push(`Pace: ${nextStep.targetPaceZone}`);
+                            }
+
+                            if (nextStep.targetDuration) parts.push(`${nextStep.targetDuration} mins`);
+                            else if (getDisplayDuration(nextStep) && !parts.some(p => p.includes('mi') || p.includes('Mile'))) parts.push(getDisplayDuration(nextStep));
+
+                            if (parts.length === 0 && getDisplayDuration(nextStep)) parts.push(getDisplayDuration(nextStep));
+                            return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5 flex-wrap">${parts.map(p => `<span class="whitespace-nowrap font-bold text-slate-300">${p}</span>`).join('<span class="text-slate-650">•</span>')}</span>`;
                         }
-
-                        if (nextStep.targetDuration) parts.push(`${nextStep.targetDuration} mins`);
-                        else if (getDisplayDuration(nextStep) && !parts.some(p => p.includes('mi') || p.includes('Mile'))) parts.push(getDisplayDuration(nextStep));
-
-                        if (parts.length === 0 && getDisplayDuration(nextStep)) parts.push(getDisplayDuration(nextStep));
-                        return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5 flex-wrap">${parts.map(p => `<span class="whitespace-nowrap font-bold text-slate-300">${p}</span>`).join('<span class="text-slate-650">•</span>')}</span>`;
-                    }
-                })()}
+                    })()}
                                     </div>
                                 </div>
                                 <div class="text-slate-600 shrink-0 flex flex-col items-end gap-1 w-14 z-10">
@@ -5295,18 +5321,12 @@
 
                             <!-- Body: Details and Logging -->
                             <div id="card-body-${nextStep.id}" class="p-4 md:p-5 hidden">
-                                <div class="flex flex-col md:flex-row gap-8 items-start relative w-full">
-                                    <!-- Left Column: Instructions and Pace (Empty since modal is triggered by card) -->
-                                    <div id="activity-details-${nextStep.id}" class="w-full">
-                                    </div>
-                                    
-                                    <!-- Modal removed from here -->
-                                    <!-- Right Column: Gatekeeper Validation Box -->
-                                    <div id="gatekeeper-form-container-${nextStep.id}" class="flex flex-col w-full hidden">
-                                        <div id="gatekeeper-form-${nextStep.id}" class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col gap-4 relative">
-                                            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 mb-1">
-                                                <span class="block text-xs font-black ${isSpeed ? 'text-amber-400' : 'text-indigo-300'} uppercase tracking-wider m-0">
-                                                    ${isSpeed ? '🔒 Gatekeeper: Log Run Metrics' : 'Log Workout Metrics'}
+                                <div id="activity-details-${nextStep.id}" class="hidden"></div>
+                                <div id="gatekeeper-form-container-${nextStep.id}" class="flex flex-col w-full hidden">
+                                        <div id="gatekeeper-form-${nextStep.id}" class="flex flex-col gap-3 relative w-full">
+                                            <div class="flex items-center justify-between border-b border-slate-800/60 pb-2 mb-1">
+                                                <span class="block text-xs font-black text-indigo-300 uppercase tracking-wider m-0">
+                                                    Log Workout Metrics
                                                 </span>
                                                 <div class="flex items-center gap-2">
                                                     ${nextStep.type !== 'rest' ? `
@@ -5320,35 +5340,113 @@
                                                 ${nextStep.type !== 'rest' ? `
                                                 <div class="flex flex-wrap items-center gap-3">
                                                     ${(nextStep.targetDistance || ['run', 'walk', 'bike', 'swim', 'easy', 'fast', 'long', 'tempo', 'interval', 'recovery', 'base', 'aerobic'].includes(nextStep.type?.toLowerCase())) ? `
-                                                    <div class="flex flex-col gap-1 w-full">
-                                                        <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
-                                                            <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
-                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
-                                                            
-                                                            <div class="w-px h-4 bg-slate-700 mx-1"></div>
-                                                            
-                                                            <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs ml-3">
-                                                            <span class="text-slate-650 font-bold text-xs">:</span>
-                                                            <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
-                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
-                                                        </div>
-                                                        <!-- Interval Rep Splits Container (Revealed for speed/interval sessions) -->
-                                                        <div id="interval-splits-container-${nextStep.id}" class="hidden flex flex-col gap-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 mt-1">
-                                                            <div class="flex items-center justify-between">
-                                                                <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5" id="interval-splits-title-${nextStep.id}">
-                                                                    <i class="fa-solid fa-stopwatch text-indigo-400"></i> Rep Splits
-                                                                </span>
-                                                                <div class="flex items-center gap-1.5">
-                                                                    <button type="button" onclick="autoFillIntervalTargetPace('${nextStep.id}')" class="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 text-[10px] font-bold border border-indigo-500/30 transition-all active:scale-95 cursor-pointer" title="Pre-fill all reps with target split">
-                                                                        ⚡ Auto-Fill Target
-                                                                    </button>
-                                                                    <button type="button" onclick="adjustRepCount('${nextStep.id}', -1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Remove last rep">-</button>
-                                                                    <button type="button" onclick="adjustRepCount('${nextStep.id}', 1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Add extra rep">+</button>
-                                                                </div>
+                                                    ${(() => {
+                                                        const intervalMeta = getIntervalMetadata(nextStep);
+                                                        if (intervalMeta) {
+                                                            return `
+                                                             <!-- Simplified Interval Entry Deck (Clean & Un-nested) -->
+                                                                 <div class="flex flex-col gap-2 w-full">
+                                                                     <div class="w-full flex items-stretch justify-center gap-4 py-1 max-w-md mx-auto">
+                                                                     <!-- Left Column: Reps & Distance + Total Work underneath (Centered) -->
+                                                                     <div class="flex-1 flex flex-col gap-2 items-center justify-center text-center">
+                                                                         <div class="flex items-center justify-center gap-2">
+                                                                             <!-- Reps (EDITABLE INPUT) -->
+                                                                             <div class="flex flex-col items-center gap-1">
+                                                                                 <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider select-none">Reps</span>
+                                                                                 <input id="interval-reps-input-${nextStep.id}" type="number" min="1" max="50" value="${intervalMeta.repCount}" oninput="recalculateIntervalPace('${nextStep.id}')" class="w-12 bg-indigo-950/40 text-center font-bold text-amber-400 focus:outline-none focus:border-indigo-400 focus:bg-indigo-950/80 text-xs rounded-lg border border-indigo-500/30 py-1.5 font-mono shadow-inner transition-all" title="Editable Rep Count">
+                                                                             </div>
+
+                                                                             <span class="text-slate-600 font-bold text-xs mt-3 select-none">×</span>
+
+                                                                             <!-- Distance (READ-ONLY TARGET BADGE) -->
+                                                                             <div class="flex flex-col items-center gap-1">
+                                                                                 <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider select-none">Distance</span>
+                                                                                 <span class="text-xs font-bold text-slate-300 font-mono bg-slate-800/50 px-2.5 py-1.5 rounded-lg select-none leading-normal" title="Fixed Target Distance">${intervalMeta.repDistance}</span>
+                                                                             </div>
+                                                                         </div>
+
+                                                                         <!-- Total Distance Readout (BORDERLESS CALCULATED & CENTERED) -->
+                                                                         <div class="text-[10px] text-slate-400 font-medium select-none pt-0.5">
+                                                                             Total: <span id="calculated-dist-display-${nextStep.id}" class="font-bold text-slate-200 font-mono">-- mi</span>
+                                                                         </div>
+                                                                     </div>
+
+                                                                     <!-- Vertical Divider -->
+                                                                     <div class="w-px bg-slate-800/60 my-1 self-center h-10"></div>
+
+                                                                     <!-- Right Column: Avg Time + Mile Pace underneath (Centered) -->
+                                                                     <div class="flex-1 flex flex-col gap-2 items-center justify-center text-center">
+                                                                         <!-- Avg Rep Time (EDITABLE INPUTS OR CALCULATED BADGE) -->
+                                                                         <div class="flex flex-col items-center gap-1">
+                                                                             <div class="flex items-center justify-center gap-1">
+                                                                                 <span class="text-[9px] text-indigo-300 font-bold uppercase tracking-wider select-none">Avg Time</span>
+                                                                                 <span class="inline-flex items-center justify-center w-3 h-3 rounded-full bg-slate-800 text-slate-400 text-[8px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Average duration per interval rep. Per-mile pace is calculated automatically.">?</span>
+                                                                             </div>
+                                                                             <div id="interval-avg-inputs-container-${nextStep.id}" class="flex items-center justify-center gap-1">
+                                                                                 <input id="interval-avg-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" oninput="recalculateIntervalPace('${nextStep.id}')" class="w-11 bg-indigo-950/40 text-center font-bold text-white focus:outline-none focus:border-indigo-400 focus:bg-indigo-950/80 text-xs rounded-lg border border-indigo-500/30 py-1.5 font-mono shadow-inner transition-all" title="Editable Rep Minutes">
+                                                                                 <span class="text-slate-500 font-bold text-xs">:</span>
+                                                                                 <input id="interval-avg-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" oninput="recalculateIntervalPace('${nextStep.id}')" class="w-11 bg-indigo-950/40 text-center font-bold text-white focus:outline-none focus:border-indigo-400 focus:bg-indigo-950/80 text-xs rounded-lg border border-indigo-500/30 py-1.5 font-mono shadow-inner transition-all" title="Editable Rep Seconds">
+                                                                             </div>
+                                                                             <div id="interval-avg-badge-container-${nextStep.id}" class="hidden py-0.5">
+                                                                                 <span id="interval-avg-badge-display-${nextStep.id}" class="text-xs font-bold text-slate-300 font-mono bg-slate-800/50 px-2.5 py-1.5 rounded-lg select-none leading-normal" title="Calculated Average Rep Time">--:--</span>
+                                                                             </div>
+                                                                         </div>
+
+                                                                         <!-- Pace Readout (BORDERLESS CALCULATED & CENTERED) -->
+                                                                         <div class="text-[10px] text-emerald-400 font-bold font-mono select-none pt-0.5">
+                                                                             <span id="calculated-pace-display-${nextStep.id}">--:-- /mi</span>
+                                                                         </div>
+                                                                     </div>
+                                                                 </div>
+
+                                                                 <!-- Hidden Standard Log Inputs (populated dynamically) -->
+                                                                 <input id="logged-distance-${nextStep.id}" type="hidden" value="${defaultDistance}">
+                                                                 <input id="logged-min-${nextStep.id}" type="hidden" value="${defaultMin}">
+                                                                 <input id="logged-sec-${nextStep.id}" type="hidden" value="${defaultSec}">
+                                                             </div>
+                                                             `;
+                                                        } else {
+                                                            return `
+                                                            <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
+                                                                <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                                <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
+                                                                
+                                                                <div class="w-px h-4 bg-slate-700 mx-1"></div>
+                                                                
+                                                                <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs ml-3">
+                                                                <span class="text-slate-650 font-bold text-xs">:</span>
+                                                                <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                                <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
                                                             </div>
-                                                            <div id="rep-rows-grid-${nextStep.id}" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1"></div>
+                                                            `;
+                                                        }
+                                                    })()}
+                                                </div>
+                                                        <!-- Interval Rep Splits Container (Collapsible Accordion, Collapsed by Default) -->
+                                                        <div id="interval-splits-container-${nextStep.id}" class="hidden flex flex-col gap-2 border-t border-slate-800/40 pt-2 mt-1">
+                                                            <button type="button" onclick="toggleAdvancedRepSplits('${nextStep.id}')" class="w-full flex items-center justify-between text-[11px] font-medium text-slate-500 hover:text-slate-400 transition-colors px-1 py-0.5 cursor-pointer select-none">
+                                                                <span class="text-[11px] font-medium text-slate-500 hover:text-slate-400 transition-colors" id="interval-splits-title-${nextStep.id}">
+                                                                    Advanced Rep splits
+                                                                </span>
+                                                                <span class="text-[10px] text-slate-500 flex items-center gap-1">
+                                                                    <span id="rep-split-count-badge-${nextStep.id}" class="hidden"></span>
+                                                                    <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-200" id="rep-split-chevron-${nextStep.id}"></i>
+                                                                </span>
+                                                            </button>
+                                                            
+                                                            <div id="advanced-rep-body-${nextStep.id}" class="hidden flex flex-col gap-2 p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 mt-1">
+                                                                <div class="flex items-center justify-end w-full">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <button type="button" onclick="autoFillIntervalTargetPace('${nextStep.id}')" class="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 text-[10px] font-bold border border-indigo-500/30 transition-all active:scale-95 cursor-pointer" title="Pre-fill all reps with target split">
+                                                                            Auto-Fill Target
+                                                                        </button>
+                                                                        <button type="button" onclick="adjustRepCount('${nextStep.id}', -1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Remove last rep">-</button>
+                                                                        <button type="button" onclick="adjustRepCount('${nextStep.id}', 1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Add extra rep">+</button>
+                                                                    </div>
+                                                                </div>
+                                                                <div id="rep-rows-grid-${nextStep.id}" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1"></div>
+                                                            </div>
                                                         </div>
-                                                        ${isSpeed ? `<span class="text-[9px] text-indigo-400 font-semibold ml-1 flex items-center gap-1">⚡ Interval Workout Pace <span class="inline-flex items-center justify-center w-3 h-3 rounded-full bg-slate-800 text-slate-400 text-[8px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Your average pace for the hard work portions of speed workouts. Exclude warm-up/cool-down.">?</span></span>` : ''}
                                                     </div>
                                             ` : `
                                             <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800">
@@ -5356,26 +5454,26 @@
                                                 <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">mins</span>
                                             </div>
                                             `}
-                                            <div class="flex items-center gap-3">
-                                                <div class="flex items-center gap-1.5">
-                                                    <select id="logged-rpe-${nextStep.id}" class="w-[105px] truncate bg-slate-900 border border-slate-800 text-slate-200 text-xs font-bold p-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
-                                                        <option value="" disabled ${!nextStep.rpeScore ? 'selected' : ''}>Effort</option>
-                                                        <option value="1" ${nextStep.rpeScore == '1' ? 'selected' : ''}>1 - Restful (Avg HR < 100)</option>
-                                                        <option value="2" ${nextStep.rpeScore == '2' ? 'selected' : ''}>2 - Easy (Avg HR 100-115)</option>
-                                                        <option value="3" ${nextStep.rpeScore == '3' ? 'selected' : ''}>3 - Light (Avg HR 115-130)</option>
-                                                        <option value="4" ${nextStep.rpeScore == '4' ? 'selected' : ''}>4 - Comfortable (Avg HR 130-145)</option>
-                                                        <option value="5" ${nextStep.rpeScore == '5' ? 'selected' : ''}>5 - Moderate (Avg HR 145-155)</option>
-                                                        <option value="6" ${nextStep.rpeScore == '6' ? 'selected' : ''}>6 - Steady (Avg HR 155-165)</option>
-                                                        <option value="7" ${nextStep.rpeScore == '7' ? 'selected' : ''}>7 - Hard (Avg HR 165-170)</option>
-                                                        <option value="8" ${nextStep.rpeScore == '8' ? 'selected' : ''}>8 - Very Hard (Avg HR 170-175)</option>
-                                                        <option value="9" ${nextStep.rpeScore == '9' ? 'selected' : ''}>9 - Exhausting (Avg HR 175-180)</option>
-                                                        <option value="10" ${nextStep.rpeScore == '10' ? 'selected' : ''}>10 - Maximum (Avg HR 180+)</option>
-                                                    </select>
-                                                </div>
-                                                <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800">
-                                                    <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
-                                                </div>
-                                            </div>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1">
+                                                 <div class="flex-1 min-w-[120px]">
+                                                     <select id="logged-rpe-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800/80 text-slate-200 text-xs font-bold py-2 px-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                                                         <option value="" disabled ${!nextStep.rpeScore ? 'selected' : ''}>Effort</option>
+                                                         <option value="1" ${nextStep.rpeScore == '1' ? 'selected' : ''}>1 - Restful (Avg HR < 100)</option>
+                                                         <option value="2" ${nextStep.rpeScore == '2' ? 'selected' : ''}>2 - Easy (Avg HR 100-115)</option>
+                                                         <option value="3" ${nextStep.rpeScore == '3' ? 'selected' : ''}>3 - Light (Avg HR 115-130)</option>
+                                                         <option value="4" ${nextStep.rpeScore == '4' ? 'selected' : ''}>4 - Comfortable (Avg HR 130-145)</option>
+                                                         <option value="5" ${nextStep.rpeScore == '5' ? 'selected' : ''}>5 - Moderate (Avg HR 145-155)</option>
+                                                         <option value="6" ${nextStep.rpeScore == '6' ? 'selected' : ''}>6 - Steady (Avg HR 155-165)</option>
+                                                         <option value="7" ${nextStep.rpeScore == '7' ? 'selected' : ''}>7 - Hard (Avg HR 165-170)</option>
+                                                         <option value="8" ${nextStep.rpeScore == '8' ? 'selected' : ''}>8 - Very Hard (Avg HR 170-175)</option>
+                                                         <option value="9" ${nextStep.rpeScore == '9' ? 'selected' : ''}>9 - Exhausting (Avg HR 175-180)</option>
+                                                         <option value="10" ${nextStep.rpeScore == '10' ? 'selected' : ''}>10 - Maximum (Avg HR 180+)</option>
+                                                     </select>
+                                                 </div>
+                                                 <div class="flex-1 min-w-[130px] max-w-full bg-slate-900 py-1.5 px-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                                     <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="w-full bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
+                                                 </div>
+                                             </div>
                                             <div class="w-full mt-1">
                                                 <textarea id="logged-notes-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:border-indigo-500 placeholder-slate-600 resize-none h-16" placeholder="Add workout notes or splits...">${nextStep.actualLoggedNotes || ''}</textarea>
                                             </div>
@@ -5797,6 +5895,97 @@
             return null;
         }
 
+        function parseRepDistanceInMiles(distStr) {
+            if (!distStr) return 0.24855; // default 400m
+            const str = distStr.toLowerCase().trim();
+            const numMatch = str.match(/[\d\.]+/);
+            const num = numMatch ? parseFloat(numMatch[0]) : 400;
+
+            if (str.includes('k') || str.includes('km')) {
+                return num * 0.621371;
+            } else if (str.includes('m') && !str.includes('mi') && !str.includes('mile')) {
+                return num * 0.000621371;
+            } else if (str.includes('mi') || str.includes('mile')) {
+                return num;
+            }
+            if (num > 50) return num * 0.000621371;
+            return num;
+        }
+
+        function recalculateIntervalPace(id) {
+            const repsInput = document.getElementById(`interval-reps-input-${id}`);
+            const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
+            const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
+            const calculatedPaceDisplay = document.getElementById(`calculated-pace-display-${id}`);
+            const calculatedDistDisplay = document.getElementById(`calculated-dist-display-${id}`);
+
+            const loggedDistInput = document.getElementById(`logged-distance-${id}`);
+            const loggedMinInput = document.getElementById(`logged-min-${id}`);
+            const loggedSecInput = document.getElementById(`logged-sec-${id}`);
+
+            const workout = activePhaseWorkouts ? activePhaseWorkouts.find(w => w.id === id) : null;
+            const intervalMeta = getIntervalMetadata(workout);
+
+            const reps = repsInput ? parseInt(repsInput.value) || 1 : (intervalMeta ? intervalMeta.repCount : 1);
+            const repDistMiles = parseRepDistanceInMiles(intervalMeta ? intervalMeta.repDistance : "400m");
+            const avgMin = avgMinInput ? parseInt(avgMinInput.value) || 0 : 0;
+            const avgSec = avgSecInput ? parseInt(avgSecInput.value) || 0 : 0;
+
+            const totalRepTimeSec = (avgMin * 60) + avgSec;
+            const totalDistMiles = reps * repDistMiles;
+
+            if (totalRepTimeSec > 0 && repDistMiles > 0) {
+                const paceSecPerMile = Math.round(totalRepTimeSec / repDistMiles);
+                const paceMin = Math.floor(paceSecPerMile / 60);
+                const paceSec = paceSecPerMile % 60;
+                const paceStr = `${paceMin}:${paceSec < 10 ? '0' + paceSec : paceSec}`;
+
+                if (calculatedPaceDisplay) calculatedPaceDisplay.innerText = `${paceStr} /mi`;
+                if (calculatedDistDisplay) calculatedDistDisplay.innerText = `${totalDistMiles.toFixed(2)} mi`;
+
+                if (loggedDistInput) loggedDistInput.value = totalDistMiles.toFixed(2);
+                if (loggedMinInput) loggedMinInput.value = paceMin;
+                if (loggedSecInput) loggedSecInput.value = paceSec < 10 ? '0' + paceSec : paceSec;
+            } else {
+                if (calculatedPaceDisplay) calculatedPaceDisplay.innerText = `--:-- /mi`;
+                if (calculatedDistDisplay) calculatedDistDisplay.innerText = `${totalDistMiles.toFixed(2)} mi`;
+            }
+        }
+
+        function recalculateFromRepGrid(id) {
+            const grid = document.getElementById(`rep-rows-grid-${id}`);
+            if (!grid) return;
+            const rows = grid.querySelectorAll('.rep-split-row');
+            let totalSec = 0;
+            let validCount = 0;
+
+            rows.forEach(row => {
+                const m = parseInt(row.querySelector('.rep-min-input')?.value || 0);
+                const s = parseInt(row.querySelector('.rep-sec-input')?.value || 0);
+                if (m > 0 || s > 0) {
+                    totalSec += (m * 60) + s;
+                    validCount++;
+                }
+            });
+
+            if (validCount > 0) {
+                const avgSecTotal = Math.round(totalSec / validCount);
+                const avgMin = Math.floor(avgSecTotal / 60);
+                const avgSec = avgSecTotal % 60;
+
+                const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
+                const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
+                const formattedSec = avgSec < 10 ? '0' + avgSec : avgSec;
+                if (avgMinInput) avgMinInput.value = avgMin;
+                if (avgSecInput) avgSecInput.value = formattedSec;
+
+                const badgeDisplay = document.getElementById(`interval-avg-badge-display-${id}`);
+                if (badgeDisplay) badgeDisplay.innerText = `${avgMin}:${formattedSec}`;
+
+                recalculateIntervalPace(id);
+            }
+        }
+
         function renderRepRows(id, repCount, defaultMin, defaultSec) {
             const grid = document.getElementById(`rep-rows-grid-${id}`);
             if (!grid) return;
@@ -5806,9 +5995,9 @@
                 <div class="rep-split-row flex items-center justify-between bg-slate-900 px-2 py-1.5 rounded-lg border border-slate-800/80">
                     <span class="text-[10px] font-bold text-slate-400 font-mono">R${i}</span>
                     <div class="flex items-center gap-0.5">
-                        <input type="number" min="0" max="60" placeholder="0" value="${defaultMin || ''}" class="rep-min-input w-7 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
+                        <input type="number" min="0" max="60" placeholder="0" value="${defaultMin || ''}" oninput="recalculateFromRepGrid('${id}')" class="rep-min-input w-7 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
                         <span class="text-slate-500 font-bold text-xs">:</span>
-                        <input type="number" min="0" max="59" placeholder="00" value="${defaultSec || ''}" class="rep-sec-input w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
+                        <input type="number" min="0" max="59" placeholder="00" value="${defaultSec || ''}" oninput="recalculateFromRepGrid('${id}')" class="rep-sec-input w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
                     </div>
                 </div>`;
             }
@@ -5816,10 +6005,10 @@
         }
 
         function autoFillIntervalTargetPace(id) {
-            const minInput = document.getElementById(`logged-min-${id}`);
-            const secInput = document.getElementById(`logged-sec-${id}`);
-            const targetMin = minInput ? minInput.value : "1";
-            const targetSec = secInput ? secInput.value : "30";
+            const avgMinInput = document.getElementById(`interval-avg-min-${id}`) || document.getElementById(`logged-min-${id}`);
+            const avgSecInput = document.getElementById(`interval-avg-sec-${id}`) || document.getElementById(`logged-sec-${id}`);
+            const targetMin = avgMinInput ? avgMinInput.value : "1";
+            const targetSec = avgSecInput ? avgSecInput.value : "30";
 
             const grid = document.getElementById(`rep-rows-grid-${id}`);
             if (!grid) return;
@@ -5828,6 +6017,8 @@
             const secInputs = grid.querySelectorAll('.rep-sec-input');
             minInputs.forEach(i => i.value = targetMin);
             secInputs.forEach(i => i.value = targetSec);
+
+            recalculateFromRepGrid(id);
         }
 
         function adjustRepCount(id, delta) {
@@ -5835,11 +6026,15 @@
             if (!grid) return;
             const currentRows = grid.querySelectorAll('.rep-split-row').length;
             const newCount = Math.max(1, currentRows + delta);
-            const minInput = document.getElementById(`logged-min-${id}`);
-            const secInput = document.getElementById(`logged-sec-${id}`);
-            const defaultMin = minInput ? minInput.value : "";
-            const defaultSec = secInput ? secInput.value : "";
+            const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
+            const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
+            const defaultMin = avgMinInput ? avgMinInput.value : "";
+            const defaultSec = avgSecInput ? avgSecInput.value : "";
             renderRepRows(id, newCount, defaultMin, defaultSec);
+
+            const repsInput = document.getElementById(`interval-reps-input-${id}`);
+            if (repsInput) repsInput.value = newCount;
+            recalculateIntervalPace(id);
         }
 
         function toggleRepSplitsDrawer(id) {
@@ -5853,6 +6048,37 @@
             } else {
                 drawer.classList.add('hidden');
                 if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function toggleAdvancedRepSplits(id) {
+            const body = document.getElementById(`advanced-rep-body-${id}`);
+            const chevron = document.getElementById(`rep-split-chevron-${id}`);
+            const inputsContainer = document.getElementById(`interval-avg-inputs-container-${id}`);
+            const badgeContainer = document.getElementById(`interval-avg-badge-container-${id}`);
+            const badgeDisplay = document.getElementById(`interval-avg-badge-display-${id}`);
+
+            if (!body) return;
+            const isHidden = body.classList.contains('hidden');
+            if (isHidden) {
+                body.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+                if (inputsContainer) inputsContainer.classList.add('hidden');
+                if (badgeContainer) badgeContainer.classList.remove('hidden');
+
+                const minInput = document.getElementById(`interval-avg-min-${id}`);
+                const secInput = document.getElementById(`interval-avg-sec-${id}`);
+                const m = minInput ? (minInput.value || '0') : '0';
+                const s = secInput ? (secInput.value || '00') : '00';
+                const sFormatted = parseInt(s) < 10 ? '0' + parseInt(s) : s;
+                if (badgeDisplay) badgeDisplay.innerText = `${m}:${sFormatted}`;
+
+                recalculateFromRepGrid(id);
+            } else {
+                body.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                if (inputsContainer) inputsContainer.classList.remove('hidden');
+                if (badgeContainer) badgeContainer.classList.add('hidden');
             }
         }
 
@@ -6195,8 +6421,8 @@
                     }
                 }
 
-                const tileBorder = isSelected 
-                    ? 'border-indigo-500 bg-indigo-950/80 ring-2 ring-indigo-500/60 shadow-lg' 
+                const tileBorder = isSelected
+                    ? 'border-indigo-500 bg-indigo-950/80 ring-2 ring-indigo-500/60 shadow-lg'
                     : (isCurrentDay ? 'border-slate-800 bg-slate-950/40 opacity-50 cursor-not-allowed' : 'border-slate-800 bg-slate-950 hover:border-indigo-500/40 hover:bg-slate-900 cursor-pointer');
 
                 const tile = document.createElement('div');
@@ -6215,7 +6441,7 @@
                 `;
 
                 if (!isCurrentDay) {
-                    tile.onclick = function() {
+                    tile.onclick = function () {
                         selectedTargetDay = d;
                         renderSwapDayTiles();
                         if (previewEl && previewText) {
