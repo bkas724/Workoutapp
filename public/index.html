@@ -5267,7 +5267,6 @@
                                         <h2 class="text-base md:text-lg font-bold text-white tracking-tight flex items-baseline gap-2">
                                             ${nextStep.workoutTitle}
                                         </h2>
-                                        ${isBenchmark ? `<span class="text-[9px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-500/30 pulse-slow ml-2">Benchmark</span>` : ''}
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <label class="relative flex items-center justify-center cursor-pointer w-8 h-8 rounded-lg group transition-all bg-teal-500 border border-teal-500 hover:bg-rose-500 hover:border-rose-500 shrink-0" title="Unsubmit Workout">
@@ -5321,35 +5320,34 @@
                                 <div class="flex flex-col min-w-0 flex-1 md:col-span-4 relative z-10">
                                     <!-- Top Badge Row (Benchmark & Prep Badges) -->
                                     <div class="flex items-center gap-1.5 flex-wrap mb-1">
-                                        ${isBenchmark ? `<span class="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/30">Benchmark</span>` : ''}
                                         ${nextStep.jitPreparationTip ? `<button id="jit-badge-${nextStep.id}" onclick="event.stopPropagation(); openPrepTipModal(event, '${nextStep.id}')" class="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full hover:bg-amber-900/60 transition-colors cursor-pointer ${!nextStep.hasReadJitTip ? 'pulse-slow' : ''}">🔥 Prep</button>` : ''}
                                     </div>
 
-                                    <!-- Workout Title (Non-truncated 2-line wrapping) -->
-                                    <h2 class="text-base md:text-lg font-extrabold text-white tracking-tight leading-snug line-clamp-2" title="${nextStep.workoutTitle}">${nextStep.workoutTitle}</h2>
+                                    <!-- Workout Title (Non-truncated 2-line wrapping, enlarged for mobile readability) -->
+                                    <h2 class="text-lg md:text-xl font-black text-white tracking-tight leading-snug line-clamp-2" title="${nextStep.workoutTitle}">${nextStep.workoutTitle}</h2>
 
-                                    <!-- Mobile Color-Coded Inline Subtext (Duration First, Visible ONLY on Mobile < md) -->
-                                    <div class="md:hidden flex items-center gap-1.5 mt-1 flex-wrap text-xs font-medium">
+                                    <!-- Mobile Color-Coded Inline Subtext (Duration First, enlarged text-sm for mobile readability) -->
+                                    <div class="md:hidden flex items-center gap-2 mt-1 flex-wrap text-sm font-semibold">
                                         ${(() => {
                                             if (nextStep.type === 'rest') {
-                                                return `<span class="text-sky-300 font-bold">Rest Day</span> <span class="text-slate-650">•</span> <span class="text-teal-300 font-bold">Recovery & Hydration</span>`;
+                                                return `<span class="text-sky-300 font-extrabold">Rest Day</span> <span class="text-slate-500 font-bold">•</span> <span class="text-teal-300 font-extrabold">Recovery & Hydration</span>`;
                                             } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
                                                 const dur = getDisplayDuration(nextStep);
                                                 const durStr = dur && !dur.toLowerCase().includes('mile') ? dur : (nextStep.targetDuration ? `${nextStep.targetDuration} mins` : '35 mins');
                                                 const exCount = getAccurateStrengthExerciseCount(nextStep);
-                                                return `<span class="text-sky-300 font-bold">${durStr}</span> <span class="text-slate-650">•</span> <span class="text-amber-300 font-bold">${exCount} Exercises</span>`;
+                                                return `<span class="text-sky-300 font-extrabold">${durStr}</span> <span class="text-slate-500 font-bold">•</span> <span class="text-amber-300 font-extrabold">${exCount} Exercises</span>`;
                                             } else {
                                                 let parts = [];
                                                 const dur = getDisplayDuration(nextStep);
                                                 let durStr = "30 mins";
                                                 if (nextStep.targetDuration) durStr = `${nextStep.targetDuration} mins`;
                                                 else if (dur && !dur.toLowerCase().includes('mile')) durStr = dur;
-                                                parts.push(`<span class="text-sky-300 font-bold">${durStr}</span>`);
+                                                parts.push(`<span class="text-sky-300 font-extrabold">${durStr}</span>`);
 
                                                 let distStr = "";
                                                 if (nextStep.targetDistance) distStr = `${nextStep.targetDistance} mi`;
                                                 else if (dur && dur.toLowerCase().includes('mile')) distStr = dur;
-                                                if (distStr) parts.push(`<span class="text-teal-300 font-bold">${distStr}</span>`);
+                                                if (distStr) parts.push(`<span class="text-teal-300 font-extrabold">${distStr}</span>`);
 
                                                 let paceStr = "";
                                                 if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
@@ -5357,9 +5355,9 @@
                                                 } else if (nextStep.targetPaceZone) {
                                                     paceStr = `${nextStep.targetPaceZone}`;
                                                 }
-                                                if (paceStr) parts.push(`<span class="text-emerald-300 font-bold">${paceStr}</span>`);
+                                                if (paceStr) parts.push(`<span class="text-emerald-300 font-extrabold">${paceStr}</span>`);
 
-                                                return parts.join(` <span class="text-slate-650">•</span> `);
+                                                return parts.join(` <span class="text-slate-500 font-bold">•</span> `);
                                             }
                                         })()}
                                     </div>

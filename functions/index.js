@@ -1,6 +1,5 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 admin.initializeApp();
 
@@ -8,13 +7,21 @@ admin.initializeApp();
 const { defineSecret } = require("firebase-functions/params");
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
+let GoogleGenerativeAI;
+function getGenAI(apiKey) {
+    if (!GoogleGenerativeAI) {
+        GoogleGenerativeAI = require("@google/generative-ai").GoogleGenerativeAI;
+    }
+    return new GoogleGenerativeAI(apiKey);
+}
+
 exports.proposeGoalPaces = onCall({
     secrets: [geminiApiKey],
     cors: true,
 }, async (request) => {
     const { age, weight, sex, fitnessLevel, targetDistance, targetDate, currentPace, daysAvailable, notes, why } = request.data;
     
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
     const prompt = `You are an elite running coach AI. 
 The user provides their details:
 - Age: ${age}
@@ -69,7 +76,7 @@ exports.backfillAIInsights = onCall({
     timeoutSeconds: 60
 }, async (request) => {
     const { profile, activeWorkouts } = request.data;
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
 
     const prescriptiveMealsEnabled = Boolean(profile?.prescriptiveMeals);
     const dietaryNotes = profile?.dietaryPreferences || "None specified";
@@ -168,7 +175,7 @@ exports.generateWorkoutBlock = onCall({
 }, async (request) => {
     const { profile, phaseIndex, history, simpleMode } = request.data;
     
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
     
     let historyContext = "No recent workout history logged yet.";
     if (history && Array.isArray(history) && history.length > 0) {
@@ -378,7 +385,7 @@ exports.generateMacrocyclePlan = onCall({
         timelineInstruction = "a STRICT 12-week foundational timeline consisting of exactly three 4-week macrocycles";
     }
 
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
     const prompt = `You are an elite training coach AI.
 The user provides their details:
 - Age: ${profile?.age || 'Unknown'}, Weight: ${profile?.weight || 'Unknown'} lbs, Sex: ${profile?.sex || 'Unknown'}
@@ -444,7 +451,7 @@ exports.generateStrengthGuidesOnly = onCall({
 }, async (request) => {
     const { phaseIndex, profile, simpleMode } = request.data;
     
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
     const equipmentString = simpleMode ? "None / Bodyweight (User requested Simple Mode)" : (profile?.equipmentList && profile.equipmentList.length > 0 ? profile.equipmentList.join(', ') : 'None / Bodyweight');
 
     const prompt = `You are a professional elite running coach AI.
@@ -508,7 +515,7 @@ exports.upgradeMacrocycleDescriptions = onCall({
         throw new HttpsError("invalid-argument", "Invalid macrocyclePlan provided.");
     }
 
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
     const prompt = `You are an elite running coach AI.
 The user has an existing Macrocycle Plan where each phase only has a single 'description'.
 We need to upgrade this plan by splitting that description into two distinct fields for the UI:
@@ -562,7 +569,7 @@ exports.generateSecondaryWorkout = onCall({
 }, async (request) => {
     const { targetType, sequenceOrder, currentPhaseIndex, profileContext } = request.data;
     
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
     
     const prompt = `You are a professional elite running coach AI and health nutritionist.
 The user wants to add a secondary workout to their day today. The requested activity type is: "${targetType}".
@@ -631,7 +638,7 @@ exports.refreshNutritionOnly = onCall({
     timeoutSeconds: 60
 }, async (request) => {
     const { profile } = request.data;
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
 
     const prescriptiveMealsEnabled = Boolean(profile?.prescriptiveMeals);
     const dietaryNotes = profile?.dietaryPreferences || "None specified";
@@ -702,7 +709,7 @@ exports.modifySingleWorkout = onCall({
         throw new HttpsError("invalid-argument", "Missing currentWorkout or userNotes.");
     }
 
-    const ai = new GoogleGenerativeAI(geminiApiKey.value());
+    const ai = getGenAI(geminiApiKey.value());
     const prompt = `You are an elite endurance training coach AI.
 The user wants to replace/modify a single workout in their current training block due to schedule changes, fatigue, or preferences.
 
