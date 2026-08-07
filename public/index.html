@@ -4904,8 +4904,8 @@
                 }
 
                 if (logBtn) {
-                    logBtn.innerText = "Submit";
-                    logBtn.className = "w-full h-8 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center";
+                    logBtn.innerHTML = '<span class="hidden md:inline-block"><i class="fa-solid fa-check text-xs mr-1"></i></span><span>Submit</span>';
+                    logBtn.className = "w-12 h-8 md:w-auto md:px-4 md:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1 active:scale-95";
                     const isBenchmark = workout ? workout.isBenchmark : false;
                     const type = workout ? workout.type : 'easy';
                     logBtn.onclick = function (e) {
@@ -4932,8 +4932,8 @@
                 if (watermark) watermark.classList.remove('hidden');
 
                 if (logBtn) {
-                    logBtn.innerText = "Log";
-                    logBtn.className = "w-full h-6 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center shadow-sm";
+                    logBtn.innerHTML = '<span class="hidden md:inline-block"><i class="fa-solid fa-sliders text-[11px] mr-1"></i></span><span>Log</span>';
+                    logBtn.className = "w-12 h-8 md:w-auto md:px-4 md:py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-md active:scale-95";
                     logBtn.onclick = function (e) {
                         e.stopPropagation();
                         toggleGatekeeper(id);
@@ -5056,6 +5056,49 @@
             return "";
         }
 
+        function getAccurateStrengthExerciseCount(step) {
+            if (!step) return 0;
+            let guidesToSearch = [];
+            if (typeof userProfileData !== 'undefined' && userProfileData) {
+                const isSimpleChecked = document.getElementById('simple-mode-toggle') && document.getElementById('simple-mode-toggle').checked;
+                guidesToSearch = (isSimpleChecked && userProfileData.simpleStrengthGuides) ? userProfileData.simpleStrengthGuides : userProfileData.currentStrengthGuides;
+            }
+            if ((!guidesToSearch || guidesToSearch.length === 0) && typeof getDefaultStrengthGuides === 'function') {
+                guidesToSearch = getDefaultStrengthGuides();
+            }
+
+            if (step.strengthGuideReference && guidesToSearch && guidesToSearch.length > 0) {
+                const ref = step.strengthGuideReference.toLowerCase();
+                const title = (step.workoutTitle || "").toLowerCase();
+                
+                let guide = guidesToSearch.find(g => g.id && g.id.toLowerCase() === ref);
+                if (!guide) {
+                    for (const letter of ['a', 'b', 'c']) {
+                        if (ref.includes(`workout ${letter}`) || title.includes(`workout ${letter}`)) {
+                            guide = guidesToSearch.find(g => (g.id && g.id.toLowerCase().includes(letter)) || (g.title && g.title.toLowerCase().includes(`workout ${letter}`)));
+                            if (guide) break;
+                        }
+                    }
+                }
+                if (!guide) {
+                    guide = guidesToSearch.find(g => g.title && g.title.toLowerCase().includes(ref));
+                }
+                if (!guide) {
+                    guide = guidesToSearch.find(g => g.title && (ref.includes(g.title.toLowerCase()) || title.includes(g.title.toLowerCase())));
+                }
+
+                if (guide && guide.exercises && guide.exercises.length > 0) {
+                    return guide.exercises.length;
+                }
+            }
+
+            if (step.activities && Array.isArray(step.activities)) {
+                const workActs = step.activities.filter(a => a.type === 'work');
+                if (workActs.length > 0) return workActs.length;
+            }
+            return 4;
+        }
+
         function renderNextActivityCard() {
             lastUploadedWorkoutFile = null; // Reset uploaded workout file state for a fresh card
             const container = document.getElementById('focus-content');
@@ -5132,8 +5175,8 @@
                 }
             }
 
-            let htmlAccumulator = `<div class="space-y-6">
-                <div class="grid grid-cols-1 ${dailySlate.length > 1 ? 'lg:grid-cols-2' : ''} gap-4 items-start">`;
+            let htmlAccumulator = `<div class="space-y-4 w-full">
+                <div class="flex flex-col gap-4 w-full">`;
             let modalsAccumulator = '';
 
             for (let i = 0; i < dailySlate.length; i++) {
@@ -5212,7 +5255,7 @@
                     (nextStep.activities && nextStep.activities.filter(a => a.type === 'work').length > 1);
 
                 htmlAccumulator += `
-                    <div id="focus-card-${nextStep.id}" class="relative ${opacityClass} transition-all duration-300">
+                    <div id="focus-card-${nextStep.id}" class="relative ${opacityClass} transition-all duration-300 w-full">
                         <!-- Outer Card Container -->
                         <div class="w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-xl relative group">
                             ${nextStep.completed ? `
@@ -5266,67 +5309,147 @@
                             </button>
                             ` : `
                             <!-- NORMAL UNCOMPLETED STATE -->
-                            <!-- Ultra-Minimal Top Header -->
-                            <div onclick="if(!event.target.closest('input') && !event.target.closest('button') && !event.target.closest('label')) openWorkoutModal('${nextStep.id}')" class="p-4 md:p-5 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-800/80 transition-colors relative overflow-hidden group">
+                            <!-- Header Bar -->
+                            <div onclick="if(!event.target.closest('input') && !event.target.closest('button') && !event.target.closest('label')) openWorkoutModal('${nextStep.id}')" class="p-4 md:p-5 bg-slate-900 border-b border-slate-800 flex flex-row items-center justify-between md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 cursor-pointer hover:bg-slate-800/80 transition-colors relative overflow-hidden group">
                                 
-                                <!-- Oversized Background Watermark Icon (Positioned at far right behind action buttons) -->
-                                <div id="watermark-icon-${nextStep.id}" class="absolute top-1/2 right-0 translate-x-[20%] -translate-y-1/2 w-44 sm:w-52 h-44 sm:h-52 pointer-events-none select-none z-0 overflow-hidden flex items-center justify-center opacity-15 transition-opacity group-hover:opacity-25 [&>div]:!w-full [&>div]:!h-full [&>svg]:!w-full [&>svg]:!h-full [&>i]:text-[150px]">
+                                <!-- Background Watermark Icon Backdrop -->
+                                <div id="watermark-icon-${nextStep.id}" class="absolute top-1/2 right-4 md:right-16 -translate-y-1/2 w-40 sm:w-48 md:w-56 h-40 sm:h-48 md:h-56 pointer-events-none select-none z-0 overflow-hidden flex items-center justify-center opacity-15 md:opacity-20 transition-all duration-300 group-hover:opacity-30 group-hover:scale-105 [&>div]:!w-full [&>div]:!h-full [&>svg]:!w-full [&>svg]:!h-full [&>i]:text-[130px] md:[&>i]:text-[160px]">
                                     ${iconSVG}
                                 </div>
 
-                                <!-- Main Content Area -->
-                                <div class="flex flex-col min-w-0 flex-1 relative z-10">
+                                <!-- Left Section: Badges, Title & Mobile Subtext (Flex-1 on Mobile, Cols 1-4 on Desktop) -->
+                                <div class="flex flex-col min-w-0 flex-1 md:col-span-4 relative z-10">
                                     <!-- Top Badge Row (Benchmark & Prep Badges) -->
                                     <div class="flex items-center gap-1.5 flex-wrap mb-1">
                                         ${isBenchmark ? `<span class="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/30">Benchmark</span>` : ''}
                                         ${nextStep.jitPreparationTip ? `<button id="jit-badge-${nextStep.id}" onclick="event.stopPropagation(); openPrepTipModal(event, '${nextStep.id}')" class="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full hover:bg-amber-900/60 transition-colors cursor-pointer ${!nextStep.hasReadJitTip ? 'pulse-slow' : ''}">🔥 Prep</button>` : ''}
                                     </div>
 
-                                    <!-- Workout Title -->
-                                    <h2 class="text-base md:text-xl font-extrabold text-white tracking-tight leading-snug">${nextStep.workoutTitle}</h2>
+                                    <!-- Workout Title (Non-truncated 2-line wrapping) -->
+                                    <h2 class="text-base md:text-lg font-extrabold text-white tracking-tight leading-snug line-clamp-2" title="${nextStep.workoutTitle}">${nextStep.workoutTitle}</h2>
 
-                                    <!-- Subtext / Planned Metrics -->
-                                    <div class="flex items-center gap-2 mt-1.5 flex-wrap text-xs text-slate-400 font-medium">
+                                    <!-- Mobile Color-Coded Inline Subtext (Duration First, Visible ONLY on Mobile < md) -->
+                                    <div class="md:hidden flex items-center gap-1.5 mt-1 flex-wrap text-xs font-medium">
                                         ${(() => {
-                        if (nextStep.type === 'rest') {
-                            return `<span class="text-xs font-semibold text-slate-400">Rest & Recovery • Hydration</span>`;
-                        } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
-                            const exCount = (nextStep.activities ? nextStep.activities.length : 4);
-                            return `<span class="text-xs font-semibold text-slate-400 flex items-center gap-1.5"><span>${exCount} Exercises</span> <span class="text-slate-650">•</span> <span>${getDisplayDuration(nextStep) || '30 mins'}</span></span>`;
-                        } else {
-                            let parts = [];
-                            if (nextStep.targetDistance) parts.push(`${nextStep.targetDistance} mi`);
-                            else if (getDisplayDuration(nextStep) && getDisplayDuration(nextStep).includes('Mile')) parts.push(getDisplayDuration(nextStep));
+                                            if (nextStep.type === 'rest') {
+                                                return `<span class="text-sky-300 font-bold">Rest Day</span> <span class="text-slate-650">•</span> <span class="text-teal-300 font-bold">Recovery & Hydration</span>`;
+                                            } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
+                                                const dur = getDisplayDuration(nextStep);
+                                                const durStr = dur && !dur.toLowerCase().includes('mile') ? dur : (nextStep.targetDuration ? `${nextStep.targetDuration} mins` : '35 mins');
+                                                const exCount = getAccurateStrengthExerciseCount(nextStep);
+                                                return `<span class="text-sky-300 font-bold">${durStr}</span> <span class="text-slate-650">•</span> <span class="text-amber-300 font-bold">${exCount} Exercises</span>`;
+                                            } else {
+                                                let parts = [];
+                                                const dur = getDisplayDuration(nextStep);
+                                                let durStr = "30 mins";
+                                                if (nextStep.targetDuration) durStr = `${nextStep.targetDuration} mins`;
+                                                else if (dur && !dur.toLowerCase().includes('mile')) durStr = dur;
+                                                parts.push(`<span class="text-sky-300 font-bold">${durStr}</span>`);
 
-                            if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
-                                parts.push(`Target: ${defaultMin}:${defaultSec} /mi`);
-                            } else if (nextStep.targetPaceZone) {
-                                parts.push(`Pace: ${nextStep.targetPaceZone}`);
-                            }
+                                                let distStr = "";
+                                                if (nextStep.targetDistance) distStr = `${nextStep.targetDistance} mi`;
+                                                else if (dur && dur.toLowerCase().includes('mile')) distStr = dur;
+                                                if (distStr) parts.push(`<span class="text-teal-300 font-bold">${distStr}</span>`);
 
-                            if (nextStep.targetDuration) parts.push(`${nextStep.targetDuration} mins`);
-                            else if (getDisplayDuration(nextStep) && !parts.some(p => p.includes('mi') || p.includes('Mile'))) parts.push(getDisplayDuration(nextStep));
+                                                let paceStr = "";
+                                                if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
+                                                    paceStr = `${defaultMin}:${defaultSec} /mi`;
+                                                } else if (nextStep.targetPaceZone) {
+                                                    paceStr = `${nextStep.targetPaceZone}`;
+                                                }
+                                                if (paceStr) parts.push(`<span class="text-emerald-300 font-bold">${paceStr}</span>`);
 
-                            if (parts.length === 0 && getDisplayDuration(nextStep)) parts.push(getDisplayDuration(nextStep));
-                            return `<span class="text-xs font-medium text-slate-400 flex items-center gap-1.5 flex-wrap">${parts.map(p => `<span class="whitespace-nowrap font-bold text-slate-300">${p}</span>`).join('<span class="text-slate-650">•</span>')}</span>`;
-                        }
-                    })()}
+                                                return parts.join(` <span class="text-slate-650">•</span> `);
+                                            }
+                                        })()}
                                     </div>
                                 </div>
-                                <div class="text-slate-600 shrink-0 flex flex-col items-end gap-1 w-14 z-10">
+
+                                <!-- Center Section: Standardized 3-Slot Horizontal Metrics Grid (Visible ONLY on Desktop md:) -->
+                                <div class="hidden md:grid md:grid-cols-3 gap-2 relative z-10 my-1 md:my-0 md:col-span-5 w-full">
+                                    ${(() => {
+                                        let slot1Text = "", slot1Icon = "fa-regular fa-clock text-sky-400";
+                                        let slot2Text = "", slot2Icon = "fa-solid fa-route text-teal-400";
+                                        let slot3Text = "", slot3Icon = "fa-solid fa-stopwatch text-emerald-400";
+
+                                        if (nextStep.type === 'rest') {
+                                            slot1Text = "Rest Day";
+                                            slot1Icon = "fa-solid fa-bed text-sky-400";
+                                            slot2Text = "Recovery & Hydration";
+                                            slot2Icon = "fa-solid fa-droplet text-teal-400";
+                                        } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
+                                            const dur = getDisplayDuration(nextStep);
+                                            slot1Text = dur && !dur.toLowerCase().includes('mile') ? dur : (nextStep.targetDuration ? `${nextStep.targetDuration} mins` : '35 mins');
+                                            const exCount = getAccurateStrengthExerciseCount(nextStep);
+                                            slot2Text = `${exCount} Exercises`;
+                                            slot2Icon = "fa-solid fa-dumbbell text-teal-400";
+                                        } else {
+                                            // Run / Walk / Speed / Endurance
+                                            const dur = getDisplayDuration(nextStep);
+                                            if (nextStep.targetDuration) slot1Text = `${nextStep.targetDuration} mins`;
+                                            else if (dur && !dur.toLowerCase().includes('mile')) slot1Text = dur;
+                                            else slot1Text = "30 mins";
+
+                                            if (nextStep.targetDistance) slot2Text = `${nextStep.targetDistance} mi`;
+                                            else if (dur && dur.toLowerCase().includes('mile')) slot2Text = dur;
+
+                                            if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
+                                                slot3Text = `${defaultMin}:${defaultSec} /mi`;
+                                            } else if (nextStep.targetPaceZone) {
+                                                slot3Text = `${nextStep.targetPaceZone}`;
+                                                slot3Icon = "fa-solid fa-gauge-high text-emerald-400";
+                                            }
+                                        }
+
+                                        return `
+                                        <!-- Slot 1: Duration (Time) -->
+                                        <div class="flex items-center justify-start sm:justify-center">
+                                            ${slot1Text ? `
+                                            <div class="bg-slate-950/75 border border-slate-800/80 backdrop-blur-sm px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-sky-200 shadow-sm w-full justify-center">
+                                                <i class="${slot1Icon} text-[11px]"></i>
+                                                <span class="whitespace-nowrap">${slot1Text}</span>
+                                            </div>
+                                            ` : '<div></div>'}
+                                        </div>
+
+                                        <!-- Slot 2: Volume / Scope -->
+                                        <div class="flex items-center justify-start sm:justify-center">
+                                            ${slot2Text ? `
+                                            <div class="bg-slate-950/75 border border-slate-800/80 backdrop-blur-sm px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-teal-200 shadow-sm w-full justify-center">
+                                                <i class="${slot2Icon} text-[11px]"></i>
+                                                <span class="whitespace-nowrap">${slot2Text}</span>
+                                            </div>
+                                            ` : '<div></div>'}
+                                        </div>
+
+                                        <!-- Slot 3: Target Pace / Intensity -->
+                                        <div class="flex items-center justify-start sm:justify-center">
+                                            ${slot3Text ? `
+                                            <div class="bg-slate-950/75 border border-slate-800/80 backdrop-blur-sm px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-emerald-200 shadow-sm w-full justify-center">
+                                                <i class="${slot3Icon} text-[11px]"></i>
+                                                <span class="whitespace-nowrap">${slot3Text}</span>
+                                            </div>
+                                            ` : '<div></div>'}
+                                        </div>
+                                        `;
+                                    })()}
+                                </div>
+
+                                <!-- Right Section: Action Controls Station (Stacked Checkbox + Log Button on Mobile, Horizontal on Desktop) -->
+                                <div class="focus-action-controls-station flex flex-col md:flex-row items-center justify-center md:justify-end gap-1.5 shrink-0 relative z-10 md:col-span-3 self-center">
                                     ${nextStep.type === 'rest' ? `
-                                    <button onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', false, 'rest');" class="w-full h-16 rounded-xl bg-slate-800 hover:bg-teal-500/20 text-slate-300 hover:text-teal-400 border border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95" title="Confirm Rest Day">
-                                        <i class="fa-solid fa-check text-lg font-black"></i>
+                                    <button onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', false, 'rest');" class="w-12 h-12 md:w-auto md:px-4 md:py-2 rounded-xl bg-slate-800 hover:bg-teal-500/20 text-teal-400 border border-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95" title="Confirm Rest Day">
+                                        <i class="fa-solid fa-check text-lg md:text-xs"></i> <span class="hidden md:inline text-slate-200">Confirm Rest</span>
                                     </button>
                                     ` : `
-                                    <button id="quick-btn-${nextStep.id}" onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}');" class="w-full h-9 rounded-xl bg-slate-800 hover:bg-teal-500/20 text-slate-300 hover:text-teal-400 border border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-sm" title="Quick Complete (Target Defaults)">
-                                        <i class="fa-solid fa-check text-sm font-black"></i>
+                                    <button id="quick-btn-${nextStep.id}" onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}');" class="w-12 h-12 md:w-auto md:px-3.5 md:py-2 rounded-xl bg-slate-800/90 hover:bg-teal-500/20 text-teal-400 border border-slate-700/80 hover:border-teal-500/40 font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95" title="Quick Complete (Target Defaults)">
+                                        <i class="fa-solid fa-check text-lg md:text-xs"></i> <span class="hidden md:inline text-slate-200">Quick</span>
                                     </button>
-                                    <button id="log-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}');" class="w-full h-6 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer flex items-center justify-center shadow-sm">
-                                        Log
+                                    <button id="log-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}');" class="w-12 h-8 md:w-auto md:px-4 md:py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1 shadow-md active:scale-95">
+                                        <span class="hidden md:inline-block"><i class="fa-solid fa-sliders text-[11px] mr-1"></i></span><span>Log</span>
                                     </button>
-                                    <button id="cancel-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="hidden w-full h-6 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center cursor-pointer" title="Cancel">
-                                        <i class="fa-solid fa-xmark text-[10px] mr-1"></i> Cancel
+                                    <button id="cancel-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="hidden w-12 h-8 md:w-auto md:px-3 md:py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer active:scale-95" title="Cancel">
+                                        <span class="hidden md:inline-block"><i class="fa-solid fa-xmark text-xs mr-1"></i></span><span>Cancel</span>
                                     </button>
                                     `}
                                 </div>
@@ -11773,6 +11896,7 @@
         });
 
         // --- INTERACTIVE APP TOUR LOGIC ---
+        // --- INTERACTIVE APP TOUR LOGIC ---
         const tourSteps = [
             {
                 targetId: 'nav-btn-home',
@@ -11790,36 +11914,42 @@
                 targetId: 'next-activity-focus',
                 tab: 'home',
                 title: '3. Up Next (Daily JIT Task)',
-                desc: 'This is your primary Daily Focus Card! It shows today\'s workout, preparation notes and a preview of tomorrow when the daily activities are complete. '
+                desc: 'This is your primary Daily Focus Card! It shows today\'s workout, preparation notes and a preview of tomorrow when the daily activities are complete.'
+            },
+            {
+                targetId: 'focus-action-controls',
+                tab: 'home',
+                title: '4. 1-Touch Checkmark vs. Detailed Logging',
+                desc: 'Followed the coach\'s guidance? 1-touch on the checkmark and you\'re done. Easy peasy lemon squeezy! Ran a bit extra or slightly off target? Tap Log to easily adjust those default metrics.'
             },
             {
                 targetId: 'home-health-insights-card',
                 tab: 'home',
-                title: '4. AI Recovery & Meal Insights',
+                title: '5. AI Recovery & Meal Insights',
                 desc: 'Dynamically calculated movement tips, hydration guidelines, and tiered nutrition meals tailored to rest, light, or hard workout days.'
             },
             {
                 targetId: 'nav-btn-analytics',
                 tab: 'analytics',
-                title: '5. Analytics Tab',
+                title: '6. Analytics Tab',
                 desc: 'Track your long-term progress! View your weight & BMI trend lines, 5K estimated race pace improvements, and weekly volume graphs.'
             },
             {
                 targetId: 'nav-btn-checklist',
                 tab: 'checklist',
-                title: '6. JIT Checklist Tab',
+                title: '7. JIT Checklist Tab',
                 desc: 'Your full workout sequence! Check off completed activities, swap training days around, or request an adaptive plan update.'
             },
             {
                 targetId: 'nav-btn-strength',
                 tab: 'strength',
-                title: '7. Strength Tab',
+                title: '8. Strength Tab',
                 desc: 'Customized bodyweight & equipment-based strength circuits designed to build core stability and prevent injuries.'
             },
             {
                 targetId: 'nav-btn-journey',
                 tab: 'journey',
-                title: '8. Journey Roadmap Tab',
+                title: '9. Journey Roadmap Tab',
                 desc: 'Your macrocycle timeline! View your current training phase, milestone target dates, and long-term training strategies/ goals.'
             }
         ];
@@ -11857,10 +11987,17 @@
         }
         window.toggleTourCardMinimize = toggleTourCardMinimize;
 
+        function getTourTargetEl(targetId) {
+            if (targetId === 'focus-action-controls') {
+                return document.querySelector('.focus-action-controls-station') || document.getElementById('next-activity-focus');
+            }
+            return document.getElementById(targetId);
+        }
+
         function updateSpotlightPos() {
             const step = tourSteps[currentTourIndex];
             if (!step) return;
-            const targetEl = document.getElementById(step.targetId);
+            const targetEl = getTourTargetEl(step.targetId);
             const spotlight = document.getElementById('tour-spotlight-box');
             if (targetEl && spotlight) {
                 const rect = targetEl.getBoundingClientRect();
@@ -11926,7 +12063,7 @@
 
             // Position tour card & spotlight cutout near target element
             setTimeout(() => {
-                const targetEl = document.getElementById(step.targetId);
+                const targetEl = getTourTargetEl(step.targetId);
                 const tourCard = document.getElementById('tour-card');
 
                 if (targetEl && tourCard) {
