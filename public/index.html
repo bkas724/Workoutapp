@@ -4933,7 +4933,7 @@
 
                 if (logBtn) {
                     logBtn.innerHTML = '<span class="hidden md:inline-block"><i class="fa-solid fa-sliders text-[11px] mr-1"></i></span><span>Log</span>';
-                    logBtn.className = "w-12 h-8 md:w-auto md:px-4 md:py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-md active:scale-95";
+                    logBtn.className = "w-12 h-8 md:w-auto md:px-3.5 md:py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-95";
                     logBtn.onclick = function (e) {
                         e.stopPropagation();
                         toggleGatekeeper(id);
@@ -5436,14 +5436,14 @@
                                 <!-- Right Section: Action Controls Station (Stacked Checkbox + Log Button on Mobile, Horizontal on Desktop) -->
                                 <div class="focus-action-controls-station flex flex-col md:flex-row items-center justify-center md:justify-end gap-1.5 shrink-0 relative z-10 md:col-span-3 self-center">
                                     ${nextStep.type === 'rest' ? `
-                                    <button onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', false, 'rest');" class="w-12 h-12 md:w-auto md:px-4 md:py-2 rounded-xl bg-slate-800 hover:bg-teal-500/20 text-teal-400 border border-slate-700 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95" title="Confirm Rest Day">
-                                        <i class="fa-solid fa-check text-lg md:text-xs"></i> <span class="hidden md:inline text-slate-200">Confirm Rest</span>
+                                    <button onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', false, 'rest');" class="w-12 h-12 md:w-auto md:px-4 md:py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border-2 border-teal-500/60 font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-teal-950/40 active:scale-95" title="Confirm Rest Day">
+                                        <i class="fa-solid fa-check text-xl md:text-sm text-teal-300"></i> <span class="hidden md:inline text-teal-200 font-extrabold">Confirm Rest</span>
                                     </button>
                                     ` : `
-                                    <button id="quick-btn-${nextStep.id}" onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}');" class="w-12 h-12 md:w-auto md:px-3.5 md:py-2 rounded-xl bg-slate-800/90 hover:bg-teal-500/20 text-teal-400 border border-slate-700/80 hover:border-teal-500/40 font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95" title="Quick Complete (Target Defaults)">
-                                        <i class="fa-solid fa-check text-lg md:text-xs"></i> <span class="hidden md:inline text-slate-200">Quick</span>
+                                    <button id="quick-btn-${nextStep.id}" onclick="event.stopPropagation(); quickCompleteWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}');" class="w-12 h-12 md:w-auto md:px-4 md:py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border-2 border-teal-500/60 font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-teal-950/40 active:scale-95" title="Quick Complete (Target Defaults)">
+                                        <i class="fa-solid fa-check text-xl md:text-sm text-teal-300"></i> <span class="hidden md:inline text-teal-200 font-extrabold">Quick Complete</span>
                                     </button>
-                                    <button id="log-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}');" class="w-12 h-8 md:w-auto md:px-4 md:py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1 shadow-md active:scale-95">
+                                    <button id="log-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}');" class="w-12 h-8 md:w-auto md:px-3.5 md:py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-95">
                                         <span class="hidden md:inline-block"><i class="fa-solid fa-sliders text-[11px] mr-1"></i></span><span>Log</span>
                                     </button>
                                     <button id="cancel-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="hidden w-12 h-8 md:w-auto md:px-3 md:py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer active:scale-95" title="Cancel">
