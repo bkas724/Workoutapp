@@ -745,6 +745,18 @@
             if (createIdInput) createIdInput.value = lookupVal;
         }
 
+        function openStartNewJourneyModal() {
+            if (userProfileData && userId) {
+                // Open onboarding modal directly for existing athlete ID
+                document.getElementById('onboarding-modal').classList.remove('hidden');
+                document.getElementById('profile-lookup-panel').classList.add('hidden');
+                document.getElementById('create-id-panel').classList.add('hidden');
+                document.getElementById('medical-disclaimer-panel').classList.remove('hidden');
+            } else {
+                showProfileLookupPanel();
+            }
+        }
+
         function cancelCreateId() {
             document.getElementById('create-id-panel').classList.add('hidden');
             document.getElementById('profile-lookup-panel').classList.remove('hidden');
@@ -3089,85 +3101,157 @@
             ];
         }
 
+        function renderJourneyAnchorCard() {
+            const anchorTitle = document.getElementById('journey-anchor-title');
+            const anchorHorizon = document.getElementById('journey-anchor-horizon');
+            const anchorWhy = document.getElementById('journey-anchor-why');
+            const anchorMetrics = document.getElementById('journey-anchor-metrics');
+
+            if (!anchorTitle || !anchorMetrics) return;
+
+            const data = userProfileData || {};
+            const dynData = data.dynamicGoalData || {};
+
+            const titleToDisplay = data.journeyGoalTitle || data.journeyTitle || dynData.journeyTitle || "My Flow Quest";
+            anchorTitle.innerText = titleToDisplay;
+
+            if (anchorWhy) {
+                const whyToDisplay = data.whyMotivation || data.why || data.journeyDescription || data.userBaselineNotes || "Achieve my fitness targets with consistency and zero guilt.";
+                anchorWhy.innerText = whyToDisplay;
+            }
+
+            // Target Date calculation
+            const targetDateStr = data.targetDate || dynData.targetDate;
+            if (targetDateStr) {
+                const target = new Date(targetDateStr);
+                const now = new Date();
+                const diffTime = target - now;
+                if (diffTime > 0) {
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const diffWeeks = Math.ceil(diffDays / 7);
+                    if (anchorHorizon) anchorHorizon.innerText = `${diffWeeks} Weeks Remaining`;
+                } else {
+                    if (anchorHorizon) anchorHorizon.innerText = "Goal Horizon Reached";
+                }
+            } else {
+                if (anchorHorizon) anchorHorizon.innerText = "12-Week Horizon";
+            }
+
+            const primaryGoal = data.primaryGoal || 'race';
+            anchorMetrics.innerHTML = '';
+
+            if (primaryGoal === 'race') {
+                const basePace = data.baseline5k || data.currentEstimated5k || dynData.currentPace || "25:00";
+                const goalPace = data.activeAdjustedGoal || dynData.goalPace || "22:30";
+                const tier = data.challengeTier || "Progressive";
+
+                anchorMetrics.innerHTML = `
+                    <div class="space-y-0.5">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Baseline Pace</span>
+                        <span class="text-xs font-black text-slate-200">${basePace} /mi</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block">Target Goal Pace</span>
+                        <span class="text-xs font-black text-indigo-300">${goalPace} /mi</span>
+                    </div>
+                    <div class="space-y-0.5 col-span-2 sm:col-span-1">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Progression Tier</span>
+                        <span class="text-xs font-bold text-emerald-400 capitalize">${tier}</span>
+                    </div>
+                `;
+            } else {
+                // Health / Weight / Habit Goal
+                const weeklyVolume = data.goalMetrics?.weeklyVolumeMiles || data.weeklyVolumeMiles || "4.5";
+                const startWeight = data.startingWeight || data.weight || "185";
+                const targetWeight = data.targetWeight || (parseFloat(startWeight) - 15).toString();
+
+                anchorMetrics.innerHTML = `
+                    <div class="space-y-0.5">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Weekly Target</span>
+                        <span class="text-xs font-black text-indigo-300">${weeklyVolume} Active Miles</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Weight Horizon</span>
+                        <span class="text-xs font-black text-emerald-400">${startWeight} ➔ ${targetWeight} lbs</span>
+                    </div>
+                    <div class="space-y-0.5 col-span-2 sm:col-span-1">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Weekly Days</span>
+                        <span class="text-xs font-bold text-slate-200">${data.daysAvailable || 4} Days / Week</span>
+                    </div>
+                `;
+            }
+        }
+
         // Modern Progress Timeline controller
         function updateTimelineView(phaseIndex) {
-            const phase = parseInt(phaseIndex) || 1;
-            const container = document.getElementById('timeline-3d-container');
-            const pagination = document.getElementById('timeline-pagination');
-            if (!container || !pagination) return;
+            const currentPhaseNumber = parseInt(phaseIndex) || (userProfileData && userProfileData.currentPhaseIndex) || 1;
+            renderJourneyAnchorCard();
 
-            // Default phases if none provided
+            const stepperContainer = document.getElementById('roadmap-stepper-container');
+            const badgeEl = document.getElementById('roadmap-active-phase-badge');
+
+            if (badgeEl) {
+                badgeEl.innerText = `Phase ${currentPhaseNumber} Active`;
+            }
+
             let plan = [];
             if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0) {
                 plan = userProfileData.macrocyclePlan;
             } else {
                 plan = [
-                    { theme: "Speed Induction", description: "Neuromuscular speed coordination. Alternating explosive 400m intervals with targeted glute/heel stability." },
-                    { theme: "Speed Endurance", description: "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring deadlifts." },
-                    { theme: "Peak & Taper", description: "Maximum capacity and recovery. Testing 1-mile repetitions before backing off volume for supercompensation." }
+                    { phase: 1, theme: "Base Aerobic Foundation", simpleDescription: "Getting familiar with consistent volume and intensity. Focus on high cadence.", expectedDurationWeeks: 3 },
+                    { phase: 2, theme: "Speed Induction & Thresholds", simpleDescription: "Neuromuscular speed coordination and aerobic threshold expansion.", expectedDurationWeeks: 3 },
+                    { phase: 3, theme: "Benchmark Acceleration", simpleDescription: "Extending speed efforts to longer repetitions with targeted posterior strength.", expectedDurationWeeks: 3 },
+                    { phase: 4, theme: "Peak Taper & Goal Race", simpleDescription: "Supercompensation peak and sharpening for your target event horizon.", expectedDurationWeeks: 3 }
                 ];
             }
 
-            const N = plan.length;
-            container.innerHTML = '';
-            pagination.innerHTML = '';
+            if (!stepperContainer) return;
+            stepperContainer.innerHTML = '';
 
-            // Generate Pagination Bubbles
-            for (let i = 1; i <= N; i++) {
-                const bubble = document.createElement('div');
-                if (i < phase) {
-                    bubble.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50";
-                } else if (i === phase) {
-                    bubble.className = "w-3 h-3 rounded-full bg-indigo-400 shadow-md shadow-indigo-500 ring-2 ring-indigo-500/30 scale-110 transition-transform";
-                } else {
-                    bubble.className = "w-2 h-2 rounded-full bg-slate-700 self-center opacity-50";
+            let currentAccumulatedDate = userProfileData && userProfileData.journeyStartDate ? new Date(userProfileData.journeyStartDate) : new Date();
+
+            plan.forEach((p, idx) => {
+                const phaseNum = p.phase || (idx + 1);
+                const isActive = phaseNum === currentPhaseNumber;
+                const isCompleted = phaseNum < currentPhaseNumber;
+
+                let dateBadge = '';
+                if (p.expectedDurationWeeks) {
+                    currentAccumulatedDate.setDate(currentAccumulatedDate.getDate() + (p.expectedDurationWeeks * 7));
+                    const options = { month: 'short', day: 'numeric' };
+                    dateBadge = `<span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] px-2 py-0.5 rounded-md whitespace-nowrap">Target: ${currentAccumulatedDate.toLocaleDateString(undefined, options)}</span>`;
                 }
-                pagination.appendChild(bubble);
-            }
 
-            // Generate 3D Cards
-            // Previous Phase (Left)
-            if (phase > 1) {
-                const prev = plan[phase - 2];
-                const prevHtml = `
-                    <div class="absolute left-[2%] md:left-[10%] w-1/3 max-w-[180px] flex flex-col items-center select-none z-0 opacity-40 transition-all duration-700" style="transform: scale(0.75) translateZ(-150px) rotateY(25deg);">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-500/10 shadow-md shadow-emerald-500/10 mb-2">
-                            <i class="fa-solid fa-check text-[10px] text-emerald-400"></i>
+                let cardBorder = "border-slate-800 bg-slate-950/40 opacity-75";
+                let badgeClass = "bg-slate-800 text-slate-400 border-slate-700";
+                let badgeText = `Phase ${phaseNum}`;
+
+                if (isActive) {
+                    cardBorder = "border-indigo-500/50 bg-indigo-950/40 ring-1 ring-indigo-500/20 opacity-100 shadow-lg shadow-indigo-950/50";
+                    badgeClass = "bg-indigo-500/20 text-indigo-300 border-indigo-500/40 font-black";
+                    badgeText = `Phase ${phaseNum} • ACTIVE`;
+                } else if (isCompleted) {
+                    cardBorder = "border-emerald-500/30 bg-emerald-950/20 opacity-90";
+                    badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-extrabold";
+                    badgeText = `Phase ${phaseNum} • COMPLETED ✓`;
+                }
+
+                const phaseTitle = p.theme || p.title || p.phaseName || ('Phase ' + phaseNum);
+                const phaseDesc = p.simpleDescription || p.description || '';
+
+                const cardHtml = `
+                    <div class="border rounded-2xl p-4 transition-all duration-300 ${cardBorder}">
+                        <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                            <span class="text-[10px] uppercase tracking-wider border px-2.5 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
+                            ${dateBadge || `<span class="text-[10px] font-bold text-slate-400">${p.expectedDurationWeeks || 3} Weeks</span>`}
                         </div>
-                        <span class="text-[9px] md:text-[10px] font-bold text-emerald-400 block tracking-tight text-center uppercase leading-snug">${prev?.theme || 'Phase ' + (phase - 1)}</span>
+                        <h4 class="text-sm font-extrabold text-white mb-1.5 leading-snug">${phaseTitle}</h4>
+                        ${phaseDesc ? `<p class="text-xs text-slate-300 leading-relaxed">${phaseDesc}</p>` : ''}
                     </div>
                 `;
-                container.insertAdjacentHTML('beforeend', prevHtml);
-            }
-
-            // Active Phase (Center)
-            const current = plan[phase - 1];
-            const activeHtml = `
-                <div class="absolute w-3/4 md:w-1/2 max-w-[340px] flex flex-col items-center select-none z-10 transition-all duration-700" style="transform: scale(1.05) translateZ(50px);">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-indigo-400 bg-indigo-950 shadow-[0_0_15px_rgba(99,102,241,0.5)] ring-4 ring-indigo-500/20 mb-3">
-                        <span class="text-sm font-black text-indigo-300">${phase}</span>
-                    </div>
-                    <span class="text-[11px] md:text-xs font-black text-indigo-300 block tracking-wider text-center uppercase drop-shadow-md leading-tight">${current?.theme || 'Phase ' + phase}</span>
-                    <p class="text-[10px] md:text-xs text-indigo-100/80 mt-3 leading-relaxed text-center p-4 rounded-3xl border border-indigo-500/30 bg-indigo-950/40 backdrop-blur-sm shadow-xl w-full">
-                        ${current?.simpleDescription || current?.description || ''}
-                    </p>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', activeHtml);
-
-            // Next Phase (Right)
-            if (phase < N) {
-                const next = plan[phase];
-                const nextHtml = `
-                    <div class="absolute right-[2%] md:right-[10%] w-1/3 max-w-[180px] flex flex-col items-center select-none z-0 opacity-40 transition-all duration-700" style="transform: scale(0.75) translateZ(-150px) rotateY(-25deg);">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-slate-700 bg-slate-900 mb-2">
-                            <span class="text-[10px] font-black text-slate-500">${phase + 1}</span>
-                        </div>
-                        <span class="text-[9px] md:text-[10px] font-semibold text-slate-500 block tracking-tight text-center uppercase leading-snug">${next?.theme || 'Phase ' + (phase + 1)}</span>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', nextHtml);
-            }
+                stepperContainer.insertAdjacentHTML('beforeend', cardHtml);
+            });
         }
 
         function openDetailedPlanModal() {
@@ -3833,8 +3917,12 @@
                     if (db && userId) {
                         try {
                             await db.collection("users").doc(userId).update({
-                                journeyDescription: newDesc
+                                journeyDescription: newDesc,
+                                whyMotivation: newDesc,
+                                why: newDesc
                             });
+                            const anchorWhy = document.getElementById('journey-anchor-why');
+                            if (anchorWhy) anchorWhy.innerText = newDesc;
                             console.log("Updated journey description in cloud.");
                         } catch (err) {
                             console.error("Failed to update description: ", err);
@@ -3845,6 +3933,59 @@
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         planDesc.blur();
+                    }
+                });
+            }
+
+            // Bind inline editing for Journey Anchor Card
+            const anchorTitle = document.getElementById('journey-anchor-title');
+            const anchorWhy = document.getElementById('journey-anchor-why');
+
+            if (anchorTitle) {
+                anchorTitle.addEventListener('blur', async () => {
+                    const newTitle = anchorTitle.innerText.trim();
+                    if (newTitle && db && userId) {
+                        try {
+                            await db.collection("users").doc(userId).update({
+                                journeyTitle: newTitle,
+                                journeyGoalTitle: newTitle
+                            });
+                            if (planTitle) planTitle.innerText = newTitle;
+                            console.log("Updated journey title from anchor card.");
+                        } catch (err) {
+                            console.error("Failed to update anchor title: ", err);
+                        }
+                    }
+                });
+                anchorTitle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        anchorTitle.blur();
+                    }
+                });
+            }
+
+            if (anchorWhy) {
+                anchorWhy.addEventListener('blur', async () => {
+                    const newWhy = anchorWhy.innerText.trim();
+                    if (db && userId) {
+                        try {
+                            await db.collection("users").doc(userId).update({
+                                whyMotivation: newWhy,
+                                why: newWhy,
+                                journeyDescription: newWhy
+                            });
+                            if (planDesc) planDesc.innerText = newWhy;
+                            console.log("Updated journey motivation from anchor card.");
+                        } catch (err) {
+                            console.error("Failed to update anchor why: ", err);
+                        }
+                    }
+                });
+                anchorWhy.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        anchorWhy.blur();
                     }
                 });
             }
