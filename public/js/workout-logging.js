@@ -175,11 +175,6 @@ function quickCompleteWorkout(activityId, isBenchmark, type) {
                 rpeScore: 5
             }).then(() => {
                 console.log("Quick completed workout:", activityId);
-                fetchActivePhaseWorkouts(userId).then(workouts => {
-                    activePhaseWorkouts = workouts;
-                    renderNextActivityCard();
-                    renderPhaseRoadmap(workouts);
-                });
             }).catch(err => {
                 console.error("Quick completion error:", err);
             });
