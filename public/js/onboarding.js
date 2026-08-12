@@ -268,6 +268,8 @@ function goToOnboardingStep(step) {
     for (let i = 1; i <= 3; i++) {
         const ind = document.getElementById('step-ind-' + i);
         const panel = document.getElementById('onboarding-step-' + i);
+        const label = document.getElementById('step-label-' + i);
+        const check = document.getElementById('step-check-' + i);
         if (ind) {
             if (i <= step) {
                 ind.classList.remove('bg-slate-800');
@@ -275,6 +277,25 @@ function goToOnboardingStep(step) {
             } else {
                 ind.classList.add('bg-slate-800');
                 ind.classList.remove('bg-indigo-500');
+            }
+        }
+        if (label) {
+            if (i === step) {
+                label.classList.remove('text-slate-500', 'text-indigo-300/80');
+                label.classList.add('text-indigo-400', 'font-black');
+            } else if (i < step) {
+                label.classList.remove('text-slate-500', 'text-indigo-400');
+                label.classList.add('text-indigo-300/80', 'font-bold');
+            } else {
+                label.classList.remove('text-indigo-400', 'text-indigo-300/80', 'font-black');
+                label.classList.add('text-slate-500', 'font-extrabold');
+            }
+        }
+        if (check) {
+            if (i < step) {
+                check.classList.remove('hidden');
+            } else {
+                check.classList.add('hidden');
             }
         }
         if (panel) {

@@ -1329,7 +1329,7 @@
 
     <!-- Onboarding Modal (incorporates Medical Disclaimer and Intake forms) -->
     <div id="onboarding-modal"
-        class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/95 backdrop-blur-md flex items-start py-8 justify-center px-4 hidden custom-scrollbar">
+        class="fixed inset-0 z-50 overflow-hidden bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 hidden custom-scrollbar">
         <div
             class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative overflow-hidden">
             <div
@@ -1497,9 +1497,9 @@
 
             <!-- Onboarding Intake Form Panel -->
             <div id="onboarding-form-panel"
-                class="hidden flex-col h-[85vh] max-h-[800px] relative -mx-6 px-6 md:-mx-8 md:px-8">
+                class="hidden flex flex-col h-[70vh] max-h-[600px] min-h-0 relative -mx-6 px-6 md:-mx-8 md:px-8">
                 <!-- STATIC HEADER -->
-                <div class="shrink-0 bg-slate-900 pb-4 pt-1 border-b border-slate-800 z-20">
+                <div class="shrink-0 bg-slate-900 pb-3 pt-1 border-b border-slate-800/80 z-20">
                     <div>
                         <h2
                             class="text-2xl font-black text-white bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
@@ -1509,30 +1509,39 @@
                     </div>
 
                     <!-- TOP STEPPER -->
-                    <div class="flex gap-2 w-full mt-4">
+                    <div class="flex gap-2 w-full mt-3">
                         <div class="flex-1 flex flex-col gap-1 cursor-pointer group" onclick="goToOnboardingStep(1)">
                             <span
-                                class="text-[9px] font-bold text-slate-500 uppercase tracking-wider pl-1 group-hover:text-indigo-400 transition-colors"
-                                id="step-label-1">1. Basics</span>
+                                class="text-[11px] font-black text-indigo-400 uppercase tracking-wider pl-1 transition-colors flex items-center justify-between"
+                                id="step-label-1">
+                                <span>1. Basics</span>
+                                <i id="step-check-1" class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
+                            </span>
                             <div id="step-ind-1" class="h-1.5 rounded-full bg-indigo-500 transition-colors"></div>
                         </div>
                         <div class="flex-1 flex flex-col gap-1 cursor-pointer group" onclick="goToOnboardingStep(2)">
                             <span
-                                class="text-[9px] font-bold text-slate-500 uppercase tracking-wider pl-1 group-hover:text-indigo-400 transition-colors"
-                                id="step-label-2">2. Body</span>
+                                class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider pl-1 group-hover:text-indigo-400 transition-colors flex items-center justify-between"
+                                id="step-label-2">
+                                <span>2. Body</span>
+                                <i id="step-check-2" class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
+                            </span>
                             <div id="step-ind-2" class="h-1.5 rounded-full bg-slate-800 transition-colors"></div>
                         </div>
                         <div class="flex-1 flex flex-col gap-1 cursor-pointer group" onclick="goToOnboardingStep(3)">
                             <span
-                                class="text-[9px] font-bold text-slate-500 uppercase tracking-wider pl-1 group-hover:text-indigo-400 transition-colors"
-                                id="step-label-3">3. Targets</span>
+                                class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider pl-1 group-hover:text-indigo-400 transition-colors flex items-center justify-between"
+                                id="step-label-3">
+                                <span>3. Targets</span>
+                                <i id="step-check-3" class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
+                            </span>
                             <div id="step-ind-3" class="h-1.5 rounded-full bg-slate-800 transition-colors"></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- SCROLLABLE FORM BODY -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar py-6 pr-2">
+                <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar pt-3 pb-4 pr-1">
                     <div class="grid grid-cols-1 gap-4 text-xs">
                         <!-- STEP 1 CONTAINER -->
                         <div id="onboarding-step-1" class="space-y-4">
