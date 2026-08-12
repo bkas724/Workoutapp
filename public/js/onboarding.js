@@ -761,13 +761,13 @@ function selectStrength(type) {
         const el = document.getElementById('strength-' + opt);
         if(el) {
             el.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20', 'font-bold');
-            el.classList.add('bg-transparent', 'text-slate-400', 'font-medium');
+            el.classList.add('bg-transparent', 'text-slate-400', 'font-medium', 'hover:bg-slate-800/50', 'hover:text-slate-200');
         }
     });
 
     const sel = document.getElementById('strength-' + type);
     if(sel) {
-        sel.classList.remove('bg-transparent', 'text-slate-400', 'font-medium');
+        sel.classList.remove('bg-transparent', 'text-slate-400', 'font-medium', 'hover:bg-slate-800/50', 'hover:text-slate-200');
         sel.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20', 'font-bold');
     }
 }
