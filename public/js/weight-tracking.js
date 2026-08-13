@@ -37,7 +37,8 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
 
                 const weight = data.weight;
                 const totalInches = data.heightInches;
-                const minHealthyWeight = Math.round((18.5 * totalInches * totalInches) / 703);
+                const sex = data.sex || 'male';
+                const minHealthyWeight = window.calculateMinTargetWeight ? window.calculateMinTargetWeight(totalInches, sex) : Math.round(((sex === 'female' ? 20.25 : 21.75) * totalInches * totalInches) / 703);
                 const maxHealthyWeight = Math.round((24.9 * totalInches * totalInches) / 703);
                 const obeseThresholdWeight = Math.round((29.9 * totalInches * totalInches) / 703);
 
@@ -737,73 +738,86 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                 }
             }
 
+window.calculateMinTargetWeight = function (heightInches, sex) {
+    if (!heightInches || heightInches <= 0) return 0;
+    const isFemale = (sex || '').toLowerCase() === 'female';
+    const targetBmiFloor = isFemale ? 20.25 : 21.75;
+    return Math.round((targetBmiFloor * heightInches * heightInches) / 703);
+};
+
 function updateBMIVisual() {
-                const weight = parseFloat(document.getElementById('intake-weight').value);
-                const ft = parseInt(document.getElementById('intake-height-ft').value) || 0;
-                const inch = parseInt(document.getElementById('intake-height-in').value) || 0;
-                const container = document.getElementById('bmi-visual-container');
-                const display = document.getElementById('bmi-value-display');
-                const marker = document.getElementById('bmi-marker');
-                const textRange = document.getElementById('bmi-healthy-range-text');
+    const trackWeight = document.getElementById('intake-track-weight')?.value === 'on';
+    const weight = parseFloat(document.getElementById('intake-weight')?.value);
+    const ft = parseInt(document.getElementById('intake-height-ft')?.value) || 0;
+    const inch = parseInt(document.getElementById('intake-height-in')?.value) || 0;
+    const sex = document.getElementById('intake-sex')?.value || 'male';
 
-                if (!weight || (ft === 0 && inch === 0)) {
-                    container.classList.add('hidden');
-                    return;
-                }
+    const targetInputBox = document.getElementById('target-weight-input-box');
+    const healthyNote = document.getElementById('healthy-weight-note');
 
-                const totalInches = (ft * 12) + inch;
-                if (totalInches === 0) return;
+    if (!targetInputBox || !healthyNote) return;
 
-                const bmi = (weight / (totalInches * totalInches)) * 703;
+    // If Target Weight Goal toggle is OFF (NO)
+    if (!trackWeight) {
+        targetInputBox.classList.add('hidden');
+        healthyNote.classList.add('hidden');
+        return;
+    }
 
-                let percent = 0;
-                if (bmi < 18.5) {
-                    const clamped = Math.max(12, bmi);
-                    percent = ((clamped - 12) / 6.5) * 25;
-                } else if (bmi < 25) {
-                    percent = 25 + ((bmi - 18.5) / 6.5) * 25;
-                } else if (bmi < 30) {
-                    percent = 50 + ((bmi - 25) / 5) * 25;
-                } else {
-                    const clamped = Math.min(40, bmi);
-                    percent = 75 + ((clamped - 30) / 10) * 25;
-                }
+    // If Target Weight Goal toggle is ON (YES), but height/weight not fully filled yet
+    if (!weight || (ft === 0 && inch === 0)) {
+        targetInputBox.classList.remove('hidden');
+        healthyNote.classList.add('hidden');
+        return;
+    }
 
-                container.classList.remove('hidden');
-                display.innerText = bmi.toFixed(1);
-                marker.style.left = `${Math.max(0, Math.min(100, percent))}%`;
+    const totalInches = (ft * 12) + inch;
+    if (totalInches === 0) return;
 
-                const minHealthy = Math.round((18.5 * totalInches * totalInches) / 703);
-                const maxHealthy = Math.round((24.9 * totalInches * totalInches) / 703);
-                textRange.innerText = `Healthy weight range for your height: ${minHealthy} - ${maxHealthy} lbs`;
-            }
+    const minWeightFloor = window.calculateMinTargetWeight(totalInches, sex);
+    const currentBMI = (weight / (totalInches * totalInches)) * 703;
+
+    // Check if current weight is in healthy range or at/below athletic min floor
+    if (weight <= minWeightFloor || (currentBMI >= 18.5 && currentBMI <= 24.9)) {
+        targetInputBox.classList.add('hidden');
+        healthyNote.classList.remove('hidden');
+        const targetInput = document.getElementById('intake-target-weight');
+        if (targetInput) targetInput.value = '';
+    } else {
+        targetInputBox.classList.remove('hidden');
+        healthyNote.classList.add('hidden');
+    }
+}
 
 window.enforceMinimumWeight = function (el) {
-                const ft = parseInt(document.getElementById('intake-height-ft')?.value) || (typeof userProfileData !== 'undefined' && userProfileData?.heightInches ? Math.floor(userProfileData.heightInches / 12) : 0);
-                const inch = parseInt(document.getElementById('intake-height-in')?.value) || (typeof userProfileData !== 'undefined' && userProfileData?.heightInches ? userProfileData.heightInches % 12 : 0);
-                const totalInches = (ft * 12) + inch;
+    const ft = parseInt(document.getElementById('intake-height-ft')?.value) || (typeof userProfileData !== 'undefined' && userProfileData?.heightInches ? Math.floor(userProfileData.heightInches / 12) : 0);
+    const inch = parseInt(document.getElementById('intake-height-in')?.value) || (typeof userProfileData !== 'undefined' && userProfileData?.heightInches ? userProfileData.heightInches % 12 : 0);
+    const sex = document.getElementById('intake-sex')?.value || (typeof userProfileData !== 'undefined' ? userProfileData?.sex : 'male');
+    const totalInches = (ft * 12) + inch;
 
-                if (totalInches > 0) {
-                    const minHealthy = Math.round((18.5 * totalInches * totalInches) / 703);
-                    const val = parseFloat(el.value);
-                    if (val && val < minHealthy) {
-                        el.value = minHealthy;
+    if (totalInches > 0) {
+        const minWeightFloor = window.calculateMinTargetWeight(totalInches, sex);
+        const val = parseFloat(el.value);
 
-                        const container = el.parentElement;
-                        const bubble = container.querySelector('.min-weight-bubble');
-                        if (bubble) {
-                            bubble.querySelector('.min-val').innerText = minHealthy;
-                            bubble.classList.remove('hidden');
+        if (val && val < minWeightFloor) {
+            el.value = minWeightFloor;
 
-                            el.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-500/10');
-                            setTimeout(() => {
-                                bubble.classList.add('hidden');
-                                el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-500/10');
-                            }, 4000);
-                        }
-                    }
-                }
+            const container = el.parentElement;
+            const bubble = container?.querySelector('.min-weight-bubble');
+            if (bubble) {
+                const minValEl = bubble.querySelector('.min-val');
+                if (minValEl) minValEl.innerText = minWeightFloor;
+                bubble.classList.remove('hidden');
+
+                el.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-500/10');
+                setTimeout(() => {
+                    bubble.classList.add('hidden');
+                    el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-500/10');
+                }, 6000);
             }
+        }
+    }
+}
 
 window.validateTargetWeight = function () {
                 // enforceMinimumWeight handles the correction and bubble on blur.

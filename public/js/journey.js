@@ -70,10 +70,9 @@ function renderJourneyAnchorCard() {
                     </div>
                 `;
             } else {
-                // Health / Weight / Habit Goal
                 const weeklyVolume = data.goalMetrics?.weeklyVolumeMiles || data.weeklyVolumeMiles || "4.5";
-                const startWeight = data.startingWeight || data.weight || "185";
-                const targetWeight = data.targetWeight || (parseFloat(startWeight) - 15).toString();
+                const startWeight = data.startingWeight || data.weight;
+                const hasTargetWeight = data.targetWeight != null && parseFloat(data.targetWeight) > 0;
 
                 anchorMetrics.innerHTML = `
                     <div class="space-y-0.5">
@@ -81,8 +80,8 @@ function renderJourneyAnchorCard() {
                         <span class="text-xs font-black text-indigo-300">${weeklyVolume} Active Miles</span>
                     </div>
                     <div class="space-y-0.5">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Weight Horizon</span>
-                        <span class="text-xs font-black text-emerald-400">${startWeight} ➔ ${targetWeight} lbs</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">${hasTargetWeight ? 'Weight Horizon' : 'Primary Focus'}</span>
+                        <span class="text-xs font-black text-emerald-400">${hasTargetWeight ? `${startWeight || ''} ➔ ${data.targetWeight} lbs` : 'Fitness & Habit Building'}</span>
                     </div>
                     <div class="space-y-0.5 col-span-2 sm:col-span-1">
                         <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Weekly Days</span>

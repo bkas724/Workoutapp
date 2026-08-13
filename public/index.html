@@ -1515,7 +1515,8 @@
                                 class="text-[11px] font-black text-indigo-400 uppercase tracking-wider pl-1 transition-colors flex items-center justify-between"
                                 id="step-label-1">
                                 <span>1. Basics</span>
-                                <i id="step-check-1" class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
+                                <i id="step-check-1"
+                                    class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
                             </span>
                             <div id="step-ind-1" class="h-1.5 rounded-full bg-indigo-500 transition-colors"></div>
                         </div>
@@ -1524,7 +1525,8 @@
                                 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider pl-1 group-hover:text-indigo-400 transition-colors flex items-center justify-between"
                                 id="step-label-2">
                                 <span>2. Body</span>
-                                <i id="step-check-2" class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
+                                <i id="step-check-2"
+                                    class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
                             </span>
                             <div id="step-ind-2" class="h-1.5 rounded-full bg-slate-800 transition-colors"></div>
                         </div>
@@ -1533,7 +1535,8 @@
                                 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider pl-1 group-hover:text-indigo-400 transition-colors flex items-center justify-between"
                                 id="step-label-3">
                                 <span>3. Targets</span>
-                                <i id="step-check-3" class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
+                                <i id="step-check-3"
+                                    class="fa-solid fa-check text-[10px] text-indigo-400 hidden mr-1"></i>
                             </span>
                             <div id="step-ind-3" class="h-1.5 rounded-full bg-slate-800 transition-colors"></div>
                         </div>
@@ -1596,11 +1599,19 @@
 
                             <div id="dynamic-form-strength" class="hidden mt-2 pt-2">
                                 <div class="space-y-3">
-                                    <label class="block font-bold text-slate-400 uppercase tracking-wider text-[10px]">Strength Focus</label>
+                                    <label
+                                        class="block font-bold text-slate-400 uppercase tracking-wider text-[10px]">Strength
+                                        Focus</label>
                                     <div class="flex gap-2">
-                                        <div onclick="selectStrength('runner_specific')" id="strength-runner_specific" class="cursor-pointer flex-1 bg-indigo-600 shadow-lg shadow-indigo-500/20 text-white text-center p-2.5 rounded-xl text-xs font-bold transition-all">Running</div>
-                                        <div onclick="selectStrength('full_body')" id="strength-full_body" class="cursor-pointer flex-1 bg-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-center p-2.5 rounded-xl text-xs font-medium transition-all">Full Body</div>
-                                        <div onclick="selectStrength('none')" id="strength-none" class="cursor-pointer flex-1 bg-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-center p-2.5 rounded-xl text-xs font-medium transition-all">None</div>
+                                        <div onclick="selectStrength('runner_specific')" id="strength-runner_specific"
+                                            class="cursor-pointer flex-1 bg-indigo-600 shadow-lg shadow-indigo-500/20 text-white text-center p-2.5 rounded-xl text-xs font-bold transition-all">
+                                            Running</div>
+                                        <div onclick="selectStrength('full_body')" id="strength-full_body"
+                                            class="cursor-pointer flex-1 bg-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-center p-2.5 rounded-xl text-xs font-medium transition-all">
+                                            Full Body</div>
+                                        <div onclick="selectStrength('none')" id="strength-none"
+                                            class="cursor-pointer flex-1 bg-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-center p-2.5 rounded-xl text-xs font-medium transition-all">
+                                            None</div>
                                     </div>
                                     <input type="hidden" id="intake-strength" value="runner_specific">
                                 </div>
@@ -1608,111 +1619,109 @@
 
 
 
-                            <!-- PHYSIOLOGICAL INPUTS -->
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="space-y-1">
-                                    <label class="block font-bold text-slate-400 uppercase tracking-wider">Birth
-                                        Year</label>
-                                    <input type="number" id="intake-birthyear" placeholder="e.g. 1990" min="1900"
-                                        max="2010"
-                                        class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center">
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="block font-bold text-slate-400 uppercase tracking-wider">Sex</label>
-                                    <select id="intake-sex"
-                                        class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 cursor-pointer text-center">
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <!-- Weight (Current & Target) -->
-                                <div class="space-y-1">
+                            <!-- PHYSIOLOGICAL INPUTS (Row 1: Birth Year, Sex, Height) -->
+                            <div class="grid grid-cols-12 gap-2 items-end">
+                                <div class="col-span-3 space-y-1">
                                     <label
-                                        class="block font-bold text-slate-400 uppercase tracking-wider text-[10px] truncate">Weight
-                                        (Lbs)</label>
-                                    <div class="flex gap-1.5">
-                                        <div class="w-1/2">
+                                        class="block font-bold text-slate-400 uppercase tracking-wider text-[10px] truncate">Born</label>
+                                    <input type="number" id="intake-birthyear" placeholder="1990" min="1900" max="2010"
+                                        class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-xs">
+                                </div>
+                                <div class="col-span-4 space-y-1">
+                                    <label
+                                        class="block font-bold text-slate-400 uppercase tracking-wider text-[10px] truncate pl-1">Sex</label>
+                                    <div class="flex gap-1">
+                                        <div onclick="selectSex('male')" id="sex-m"
+                                            class="cursor-pointer flex-1 bg-indigo-600 shadow-lg shadow-indigo-500/20 text-white text-center p-2.5 rounded-xl text-xs font-bold transition-all">
+                                            M</div>
+                                        <div onclick="selectSex('female')" id="sex-f"
+                                            class="cursor-pointer flex-1 bg-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 text-center p-2.5 rounded-xl text-xs font-medium transition-all">
+                                            F</div>
+                                    </div>
+                                    <input type="hidden" id="intake-sex" value="male">
+                                </div>
+                                <div class="col-span-5 space-y-1">
+                                    <label
+                                        class="block font-bold text-slate-400 uppercase tracking-wider text-[10px] truncate">Height</label>
+                                    <div class="flex gap-1">
+                                        <input type="number" id="intake-height-ft" placeholder="Ft" min="3" max="8"
+                                            class="w-1/2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-xs"
+                                            oninput="updateBMIVisual()">
+                                        <input type="number" id="intake-height-in" placeholder="In" min="0" max="11"
+                                            class="w-1/2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-xs"
+                                            oninput="updateBMIVisual()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- WEIGHT GOAL TOGGLE ROW -->
+                            <div class="space-y-2 mt-2">
+                                <div
+                                    class="flex items-center justify-between bg-slate-950/40 p-2 rounded-xl border border-slate-800/60">
+                                    <label
+                                        class="block font-bold text-slate-400 uppercase tracking-wider text-[10px]">Target
+                                        Weight?</label>
+                                    <div class="flex gap-1 bg-slate-950 p-0.5 rounded-xl border border-slate-800">
+                                        <div onclick="toggleWeightTracking(false)" id="weight-track-off"
+                                            class="cursor-pointer px-3 py-1 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-md">
+                                            No</div>
+                                        <div onclick="toggleWeightTracking(true)" id="weight-track-on"
+                                            class="cursor-pointer px-3 py-1 rounded-lg text-xs font-medium transition-all bg-transparent text-slate-400 hover:text-slate-200">
+                                            Yes</div>
+                                    </div>
+                                    <input type="hidden" id="intake-track-weight" value="off">
+                                </div>
+
+                                <!-- WEIGHT COLLECTION ROW (Current Weight & Dynamic Target/Healthy/Blank Container) -->
+                                <div class="grid grid-cols-2 gap-2 items-start pt-0.5">
+                                    <!-- Current Weight (ALWAYS VISIBLE) -->
+                                    <div class="space-y-1">
+                                        <label
+                                            class="block font-bold text-slate-400 uppercase tracking-wider text-[10px]">Current
+                                            Weight (Lbs)</label>
+                                        <input type="number" id="intake-weight" step="0.1" placeholder="e.g. 185"
+                                            min="50" max="400"
+                                            class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
+                                            oninput="updateBMIVisual()">
+                                    </div>
+
+                                    <!-- Target / Healthy Note / Blank Container -->
+                                    <div id="target-weight-container" class="space-y-1 relative">
+                                        <!-- Target Input Box (Shown if Yes + Outside Healthy Range) -->
+                                        <div id="target-weight-input-box" class="hidden space-y-1">
                                             <label
-                                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Current</label>
-                                            <input type="number" id="intake-weight" step="0.1" placeholder="e.g. 165"
-                                                min="50" max="400"
-                                                class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
-                                                oninput="updateBMIVisual()">
-                                        </div>
-                                        <div class="w-1/2 relative">
-                                            <label
-                                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Target</label>
+                                                class="block font-bold text-slate-400 uppercase tracking-wider text-[10px]">Target
+                                                Weight (Lbs)</label>
                                             <input type="number" id="intake-target-weight" step="0.1"
-                                                placeholder="e.g. 150" min="50" max="400"
-                                                class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
-                                                onblur="enforceMinimumWeight(this)" oninput="validateTargetWeight()">
+                                                placeholder="e.g. 165" min="50" max="400"
+                                                class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
+                                                onblur="enforceMinimumWeight(this)"
+                                                oninput="validateTargetWeight(); updateBMIVisual();">
 
                                             <div
-                                                class="min-weight-bubble hidden absolute -bottom-10 right-0 bg-indigo-600 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xl whitespace-nowrap z-30 flex items-center gap-1.5">
-                                                <div class="absolute -top-1 right-4 w-3 h-3 bg-indigo-600 rotate-45">
-                                                </div>
-                                                <i class="fa-solid fa-circle-info"></i> Minimum healthy weight is <span
-                                                    class="min-val"></span> lbs
+                                                class="min-weight-bubble hidden mt-1.5 bg-indigo-950/90 border border-indigo-500/40 text-indigo-200 text-[10px] font-medium p-2.5 rounded-xl shadow-lg leading-snug">
+                                                <i class="fa-solid fa-shield-heart text-indigo-400 mr-1"></i>
+                                                Minimum target for ideal fitness is <span
+                                                    class="min-val font-bold text-white"></span> lbs.
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
 
-                                <!-- Height (Ft & In) -->
-                                <div class="space-y-1">
-                                    <label
-                                        class="block font-bold text-slate-400 uppercase tracking-wider text-[10px]">Height</label>
-                                    <div class="flex gap-1.5">
-                                        <div class="w-1/2">
-                                            <label
-                                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Ft</label>
-                                            <input type="number" id="intake-height-ft" placeholder="ft" min="3" max="8"
-                                                class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
-                                                oninput="updateBMIVisual()">
-                                        </div>
-                                        <div class="w-1/2">
-                                            <label
-                                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">In</label>
-                                            <input type="number" id="intake-height-in" placeholder="in" min="0" max="11"
-                                                class="w-full bg-slate-950 border border-slate-800 py-2 px-1 rounded-xl text-white font-bold focus:outline-none focus:border-indigo-500/80 text-center text-sm"
-                                                oninput="updateBMIVisual()">
+                                        <!-- Healthy BMI Range Encouraging Ticker (Shown if Yes + Healthy Range) -->
+                                        <div id="healthy-weight-note"
+                                            class="hidden p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl space-y-1 mt-4">
+                                            <div
+                                                class="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider">
+                                                <i class="fa-solid fa-circle-check"></i> Healthy Weight Range
+                                            </div>
+                                            <p class="text-[10px] text-slate-300 leading-snug">
+                                                You're in a healthy weight range! Focus is on fitness.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- BMI Visual Container -->
-                            <div id="bmi-visual-container"
-                                class="hidden mt-1 bg-slate-900 border border-slate-800 p-3 rounded-xl">
-                                <div class="flex justify-between items-end mb-1">
-                                    <span class="text-xs font-bold text-slate-300">Est. BMI</span>
-                                    <span id="bmi-value-display" class="text-xs font-bold text-indigo-400"></span>
-                                </div>
-                                <div class="relative w-full h-3 rounded-full bg-slate-800 overflow-hidden flex">
-                                    <!-- Underweight (<18.5) -->
-                                    <div class="h-full bg-blue-500" style="width: 25%"></div>
-                                    <!-- Healthy (18.5 - 24.9) -->
-                                    <div class="h-full bg-green-500" style="width: 25%"></div>
-                                    <!-- Overweight (25 - 29.9) -->
-                                    <div class="h-full bg-yellow-500" style="width: 25%"></div>
-                                    <!-- Obese (30+) -->
-                                    <div class="h-full bg-red-500" style="width: 25%"></div>
 
-                                    <!-- Marker -->
-                                    <div id="bmi-marker"
-                                        class="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_5px_rgba(255,255,255,0.8)] transition-all duration-300"
-                                        style="left: 0%;"></div>
-                                </div>
-                                <div
-                                    class="flex justify-between text-[8px] text-slate-500 mt-1 uppercase font-bold tracking-wider">
-                                    <span class="w-1/4 text-center">Under</span>
-                                    <span class="w-1/4 text-center">Healthy</span>
-                                    <span class="w-1/4 text-center">Over</span>
-                                    <span class="w-1/4 text-center">Obese</span>
-                                </div>
-                                <p id="bmi-healthy-range-text" class="text-[10px] text-slate-400 mt-2 text-center"></p>
-                            </div>
 
                             <!-- FITNESS LEVEL -->
                             <div class="space-y-2">

@@ -339,10 +339,16 @@ function validateOnboardingStep(step) {
         }
     } else if (step === 2) {
         const age = document.getElementById('intake-birthyear').value;
-        const weight = document.getElementById('intake-weight').value;
         const fitness = document.getElementById('intake-fitness-level').value;
-        if (!age || !weight || !fitness) {
-            alert("Please fill out Birth Year, Weight, and Fitness Level.");
+        const trackWeight = document.getElementById('intake-track-weight')?.value === 'on';
+        const weight = document.getElementById('intake-weight').value;
+
+        if (!age || !fitness) {
+            alert("Please fill out Birth Year and Fitness Level.");
+            return false;
+        }
+        if (trackWeight && !weight) {
+            alert("Please enter your Current Weight or turn Weight Tracking off.");
             return false;
         }
     }
@@ -393,8 +399,24 @@ function restartJourney() {
         } else {
             document.getElementById('intake-birthyear').value = "";
         }
-        document.getElementById('intake-weight').value = userProfileData.weight || "";
-        document.getElementById('intake-sex').value = userProfileData.sex || "male";
+        if (userProfileData.weight) {
+            document.getElementById('intake-weight').value = userProfileData.weight;
+        } else {
+            document.getElementById('intake-weight').value = "";
+        }
+
+        if (userProfileData.targetWeight) {
+            toggleWeightTracking(true);
+            document.getElementById('intake-target-weight').value = userProfileData.targetWeight;
+        } else {
+            toggleWeightTracking(false);
+            document.getElementById('intake-target-weight').value = "";
+        }
+                if (userProfileData.sex) {
+                    selectSex(userProfileData.sex);
+                } else {
+                    selectSex('male');
+                }
         if (userProfileData.heightInches) {
             document.getElementById('intake-height-ft').value = Math.floor(userProfileData.heightInches / 12);
             document.getElementById('intake-height-in').value = userProfileData.heightInches % 12;
@@ -793,6 +815,69 @@ function selectStrength(type) {
     }
 }
 
+function toggleWeightTracking(enabled) {
+    const input = document.getElementById('intake-track-weight');
+    const container = document.getElementById('target-weight-container');
+    const btnOff = document.getElementById('weight-track-off');
+    const btnOn = document.getElementById('weight-track-on');
+
+    if (enabled) {
+        if (input) input.value = "on";
+        if (container) container.classList.remove('hidden');
+        if (btnOn) {
+            btnOn.classList.remove('bg-transparent', 'text-slate-400', 'font-medium');
+            btnOn.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'font-bold');
+        }
+        if (btnOff) {
+            btnOff.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'font-bold');
+            btnOff.classList.add('bg-transparent', 'text-slate-400', 'font-medium');
+        }
+        if (typeof updateBMIVisual === 'function') updateBMIVisual();
+    } else {
+        if (input) input.value = "off";
+        if (container) container.classList.add('hidden');
+        if (btnOff) {
+            btnOff.classList.remove('bg-transparent', 'text-slate-400', 'font-medium');
+            btnOff.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'font-bold');
+        }
+        if (btnOn) {
+            btnOn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'font-bold');
+            btnOn.classList.add('bg-transparent', 'text-slate-400', 'font-medium');
+        }
+        const targetInput = document.getElementById('intake-target-weight');
+        if (targetInput) targetInput.value = '';
+    }
+}
+
+function selectSex(val) {
+    const input = document.getElementById('intake-sex');
+    if (input) input.value = val;
+
+    const m = document.getElementById('sex-m');
+    const f = document.getElementById('sex-f');
+
+    if (val === 'male' || val === 'm') {
+        if (m) {
+            m.classList.remove('bg-transparent', 'text-slate-400', 'font-medium');
+            m.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20', 'font-bold');
+        }
+        if (f) {
+            f.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20', 'font-bold');
+            f.classList.add('bg-transparent', 'text-slate-400', 'font-medium');
+        }
+    } else {
+        if (f) {
+            f.classList.remove('bg-transparent', 'text-slate-400', 'font-medium');
+            f.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20', 'font-bold');
+        }
+        if (m) {
+            m.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20', 'font-bold');
+            m.classList.add('bg-transparent', 'text-slate-400', 'font-medium');
+        }
+    }
+    if (typeof updateBMIVisual === 'function') updateBMIVisual();
+}
+
 function selectGoal(goal) {
     document.getElementById('intake-primary-goal').value = goal;
 
@@ -922,20 +1007,24 @@ async function submitOnboardingForm() {
     const birthYear = parseInt(document.getElementById('intake-birthyear').value);
     const currentYear = new Date().getFullYear();
     const age = birthYear ? (currentYear - birthYear) : null;
-    const weight = parseFloat(document.getElementById('intake-weight').value);
+    const trackWeight = document.getElementById('intake-track-weight')?.value === 'on';
+    const rawWeight = document.getElementById('intake-weight').value;
     const sex = document.getElementById('intake-sex').value;
     const ft = parseInt(document.getElementById('intake-height-ft').value) || 0;
     const inch = parseInt(document.getElementById('intake-height-in').value) || 0;
     const heightInches = (ft * 12) + inch;
 
-    const fitnessLevel = document.getElementById('intake-fitness-level').value;
-    const primaryGoal = document.getElementById('intake-primary-goal').value;
+    let weight = (trackWeight && rawWeight) ? parseFloat(rawWeight) : null;
+    let targetWeight = null;
 
-    const daysAvailable = parseInt(document.getElementById('intake-days-available').value);
-    const minsAvailable = parseInt(document.getElementById('intake-mins-available').value) || 45;
-    const strength = document.getElementById('intake-strength').value;
-    const targetWeightRaw = document.getElementById('intake-target-weight').value;
-    const targetWeight = targetWeightRaw ? parseFloat(targetWeightRaw) : null;
+    if (trackWeight && weight && heightInches > 0) {
+        const bmi = (weight / (heightInches * heightInches)) * 703;
+        // Only record a targetWeight if outside the healthy range (18.5 - 24.9)
+        if (bmi < 18.5 || bmi > 24.9) {
+            const targetWeightRaw = document.getElementById('intake-target-weight').value;
+            targetWeight = targetWeightRaw ? parseFloat(targetWeightRaw) : null;
+        }
+    }
 
     const equipmentList = Array.from(window.selectedEquipment);
 
@@ -956,8 +1045,12 @@ async function submitOnboardingForm() {
         return;
     }
 
-    if (!age || !weight || !fitnessLevel || !primaryGoal || !daysAvailable || !title) {
-        alert("Please fill out all required base fields (Age, Weight, Fitness, Goal, Days, Title).");
+    if (!age || !fitnessLevel || !primaryGoal || !daysAvailable || !title) {
+        alert("Please fill out all required base fields (Age, Fitness, Goal, Days, Title).");
+        return;
+    }
+    if (trackWeight && !weight) {
+        alert("Please enter your current weight.");
         return;
     }
 
