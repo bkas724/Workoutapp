@@ -369,11 +369,13 @@ function restartJourney() {
 
     if (userProfileData) {
         document.getElementById('intake-athlete-id').value = userId;
-        document.getElementById('intake-title').value = userProfileData.journeyTitle || "";
+        document.getElementById('intake-title').value = userProfileData.journeyTitle || userProfileData.title || "";
+        document.getElementById('intake-why').value = userProfileData.whyMotivation || userProfileData.why || "";
+
         const notesStr = userProfileData.userBaselineNotes || "";
         document.getElementById('intake-general').value = "";
         document.getElementById('intake-goals').value = "";
-        document.getElementById('intake-limitations').value = "";
+        document.getElementById('intake-limitations').value = userProfileData.chronicLimitations || "";
 
         if (notesStr) {
             const sections = notesStr.split(" | ");
@@ -412,11 +414,11 @@ function restartJourney() {
             toggleWeightTracking(false);
             document.getElementById('intake-target-weight').value = "";
         }
-                if (userProfileData.sex) {
-                    selectSex(userProfileData.sex);
-                } else {
-                    selectSex('male');
-                }
+        if (userProfileData.sex) {
+            selectSex(userProfileData.sex);
+        } else {
+            selectSex('male');
+        }
         if (userProfileData.heightInches) {
             document.getElementById('intake-height-ft').value = Math.floor(userProfileData.heightInches / 12);
             document.getElementById('intake-height-in').value = userProfileData.heightInches % 12;
@@ -433,11 +435,19 @@ function restartJourney() {
         if (userProfileData.primaryGoal) {
             selectGoal(userProfileData.primaryGoal);
             document.getElementById('intake-days-available').value = userProfileData.daysAvailable || 4;
+            if (userProfileData.desiredWorkoutLength) {
+                document.getElementById('intake-workout-length').value = userProfileData.desiredWorkoutLength;
+            }
             if (userProfileData.strengthType) {
                 selectStrength(userProfileData.strengthType);
             } else {
                 selectStrength('runner_specific');
             }
+        }
+
+        if (userProfileData.equipmentList && Array.isArray(userProfileData.equipmentList)) {
+            window.selectedEquipment = new Set(userProfileData.equipmentList);
+            if (typeof renderEquipmentBadges === 'function') renderEquipmentBadges();
         }
 
         if (userProfileData.dynamicGoalData) {
@@ -465,6 +475,7 @@ function restartJourney() {
     }
     document.getElementById('intake-athlete-id').disabled = true;
 }
+window.restartJourney = restartJourney;
 
 async function startFlow() {
     if (!userId) return;
@@ -998,6 +1009,12 @@ async function submitOnboardingForm() {
     const goalsStr = document.getElementById('intake-goals').value.trim();
     const limitationsStr = document.getElementById('intake-limitations').value.trim();
 
+    const fitnessLevel = document.getElementById('intake-fitness-level')?.value || 'intermediate';
+    const primaryGoal = document.getElementById('intake-primary-goal')?.value || 'race';
+    const daysAvailable = parseInt(document.getElementById('intake-days-available')?.value) || 4;
+    const minsAvailable = parseInt(document.getElementById('intake-workout-length')?.value) || 45;
+    const strength = document.getElementById('intake-strength')?.value || 'runner_specific';
+
     let notesParts = [];
     if (generalStr) notesParts.push(`General: ${generalStr}`);
     if (goalsStr) notesParts.push(`Goals: ${goalsStr}`);
@@ -1142,7 +1159,9 @@ async function submitOnboardingForm() {
     } catch (err) {
         console.warn("Failed to generate AI macrocycle, falling back to default.", err);
         profilePayload.macrocyclePlan = [
-            { phase: 1, theme: "Baseline Establishment", description: "Getting familiar with consistent volume and intensity." }
+            { phase: 1, theme: "Speed Induction Foundations", simpleDescription: "Neuromuscular speed coordination.", detailedDescription: "Neuromuscular speed coordination. Alternating explosive intervals with targeted stability.", expectedDurationWeeks: 4 },
+            { phase: 2, theme: "Speed Endurance & Threshold", simpleDescription: "Aerobic threshold development.", detailedDescription: "Aerobic threshold development. Extending speed efforts to 1000m blocks and posterior hamstring work.", expectedDurationWeeks: 4 },
+            { phase: 3, theme: "Peak Capacity & Taper", simpleDescription: "Maximum capacity and recovery.", detailedDescription: "Maximum capacity and recovery. Testing benchmark repetitions before backing off volume.", expectedDurationWeeks: 4 }
         ];
         profilePayload.overarchingTheme = "Your Training Journey";
     }

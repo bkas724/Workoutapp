@@ -165,9 +165,13 @@ function closeDetailedPlanModal() {
 
 
 function closeConfirmNewJourneyModal() {
-    document.getElementById('confirm-new-journey-modal').classList.add('hidden');
-    document.getElementById('confirm-new-journey-modal').style.display = 'none';
+    const modal = document.getElementById('confirm-new-journey-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
 }
+window.closeConfirmNewJourneyModal = closeConfirmNewJourneyModal;
 
 window.validateConfirmNewJourney = function() {
     const input = document.getElementById('confirm-new-journey-input').value.trim().toUpperCase();
@@ -185,38 +189,12 @@ window.validateConfirmNewJourney = function() {
 
 window.proceedToNewJourney = function() {
     closeConfirmNewJourneyModal();
-    // Open onboarding modal directly for existing athlete ID
-    document.getElementById('onboarding-modal').classList.remove('hidden');
-    document.getElementById('profile-lookup-panel').classList.add('hidden');
-    document.getElementById('create-id-panel').classList.add('hidden');
-    document.getElementById('medical-disclaimer-panel').classList.remove('hidden');
-}
-
-
-function closeConfirmNewJourneyModal() {
-    document.getElementById('confirm-new-journey-modal').classList.add('hidden');
-    document.getElementById('confirm-new-journey-modal').style.display = 'none';
-}
-
-window.validateConfirmNewJourney = function() {
-    const input = document.getElementById('confirm-new-journey-input').value.trim().toUpperCase();
-    const btn = document.getElementById('confirm-new-journey-btn');
-    if (input === 'NEW') {
-        btn.disabled = false;
-        btn.classList.remove('bg-rose-500/50', 'cursor-not-allowed');
-        btn.classList.add('bg-rose-500', 'hover:bg-rose-600', 'shadow-lg', 'shadow-rose-500/30', 'cursor-pointer');
+    if (typeof window.restartJourney === 'function') {
+        window.restartJourney();
     } else {
-        btn.disabled = true;
-        btn.classList.remove('bg-rose-500', 'hover:bg-rose-600', 'shadow-lg', 'shadow-rose-500/30', 'cursor-pointer');
-        btn.classList.add('bg-rose-500/50', 'cursor-not-allowed');
+        document.getElementById('onboarding-modal').classList.remove('hidden');
+        document.getElementById('profile-lookup-panel').classList.add('hidden');
+        document.getElementById('create-id-panel').classList.add('hidden');
+        document.getElementById('medical-disclaimer-panel').classList.remove('hidden');
     }
-}
-
-window.proceedToNewJourney = function() {
-    closeConfirmNewJourneyModal();
-    // Open onboarding modal directly for existing athlete ID
-    document.getElementById('onboarding-modal').classList.remove('hidden');
-    document.getElementById('profile-lookup-panel').classList.add('hidden');
-    document.getElementById('create-id-panel').classList.add('hidden');
-    document.getElementById('medical-disclaimer-panel').classList.remove('hidden');
 }

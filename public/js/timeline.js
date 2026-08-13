@@ -102,3 +102,48 @@ function updateTimelineView(phaseIndex) {
             }
         }
 
+function showPhaseTransitionModal(oldPhaseIndex, newPhaseIndex) {
+    const modal = document.getElementById('phase-transition-modal');
+    if (!modal) return;
+
+    let plan = [];
+    if (userProfileData && userProfileData.macrocyclePlan && userProfileData.macrocyclePlan.length > 0) {
+        plan = userProfileData.macrocyclePlan;
+    }
+
+    const oldPhaseObj = plan.find(p => p.phase === oldPhaseIndex) || plan[oldPhaseIndex - 1] || {};
+    const newPhaseObj = plan.find(p => p.phase === newPhaseIndex) || plan[newPhaseIndex - 1] || {};
+
+    const prevTitleEl = document.getElementById('modal-prev-phase-title');
+    const nextTitleEl = document.getElementById('modal-next-phase-title');
+    const focusDescEl = document.getElementById('modal-phase-focus-desc');
+    const nextNumEl = document.getElementById('modal-next-phase-num');
+
+    if (prevTitleEl) {
+        prevTitleEl.innerText = `Phase ${oldPhaseIndex}: ${oldPhaseObj.theme || 'Phase ' + oldPhaseIndex}`;
+    }
+    if (nextTitleEl) {
+        nextTitleEl.innerText = `Phase ${newPhaseIndex}: ${newPhaseObj.theme || 'Phase ' + newPhaseIndex}`;
+    }
+    if (focusDescEl) {
+        focusDescEl.innerText = newPhaseObj.simpleDescription || newPhaseObj.description || 'Focusing on your next training milestone.';
+    }
+    if (nextNumEl) {
+        nextNumEl.innerText = `${newPhaseIndex}`;
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closePhaseTransitionModal() {
+    const modal = document.getElementById('phase-transition-modal');
+    if (modal) modal.classList.add('hidden');
+
+    if (typeof userProfileData !== 'undefined' && userProfileData) {
+        updateTimelineView(userProfileData.currentPhaseIndex || 1);
+    } else {
+        updateTimelineView(1);
+    }
+}
+
+

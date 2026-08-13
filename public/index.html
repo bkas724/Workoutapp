@@ -2102,6 +2102,78 @@
         </div>
     </div>
 
+    <!-- Phase Transition Celebration Pop-up Modal -->
+    <div id="phase-transition-modal"
+        class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div
+            class="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center space-y-6 relative overflow-hidden">
+            <div
+                class="absolute top-0 right-0 -mt-10 -mr-10 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none">
+            </div>
+            <div
+                class="absolute bottom-0 left-0 -mb-10 -ml-10 w-32 h-32 bg-emerald-500/15 rounded-full blur-2xl pointer-events-none">
+            </div>
+            
+            <div
+                class="w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-emerald-500/20 text-emerald-400 border border-indigo-500/30 rounded-3xl flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(99,102,241,0.25)] ring-4 ring-indigo-500/10">
+                <i class="fa-solid fa-trophy text-3xl text-emerald-400 drop-shadow-md"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 inline-block">
+                    Milestone Unlocked
+                </span>
+                <h2 class="text-2xl font-black text-white tracking-tight">Phase Transition! 🎉</h2>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Congratulations on completing your foundational training phase. Your AI Coach has elevated your training plan for the next phase.
+                </p>
+            </div>
+
+            <!-- Phase Transition Badges Card -->
+            <div class="bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-3 text-left">
+                <!-- Completed Phase -->
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                        <i class="fa-solid fa-check text-xs"></i>
+                    </div>
+                    <div>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Completed</span>
+                        <span id="modal-prev-phase-title" class="text-xs font-bold text-slate-300">Phase 1: Speed Induction</span>
+                    </div>
+                </div>
+
+                <div class="h-px bg-slate-800/80 my-1"></div>
+
+                <!-- New Phase -->
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0 animate-pulse">
+                        <i class="fa-solid fa-bolt text-xs"></i>
+                    </div>
+                    <div>
+                        <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block">Now Entering</span>
+                        <span id="modal-next-phase-title" class="text-xs font-black text-indigo-300">Phase 2: Speed Endurance & Threshold</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coach Focus Narrative -->
+            <div class="bg-indigo-950/40 border border-indigo-500/20 p-4 rounded-2xl text-left space-y-1.5">
+                <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block flex items-center gap-1.5">
+                    <i class="fa-solid fa-brain"></i> Coach Focus
+                </span>
+                <p id="modal-phase-focus-desc" class="text-xs text-slate-300 leading-relaxed italic">
+                    Focusing on expanding aerobic threshold capacity and extending interval blocks.
+                </p>
+            </div>
+
+            <button id="close-phase-transition-btn" onclick="closePhaseTransitionModal()"
+                class="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white py-3.5 rounded-xl font-extrabold transition-all shadow-xl shadow-indigo-500/20 text-xs flex items-center justify-center gap-2 cursor-pointer">
+                <span>Start Phase <span id="modal-next-phase-num">2</span></span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- Let's Be Real Modal -->
     <div id="lets-be-real-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-md" onclick="closeLetsBeRealModal()"></div>

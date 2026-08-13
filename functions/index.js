@@ -398,8 +398,7 @@ ${profile?.primaryGoal === 'race' ? `- Target Distance: ${profile?.dynamicGoalDa
 ${profile?.primaryGoal === 'recovery' ? `- Nature of Break: ${profile?.dynamicGoalData?.natureOfBreak || 'N/A'}\n- Current Phase: ${profile?.dynamicGoalData?.currentPhase || 'N/A'}` : ''}
 
 Based on their goal, fitness level, and ${timelineInstruction}, design a high-level Macrocycle training plan.
-CRITICAL: The overarching theme and all descriptions MUST explicitly reflect the exact ${timelineInstruction} span. DO NOT generate a plan that spans longer or shorter than this explicit timeline.
-Generate an overarching theme for the entire training block, and an array of training phases.
+CRITICAL MULTI-PHASE REQUIREMENT: You MUST divide the athlete's ${timelineInstruction} into 3 to 4 logical, sequential training phases (e.g. Phase 1: Base Building, Phase 2: Speed Endurance & Threshold, Phase 3: Peak Capacity, Phase 4: Race Taper). DO NOT return only 1 single phase for a multi-week/month goal. The sum of 'expectedDurationWeeks' across all generated phases MUST equal the total timeline weeks.
 
 Additionally, generate two arrays for the user to guide their mindset and behavior:
 1. "processGoals": Array of 2-3 behavioral, process-oriented daily/weekly targets tailored to their weight, available days, and equipment. For beginners getting healthy, this is their north star. (e.g. "Complete 3 intentional movement sessions every week", "Hit 7000 steps on off days", "Keep calories under 2400 to support safe weight loss").
@@ -411,9 +410,23 @@ Return ONLY a valid JSON object exactly matching this structure without any mark
   "macrocyclePlan": [
     {
       "phase": 1,
-      "theme": "String (e.g. 'Baseline Establishment')",
+      "theme": "String (e.g. 'Base & Aerobic Foundation')",
       "simpleDescription": "String (1-2 sentences max about that stage, just the basics, in laymens terms)",
       "detailedDescription": "String (Full details, can be about a paragraph in length, detailing the physiological intent of the phase)",
+      "expectedDurationWeeks": 4
+    },
+    {
+      "phase": 2,
+      "theme": "String (e.g. 'Speed Endurance & Threshold')",
+      "simpleDescription": "String",
+      "detailedDescription": "String",
+      "expectedDurationWeeks": 4
+    },
+    {
+      "phase": 3,
+      "theme": "String (e.g. 'Peak Capacity & Race Taper')",
+      "simpleDescription": "String",
+      "detailedDescription": "String",
       "expectedDurationWeeks": 4
     }
   ],

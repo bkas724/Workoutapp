@@ -193,9 +193,19 @@ async function proceedToNextPhase() {
             document.getElementById('checkout-gateway-modal').classList.add('hidden');
             showAutopilotLoader();
 
-            // Do not advance phase. Generate a new block in the CURRENT phase.
-            const nextPhaseIndex = userProfileData.currentPhaseIndex || 1;
             const userDocRef = db.collection("users").doc(userId);
+            const previousPhaseIndex = userProfileData.currentPhaseIndex || 1;
+
+            // Fetch completed history count to evaluate block progression
+            let historyCount = 0;
+            try {
+                const historySnap = await userDocRef.collection("history").get();
+                historyCount = historySnap.size;
+            } catch (e) {
+                console.warn("Could not fetch history count for phase calculation", e);
+            }
+
+            const nextPhaseIndex = calculateTargetPhase(userProfileData, historyCount);
 
             document.getElementById('jit-checklist-container').innerHTML = `
                 <div class="text-center py-8 text-slate-500 text-xs">
@@ -351,6 +361,10 @@ async function proceedToNextPhase() {
                 setTimeout(() => {
                     hideAutopilotLoader();
                     window.isGeneratingBlock = false;
+
+                    if (nextPhaseIndex > previousPhaseIndex) {
+                        showPhaseTransitionModal(previousPhaseIndex, nextPhaseIndex);
+                    }
                 }, 3000);
 
             } catch (err) {
@@ -444,4 +458,59 @@ function getPhase3DefaultWorkouts(avgCadence) {
                 { id: "act-7", phaseNumber: 3, sequenceOrder: 7, workoutTitle: "Long Run Simulation", type: "easy", distanceDuration: "7 Miles", isSpeedWorkout: false, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "Treat this as a race rehearsal. Dial in your nutrition.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null }
             ];
         }
+
+function calculateTargetPhase(userProfileData, completedHistoryCount = 0) {
+    if (!userProfileData) return 1;
+    const currentPhase = userProfileData.currentPhaseIndex || 1;
+    const macroPlan = userProfileData.macrocyclePlan;
+
+    if (!macroPlan || !Array.isArray(macroPlan) || macroPlan.length === 0) {
+        return currentPhase;
+    }
+
+    const totalPhases = macroPlan.length;
+
+    // Calculate total completed 7-workout blocks (plus the 1 block just completed/checked out)
+    const completedBlocks = Math.floor((completedHistoryCount || 0) / 7) + 1;
+
+    let cumulativeWeeks = 0;
+    let targetPhase = 1;
+
+    for (let i = 0; i < totalPhases; i++) {
+        const phaseObj = macroPlan[i];
+        const phaseDuration = phaseObj.expectedDurationWeeks || 4;
+        cumulativeWeeks += phaseDuration;
+
+        if (completedBlocks > (cumulativeWeeks - phaseDuration)) {
+            targetPhase = phaseObj.phase || (i + 1);
+        }
+    }
+
+    // Check calendar target date milestone for current phase
+    if (userProfileData.journeyStartDate) {
+        const startDate = new Date(userProfileData.journeyStartDate);
+        const now = new Date();
+        const elapsedWeeks = Math.floor((now - startDate) / (7 * 24 * 60 * 60 * 1000));
+
+        let accumulatedTargetWeeks = 0;
+        for (let i = 0; i < currentPhase; i++) {
+            const phaseObj = macroPlan[i] || {};
+            accumulatedTargetWeeks += (phaseObj.expectedDurationWeeks || 4);
+        }
+
+        if (elapsedWeeks >= accumulatedTargetWeeks && currentPhase < totalPhases) {
+            targetPhase = Math.max(targetPhase, currentPhase + 1);
+        }
+    }
+
+    const calculatedIndex = Math.min(totalPhases, Math.max(1, targetPhase));
+
+    // Clamp advancement to at most +1 phase per block generation cycle to prevent skipping
+    if (calculatedIndex > currentPhase) {
+        return currentPhase + 1;
+    }
+
+    return currentPhase;
+}
+
 
