@@ -85,11 +85,15 @@ The application navigation is organized into clean visual views (tabs):
 * **Sync Badge**: Real-time indicator displaying live connection state with the Firestore database (`Syncing`, `Synced`, `Offline`).
 
 ### 3.2 Training Journey & Timeline (`tab-journey`)
-**Goal**: Provide full visibility into your macrocycle training roadmap while allowing flexible, guilt-free adjustments.
+**Goal**: Provide clear, distraction-free visibility into your overall macrocycle progress and active stage focus without cognitive overload.
 
-* **Phase Timeline Cards**: Visual cards breaking down each training phase, target objectives, duration, and completion progress.
-* **Sequential Workout Queue**: Interactive list of upcoming workouts within the active phase.
-* **Workout Modals & Swapping**: Tools to reorder upcoming sessions, swap workout slots, or insert extra rest days when life schedule conflicts arise.
+* **Header Controls**: Quick controls including an inline **Simple View Toggle Pill** (`[☐ Simple]`) to instantly switch between concise simple stage overviews and detailed strategic descriptions without opening a modal, plus remaining horizon countdown.
+* **Proportional Phase Progression Pills Track**: Full-width visual track across the top with pill widths scaled proportionally to each phase's duration in weeks, optimized for mobile screens using phase numbers:
+  * **Completed Stages**: Solid green pills with a leading checkmark (`✓ 1`).
+  * **Active Stage**: Indigo-outlined pill with an internal green progress fill measuring active phase workouts completed out of total expected phase JITs ($W \times 7$), labeled with the active stage number (`2`).
+  * **Upcoming Stages**: Clean slate outline pills labeled with stage numbers (`3`).
+  * **Checkered Race Flag (🏁)**: Target flag icon at the end of the track representing race goal completion.
+* **Stage Spotlight Card**: Cleanly displays the name of the active/selected stage (e.g., *Speed Endurance & Threshold Expansion*) and its strategic focus description.
 
 ### 3.3 Analytics & Dynamic Pace Blueprint (`tab-analytics`)
 **Goal**: Track physiological adaptation, baseline pacing zones, and body metrics.
