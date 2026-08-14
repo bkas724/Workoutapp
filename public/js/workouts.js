@@ -807,14 +807,16 @@ function renderNextActivityCard() {
                                         if (guide && guide.exercises && guide.exercises.length > 0) {
                                             expandedGuideForStep = true;
                                             guide.exercises.forEach(ex => {
-                                                let sets = 1;
-                                                const match = ex.setsReps.match(/^(\d+)\s*sets?/i);
-                                                if (match) sets = parseInt(match[1]);
+                                                let sets = typeof ex.sets === 'number' ? ex.sets : 1;
+                                                if (ex.setsReps && typeof ex.sets !== 'number') {
+                                                    const match = ex.setsReps.match(/^(\d+)\s*sets?/i);
+                                                    if (match) sets = parseInt(match[1]);
+                                                }
 
                                                 let extractedReps = "";
-                                                if (ex.setsReps.toLowerCase().includes("failure") || ex.setsReps.toLowerCase().includes("fail")) {
+                                                if (ex.setsReps && (ex.setsReps.toLowerCase().includes("failure") || ex.setsReps.toLowerCase().includes("fail"))) {
                                                     extractedReps = "Fail";
-                                                } else {
+                                                } else if (ex.setsReps) {
                                                     const rMatch = ex.setsReps.match(/(?:of\s+)?(\d+(?:-\d+)?)/);
                                                     if (rMatch) extractedReps = rMatch[1];
                                                 }
@@ -822,8 +824,17 @@ function renderNextActivityCard() {
                                                 displayActivities.push({
                                                     ...act,
                                                     name: ex.name,
+                                                    exerciseKey: ex.exerciseKey,
+                                                    targetType: ex.targetType,
+                                                    targetValue: ex.targetValue,
+                                                    minimumViableTarget: ex.minimumViableTarget,
+                                                    isPerSide: ex.isPerSide,
+                                                    restSeconds: ex.restSeconds,
+                                                    circuitRestSeconds: ex.circuitRestSeconds,
+                                                    equipmentRequired: ex.equipmentRequired,
+                                                    coachingCue: ex.coachingCue,
                                                     repsDistanceTime: ex.setsReps,
-                                                    description: ex.description,
+                                                    description: ex.coachingCue || ex.description,
                                                     sets: sets,
                                                     extractedReps: extractedReps,
                                                     isExpandedStrength: true
@@ -849,10 +860,37 @@ function renderNextActivityCard() {
                                 });
                             });
 
-                            function formatActivityRepsDisplay(actItem) {
+                            function formatActivityRepsDisplay(actItem, isCircuit) {
                                 if (!actItem) return '';
+                                
+                                // 1. Structured Numeric Schema check
+                                if (typeof actItem.targetValue === 'number' && actItem.targetValue > 0) {
+                                    const val = actItem.targetValue;
+                                    const type = actItem.targetType === 'seconds' ? 'sec' : (actItem.targetType === 'failure' ? 'to failure' : 'reps');
+                                    const sideStr = actItem.isPerSide ? '/side' : '';
+                                    const restStr = actItem.restSeconds ? ` • ${actItem.restSeconds}s rest` : '';
+                                    const eqStr = (actItem.equipmentRequired && actItem.equipmentRequired !== 'Bodyweight' && actItem.equipmentRequired !== 'None') 
+                                        ? ` • ${actItem.equipmentRequired}` : '';
+
+                                    if (isCircuit) {
+                                        return `${val} ${type}${sideStr} per round${restStr}${eqStr}`;
+                                    } else {
+                                        const sets = actItem.sets && actItem.sets > 1 ? `${actItem.sets} sets × ` : '';
+                                        return `${sets}${val} ${type}${sideStr}${restStr}${eqStr}`;
+                                    }
+                                }
+
+                                // 2. Legacy / Fallback String Sanitization
                                 let text = (actItem.repsDistanceTime || '').trim();
                                 if (!text && !actItem.sets) return '';
+
+                                if (isCircuit) {
+                                    text = text.replace(/^(\d+)\s*sets?\s*(?:of|x|\*)\s*/i, '');
+                                    if (!text.toLowerCase().includes('round')) {
+                                        text += ' per round';
+                                    }
+                                    return text;
+                                }
 
                                 const hasRepsRegex = /\b(\d+)\s*(?:x|reps?|sets?|times)\b/i;
                                 const hasLeadingMultiplier = /^(\d+)\s*x\b/i;
@@ -883,7 +921,7 @@ function renderNextActivityCard() {
                                 let circuitRounds = act.circuitRounds || 0;
                                 if (act.isExpandedStrength && !isCircuit && act.parentActId && act.parentActId.toLowerCase().includes('circuit')) {
                                     isCircuit = true;
-                                    circuitRounds = circuitRounds || act.sets || 3;
+                                    circuitRounds = nextStep.circuitRounds || act.circuitRounds || 3;
                                 }
 
                                 if (isCircuit && renderedCircuitTrackerFor !== act.parentActId) {
@@ -907,12 +945,12 @@ function renderNextActivityCard() {
                                                 `;
                                 }
 
-                                let coachTipText = act.description || '';
+                                let coachTipText = act.description || act.coachingCue || '';
                                 if (!act.isExpandedStrength && nextStep.strengthGuideReference) {
                                     const guide = findStrengthGuide(guidesToSearch, nextStep, nextStep.strengthGuideReference);
                                     if (guide && guide.exercises) {
                                         const ex = guide.exercises.find(e => e.name.toLowerCase().includes(act.name.toLowerCase()) || act.name.toLowerCase().includes(e.name.toLowerCase()));
-                                        if (ex && ex.description) coachTipText = ex.description;
+                                        if (ex && (ex.coachingCue || ex.description)) coachTipText = ex.coachingCue || ex.description;
                                     }
                                 }
 
@@ -940,7 +978,7 @@ function renderNextActivityCard() {
                                                             </div>
                                                         </div>
                                                         <div id="act-subtitle-${nextStep.id}-${actIdx}" class="flex items-center gap-3 mt-1 flex-wrap transition-all duration-300">
-                                                            <span class="text-xs text-slate-400 font-medium">${formatActivityRepsDisplay(act)}</span>
+                                                            <span class="text-xs text-slate-400 font-medium">${formatActivityRepsDisplay(act, isCircuit)}</span>
                                                         </div>
                                                     </div>
                                                 </div>

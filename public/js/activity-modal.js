@@ -183,10 +183,10 @@
                 targetPaceZone: null,
                 jitPreparationTip: "Find a clear space on the floor.",
                 activities: [
-                    { name: "Push Ups", type: "work", sets: 3, repsDistanceTime: "10-15 reps", isCircuit: true, circuitRounds: 3 },
-                    { name: "Bodyweight Squats", type: "work", sets: 3, repsDistanceTime: "15-20 reps", isCircuit: true, circuitRounds: 3 },
-                    { name: "Alternating Lunges", type: "work", sets: 3, repsDistanceTime: "10 per leg", isCircuit: true, circuitRounds: 3 },
-                    { name: "Situps", type: "work", sets: 3, repsDistanceTime: "15-20 reps", isCircuit: true, circuitRounds: 3 }
+                    { name: "Push Ups", exerciseKey: "push_ups", type: "work", sets: 1, targetType: "reps", targetValue: 12, minimumViableTarget: 6, restSeconds: 30, circuitRestSeconds: 90, equipmentRequired: "Bodyweight", coachingCue: "Keep core tight and elbows at 45 degrees.", repsDistanceTime: "12 reps", isCircuit: true, circuitRounds: 3 },
+                    { name: "Bodyweight Squats", exerciseKey: "bodyweight_squats", type: "work", sets: 1, targetType: "reps", targetValue: 15, minimumViableTarget: 8, restSeconds: 30, circuitRestSeconds: 90, equipmentRequired: "Bodyweight", coachingCue: "Keep chest tall and weight in heels.", repsDistanceTime: "15 reps", isCircuit: true, circuitRounds: 3 },
+                    { name: "Alternating Lunges", exerciseKey: "alternating_lunges", type: "work", sets: 1, targetType: "reps", targetValue: 10, minimumViableTarget: 5, isPerSide: true, restSeconds: 30, circuitRestSeconds: 90, equipmentRequired: "Bodyweight", coachingCue: "Step forward cleanly with front heel grounded.", repsDistanceTime: "10 per leg", isCircuit: true, circuitRounds: 3 },
+                    { name: "Situps", exerciseKey: "situps", type: "work", sets: 1, targetType: "reps", targetValue: 15, minimumViableTarget: 8, restSeconds: 30, circuitRestSeconds: 90, equipmentRequired: "Bodyweight", coachingCue: "Engage core and avoid pulling neck.", repsDistanceTime: "15 reps", isCircuit: true, circuitRounds: 3 }
                 ],
                 actualLoggedPace: null,
                 rpeScore: null

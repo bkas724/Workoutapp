@@ -47,7 +47,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -145,7 +145,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -167,6 +167,38 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
         throw new HttpsError("internal", "Failed to backfill AI insights.", error.message);
     }
 });
+
+function sanitizeStrengthGuides(guides) {
+    if (!Array.isArray(guides)) return [];
+    return guides.map(g => ({
+        ...g,
+        id: g.id || "A",
+        title: g.title || "Strength Routine",
+        exercises: Array.isArray(g.exercises) ? g.exercises.map(ex => {
+            const targetVal = typeof ex.targetValue === 'number' && !isNaN(ex.targetValue) ? ex.targetValue : (parseInt(ex.targetValue) || 10);
+            const minTarget = typeof ex.minimumViableTarget === 'number' && !isNaN(ex.minimumViableTarget) ? ex.minimumViableTarget : (parseInt(ex.minimumViableTarget) || Math.max(1, Math.floor(targetVal / 2)));
+            const restSec = typeof ex.restSeconds === 'number' && !isNaN(ex.restSeconds) ? ex.restSeconds : (parseInt(ex.restSeconds) || 45);
+            const cRestSec = typeof ex.circuitRestSeconds === 'number' && !isNaN(ex.circuitRestSeconds) ? ex.circuitRestSeconds : (parseInt(ex.circuitRestSeconds) || 90);
+            const setsNum = typeof ex.sets === 'number' && !isNaN(ex.sets) ? ex.sets : (parseInt(ex.sets) || 1);
+            const exKey = (ex.exerciseKey || ex.name || 'exercise').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+            return {
+                name: ex.name || "Exercise",
+                exerciseKey: exKey,
+                targetType: ex.targetType || "reps",
+                targetValue: targetVal,
+                minimumViableTarget: minTarget,
+                isPerSide: Boolean(ex.isPerSide),
+                sets: setsNum,
+                restSeconds: restSec,
+                circuitRestSeconds: cRestSec,
+                equipmentRequired: ex.equipmentRequired || "Bodyweight",
+                coachingCue: ex.coachingCue || ex.description || "Maintain proper posture and control.",
+                description: ex.description || ex.coachingCue || "Target muscle exercise.",
+                setsReps: ex.setsReps || `${targetVal} ${ex.targetType || 'reps'}`
+            };
+        }) : []
+    }));
+}
 
 exports.generateWorkoutBlock = onCall({
     secrets: [geminiApiKey],
@@ -239,14 +271,21 @@ SEQUENCE ORDER RULES: For days 1 through 7, every day must have at least one act
 
 ${nutInstructionBlock}
 4. Evaluate their recent history and determine if they missed days/took extra rest. Use this context to scale intensity or volume for the new block.
-5. CRITICAL: For any "work" activities (especially Strength Circuits or Intervals), ensure the "sets" property is explicitly defined as a Number. Determine the optimal number of sets (whether 1 set for active recovery/beginners, or 3-5 sets for advanced/hypertrophy) based carefully on the user's fitness level, goals, and history. Be intentional and consistent with this prescription.
-6. If a work activity is a circuit (e.g. Strength Circuit A), explicitly set "isCircuit" to true and specify the number of rounds in "circuitRounds". For non-circuit activities, set them to false and 0.
-7. Time Constraints: The user has a daily time limit of ${profile?.desiredWorkoutLength || 'Unlimited'} minutes. A workout can be significantly shorter if it needs to be, but it should not be excessively longer (keep within ~10% of their limit max). If a single workout (like a long run) significantly exceeds this limit, attempt to break the volume up across multiple days (e.g., breaking a 6-mile run into a 2-mile and 4-mile split on consecutive days) to keep the daily time within ~10% of their available time. However, if you believe a single long continuous session is absolutely necessary to reach the optimal performance for their goal, you may keep the longer workout but explicitly mention this in the 'jitPreparationTip' or 'targetInstructions'.
+5. CRITICAL STRENGTH WORKOUT FORMULAS:
+   - For Circuit Workouts (isCircuit: true): Each exercise in strengthGuides represents volume PER ROUND. Set 'sets' to 1 on each exercise, specify total circuit rounds in 'circuitRounds' on the workout activity (e.g. 3), and set 'targetValue' to a single discrete integer (e.g. 10 reps or 30 seconds). NEVER output text ranges like '10-12 reps'.
+   - For Linear Workouts (isCircuit: false): Set 'sets' on each exercise to the total number of sets (e.g. 3), set 'circuitRounds' to 0 on the workout activity, and specify 'targetValue' as a single discrete integer (e.g. 10).
+6. TIMER & EXECUTION DIRECTIVES:
+   - 'restSeconds' MUST be a single discrete integer (e.g. 45 or 60). DO NOT return text ranges like '30-45s'.
+   - 'circuitRestSeconds' MUST be a single discrete integer (e.g. 90 or 120).
+   - 'exerciseKey' MUST be a standardized lowercase snake_case movement key (e.g. 'goblet_squat', 'push_up', 'plank', 'reverse_lunge', 'dumbbell_row').
+   - 'equipmentRequired' MUST be strictly chosen from their Available Equipment list (e.g. 'Dumbbells', 'Bodyweight').
+   - 'coachingCue' MUST be 1 short, actionable form tip focusing on bio-mechanics and taking any reported acute injuries into account.
+7. Time Constraints: The user has a daily time limit of ${profile?.desiredWorkoutLength || 'Unlimited'} minutes. Keep total duration within their limit.
 8. CRITICAL 'type' Validation: The 'type' field of a workout MUST be exactly one of these strings: "run", "walk", "bike", "swim", "easy", "fast", "long", "tempo", "interval", "recovery", "base", "aerobic", "strength", "rest". Do not invent new types.
 9. CRITICAL STRIDES & INTERVAL REPS RULE: For any secondary running activity such as Strides, Sprints, Intervals, Hill Repeats, or Short Reps (e.g. 'Strides', 'Hill Sprints'), you MUST explicitly state the REP COUNT at the start of 'repsDistanceTime' (e.g. '4 x 100m at ~80% effort', '6 x 200m'). NEVER return a single distance string without the rep count (e.g. NEVER output '100m at ~80% effort' alone).
-10. BEGINNER & RECOVERY PACING RULE: If the user's primary goal is 'health' or 'recovery', or fitness level is beginner, DO NOT enforce rigid numerical MM:SS paces in targetPaceZone. Always prescribe clear, comfortable targetDistance (in miles) or targetDuration (in minutes), but use qualitative targetPaceZone descriptions such as "Easy Walk", "Brisk Walk", "Conversational Jog", or "Active Flush" (light recovery movement to increase blood flow). Do not require a baseline run test for these profiles.
+10. BEGINNER & RECOVERY PACING RULE: If the user's primary goal is 'health' or 'recovery', or fitness level is beginner, DO NOT enforce rigid numerical MM:SS paces in targetPaceZone. Always prescribe clear, comfortable targetDistance (in miles) or targetDuration (in minutes), but use qualitative targetPaceZone descriptions such as "Easy Walk", "Brisk Walk", "Conversational Jog", or "Active Flush".
 
-Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
+Return ONLY a valid JSON object matching this exact structure:
 {
   "workouts": [
     {
@@ -255,7 +294,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "sequenceOrder": 1,
       "workoutTitle": "String",
       "type": "String (MUST be exactly one of the validated types above)",
-      "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training'. NOTE: If a run is mostly a continuous distance run but ends with short strides, categorize it as 'continuous_run')",
+      "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training')",
       "isSpeedWorkout": Boolean,
       "isBenchmark": Boolean,
       "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
@@ -263,13 +302,13 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "targetInstructions": "String (Keep under 100 characters)",
       "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: easy, goal, tempo, long, or null)",
       "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
-      "strengthGuideReference": "String (The exact 'id' of the strength guide e.g. 'A' ONLY IF exercises are in strengthGuides. If exercises are listed inline in activities, set strengthGuideReference to null)",
+      "strengthGuideReference": "String (e.g. 'A')",
       "activities": [
         {
-          "name": "String (e.g., Warmup, Interval, Squats)",
+          "name": "String (e.g., Warmup, Strength Circuit A)",
           "type": "String (prep, work, cool)",
           "sets": Number,
-          "repsDistanceTime": "String (e.g., '4 x 100m at ~80% effort', '6 x 200m', '10 reps', '5 mins') - MUST include rep count at start for strides/intervals!",
+          "repsDistanceTime": "String",
           "isCircuit": Boolean,
           "circuitRounds": Number
         }
@@ -282,9 +321,19 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "title": "String (e.g. Hip Stability)",
       "exercises": [
         {
-          "name": "String",
-          "setsReps": "String",
-          "description": "String"
+          "name": "String (e.g. Goblet Squats)",
+          "exerciseKey": "String (lowercase_snake_case e.g. goblet_squat)",
+          "targetType": "String ('reps', 'seconds', 'failure')",
+          "targetValue": Number,
+          "minimumViableTarget": Number,
+          "isPerSide": Boolean,
+          "sets": Number,
+          "restSeconds": Number,
+          "circuitRestSeconds": Number,
+          "equipmentRequired": "String (e.g. Dumbbells, Bodyweight)",
+          "coachingCue": "String (1 short actionable form tip)",
+          "description": "String (1-2 sentence overview)",
+          "setsReps": "String (Standardized fallback string e.g. '10 reps')"
         }
       ]
     }
@@ -297,7 +346,10 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ 
+            model: "gemini-2.5-flash", 
+            generationConfig: { responseMimeType: "application/json" } 
+        });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -353,9 +405,11 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
             rpeScore: null
         }));
         
+        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || []);
+        
         return { 
             workouts, 
-            strengthGuides: parsedData.strengthGuides || [],
+            strengthGuides: cleanGuides,
             healthInsights: parsedData.healthInsights || null
         };
     } catch (error) {
@@ -435,7 +489,7 @@ Return ONLY a valid JSON object exactly matching this structure without any mark
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -486,8 +540,18 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
       "exercises": [
         {
           "name": "String (e.g. DB Reverse Lunges)",
-          "setsReps": "String (e.g. 3 Sets x 10/leg)",
-          "description": "String (e.g. Load front heel dynamically. Builds specific push power.)"
+          "exerciseKey": "String (lowercase_snake_case e.g. reverse_lunge)",
+          "targetType": "String ('reps', 'seconds', 'failure')",
+          "targetValue": Number,
+          "minimumViableTarget": Number,
+          "isPerSide": Boolean,
+          "sets": Number,
+          "restSeconds": Number,
+          "circuitRestSeconds": Number,
+          "equipmentRequired": "String (e.g. Dumbbells)",
+          "coachingCue": "String (1 short actionable form tip)",
+          "description": "String",
+          "setsReps": "String (Clean summary e.g. '10 reps')"
         }
       ]
     }
@@ -495,7 +559,10 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ 
+            model: "gemini-2.5-flash", 
+            generationConfig: { responseMimeType: "application/json" } 
+        });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -511,7 +578,8 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
             }
         }
         
-        return parsedData;
+        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || []);
+        return { strengthGuides: cleanGuides };
     } catch (error) {
         console.error("Error calling Gemini API:", error);
         throw new HttpsError("internal", "Failed to generate strength guides.", error.message);
@@ -552,7 +620,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -622,7 +690,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
 CRITICAL: Do not include any text outside of the JSON object. Do not wrap in markdown code blocks.`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -689,7 +757,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
@@ -772,7 +840,7 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
 }`;
 
     try {
-        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } });
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
