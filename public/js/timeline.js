@@ -133,7 +133,7 @@ function renderJourneyPillsTrack(activePhaseIndex) {
             if (data.journeyStartDate && data.targetDate) {
                 const totalDays = Math.ceil((new Date(data.targetDate) - new Date(data.journeyStartDate)) / (1000 * 60 * 60 * 24));
                 const totalWeeks = Math.max(3, Math.ceil(totalDays / 7));
-                w = Math.max(2, Math.round(totalWeeks / totalPhases));
+                w = Math.max(1, Math.round(totalWeeks / totalPhases));
             } else {
                 w = 4; // Standard 4-week default phase duration
             }
@@ -162,42 +162,42 @@ function renderJourneyPillsTrack(activePhaseIndex) {
         const isSelected = (phaseNum === viewedPhase);
 
         if (phaseNum < currentActivePhase) {
-            // Completed Phase Pill (Solid Green, Checkmark + Number, Proportional flex size)
+            // Completed Phase Pill (Solid Green, Checkmark + Number, Proportional Flex Width)
             html += `
                 <div onclick="updateTimelineView(${phaseNum})" 
                     title="Phase ${phaseNum}: Completed (${weeks} Wks)"
-                    style="flex: ${weeks} 1 0%; min-width: 32px;"
-                    class="h-8 px-1.5 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center gap-1 shadow-md shadow-emerald-950/40 cursor-pointer transition-all hover:scale-[1.02] border ${isSelected ? 'border-white ring-2 ring-emerald-400' : 'border-emerald-400/50'} select-none">
+                    style="flex: ${weeks} ${weeks} 0%; min-width: 0;"
+                    class="h-8 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center gap-1 shadow-md shadow-emerald-950/40 cursor-pointer transition-all hover:scale-[1.02] border ${isSelected ? 'border-white ring-2 ring-emerald-400' : 'border-emerald-400/50'} select-none overflow-hidden px-1">
                     <i class="fa-solid fa-check text-[10px] font-black shrink-0"></i>
-                    <span class="text-[11px] font-black">${phaseNum}</span>
+                    <span class="text-[11px] font-black shrink-0">${phaseNum}</span>
                 </div>
             `;
         } else if (phaseNum === currentActivePhase) {
-            // Active Phase Pill (Indigo Highlighted Border, Green Fill Progress Bar inside, Number overlay, Proportional flex size)
+            // Active Phase Pill (Indigo Highlighted Border, Green Fill Progress Bar inside, Number overlay, Proportional Flex Width)
             html += `
                 <div onclick="updateTimelineView(${phaseNum})" 
                     title="Phase ${phaseNum} Progress: ${totalCompletedInPhase}/${expectedTotalJITsInPhase} Workouts (${percentInPhase}%)"
-                    style="flex: ${weeks} 1 0%; min-width: 44px;"
-                    class="relative h-8 rounded-xl border-2 border-indigo-400 bg-slate-900 overflow-hidden cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.4)] ${isSelected ? 'ring-4 ring-indigo-500/30 scale-[1.02]' : 'ring-2 ring-indigo-500/20'} flex items-center justify-center transition-all hover:scale-[1.02] select-none">
+                    style="flex: ${weeks} ${weeks} 0%; min-width: 0;"
+                    class="relative h-8 rounded-xl border-2 border-indigo-400 bg-slate-900 overflow-hidden cursor-pointer shadow-[0_0_15px_rgba(99,102,241,0.4)] ${isSelected ? 'ring-4 ring-indigo-500/30 scale-[1.02]' : 'ring-2 ring-indigo-500/20'} flex items-center justify-center transition-all hover:scale-[1.02] select-none px-1">
                     
                     <!-- Dynamic Green Progress Fill Across Active Phase -->
-                    <div class="absolute top-0 left-0 bottom-0 bg-emerald-500 transition-all duration-500" style="width: ${percentInPhase}%;"></div>
+                    <div class="absolute top-0 left-0 bottom-0 bg-emerald-500 transition-all duration-500 pointer-events-none" style="width: ${percentInPhase}%;"></div>
                     
                     <!-- Text Overlay (Number only) -->
-                    <div class="relative z-10 flex items-center justify-center gap-1 px-1.5 text-[11px] font-black text-slate-100 drop-shadow">
+                    <div class="relative z-10 flex items-center justify-center gap-1 text-[11px] font-black text-slate-100 drop-shadow">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                        <span>${phaseNum}</span>
+                        <span class="shrink-0">${phaseNum}</span>
                     </div>
                 </div>
             `;
         } else {
-            // Future Phase Pill (Slate Outline, Number only, Proportional flex size)
+            // Future Phase Pill (Slate Outline, Number only, Proportional Flex Width)
             html += `
                 <div onclick="updateTimelineView(${phaseNum})" 
                     title="Phase ${phaseNum}: Upcoming (${weeks} Wks)"
-                    style="flex: ${weeks} 1 0%; min-width: 32px;"
-                    class="h-8 px-1.5 rounded-xl bg-slate-900 border ${isSelected ? 'border-indigo-400 ring-2 ring-indigo-500/20 text-indigo-200' : 'border-slate-800 text-slate-400'} flex items-center justify-center cursor-pointer transition-all hover:border-slate-700 hover:text-slate-300 select-none">
-                    <span class="text-[11px] font-extrabold">${phaseNum}</span>
+                    style="flex: ${weeks} ${weeks} 0%; min-width: 0;"
+                    class="h-8 rounded-xl bg-slate-900 border ${isSelected ? 'border-indigo-400 ring-2 ring-indigo-500/20 text-indigo-200' : 'border-slate-800 text-slate-400'} flex items-center justify-center cursor-pointer transition-all hover:border-slate-700 hover:text-slate-300 select-none overflow-hidden px-1">
+                    <span class="text-[11px] font-extrabold shrink-0">${phaseNum}</span>
                 </div>
             `;
         }
@@ -208,7 +208,7 @@ function renderJourneyPillsTrack(activePhaseIndex) {
         const raceTargetLabel = data.journeyGoalTitle || data.journeyTitle || "Race Milestone";
         html += `
             <div title="Target Goal: ${raceTargetLabel}" 
-                class="h-8 px-2.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-400 flex items-center justify-center shadow-sm text-xs shrink-0 cursor-default">
+                class="w-8 h-8 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-400 flex items-center justify-center shadow-sm text-xs shrink-0 cursor-default">
                 <i class="fa-solid fa-flag-checkered text-amber-400 text-sm"></i>
             </div>
         `;
