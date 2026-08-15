@@ -263,6 +263,12 @@ function openAlternativeModal(activityId) {
             document.getElementById('alternative-activity-modal').classList.remove('hidden');
             document.getElementById('alternative-activity-modal').classList.add('flex');
 
+            // Pre-fill targetRPE if available
+            const workout = typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts.find(w => w.id === activityId) : null;
+            const targetRPE = workout?.targetRPE || 2;
+            const rpeSelect = document.getElementById('alt-rpe');
+            if (rpeSelect) rpeSelect.value = String(targetRPE);
+
             // Set default date
             const d = new Date();
             const year = d.getFullYear();
@@ -292,17 +298,23 @@ function handleAltActivityTypeChange() {
             const durContainer = document.getElementById('alt-duration-container');
             const paceContainer = document.getElementById('alt-pace-container');
             const rpeContainer = document.getElementById('alt-rpe-container');
+            const rpeLabel = document.getElementById('alt-rpe-label');
+            const rpeTooltip = document.getElementById('alt-rpe-tooltip');
 
             if (['run', 'walk', 'bike', 'swim'].includes(type)) {
                 distContainer.classList.remove('hidden');
                 paceContainer.classList.remove('hidden');
                 durContainer.classList.add('hidden');
                 rpeContainer.classList.remove('hidden');
+                if (rpeLabel) rpeLabel.childNodes[0].nodeValue = "Cardio Effort (Zone 1-5) ";
+                if (rpeTooltip) rpeTooltip.title = "Cardio intensity: Zone 1 (Recovery) to Zone 5 (Max Effort).";
             } else if (['strength', 'other'].includes(type)) {
                 distContainer.classList.add('hidden');
                 paceContainer.classList.add('hidden');
                 durContainer.classList.remove('hidden');
                 rpeContainer.classList.remove('hidden');
+                if (rpeLabel) rpeLabel.childNodes[0].nodeValue = "Muscle Exertion (Zone 1-5) ";
+                if (rpeTooltip) rpeTooltip.title = "Muscular fatigue: Zone 1 (Light Weight) to Zone 5 (Failure).";
             } else if (type === 'rest') {
                 distContainer.classList.add('hidden');
                 paceContainer.classList.add('hidden');

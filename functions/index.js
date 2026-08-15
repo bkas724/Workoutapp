@@ -285,65 +285,68 @@ ${nutInstructionBlock}
 9. CRITICAL STRIDES & INTERVAL REPS RULE: For any secondary running activity such as Strides, Sprints, Intervals, Hill Repeats, or Short Reps (e.g. 'Strides', 'Hill Sprints'), you MUST explicitly state the REP COUNT at the start of 'repsDistanceTime' (e.g. '4 x 100m at ~80% effort', '6 x 200m'). NEVER return a single distance string without the rep count (e.g. NEVER output '100m at ~80% effort' alone).
 10. BEGINNER & RECOVERY PACING RULE: If the user's primary goal is 'health' or 'recovery', or fitness level is beginner, DO NOT enforce rigid numerical MM:SS paces in targetPaceZone. Always prescribe clear, comfortable targetDistance (in miles) or targetDuration (in minutes), but use qualitative targetPaceZone descriptions such as "Easy Walk", "Brisk Walk", "Conversational Jog", or "Active Flush".
 
-Return ONLY a valid JSON object matching this exact structure:
-{
-  "workouts": [
-    {
-      "id": "act-X",
-      "phaseNumber": ${phaseIndex || 1},
-      "sequenceOrder": 1,
-      "workoutTitle": "String",
-      "type": "String (MUST be exactly one of the validated types above)",
-      "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training')",
-      "isSpeedWorkout": Boolean,
-      "isBenchmark": Boolean,
-      "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
-      "targetDuration": "Number (Target duration in minutes, if applicable, e.g., 45 or 60)",
-      "targetInstructions": "String (Keep under 100 characters)",
-      "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: easy, goal, tempo, long, or null)",
-      "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
-      "strengthGuideReference": "String (e.g. 'A')",
-      "activities": [
-        {
-          "name": "String (e.g., Warmup, Strength Circuit A)",
-          "type": "String (prep, work, cool)",
-          "sets": Number,
-          "repsDistanceTime": "String",
-          "isCircuit": Boolean,
-          "circuitRounds": Number
-        }
-      ]
-    }
-  ],
-  "strengthGuides": [
-    {
-      "id": "String (e.g., 'A', 'B', 'C')",
-      "title": "String (e.g. Hip Stability)",
-      "exercises": [
-        {
-          "name": "String (e.g. Goblet Squats)",
-          "exerciseKey": "String (lowercase_snake_case e.g. goblet_squat)",
-          "targetType": "String ('reps', 'seconds', 'failure')",
-          "targetValue": Number,
-          "minimumViableTarget": Number,
-          "isPerSide": Boolean,
-          "sets": Number,
-          "restSeconds": Number,
-          "circuitRestSeconds": Number,
-          "equipmentRequired": "String (e.g. Dumbbells, Bodyweight)",
-          "coachingCue": "String (1 short actionable form tip)",
-          "description": "String (1-2 sentence overview)",
-          "setsReps": "String (Standardized fallback string e.g. '10 reps')"
-        }
-      ]
-    }
-  ],
-  "healthInsights": {
-    "movementTip": "String",
-    "hydrationRecovery": "String",
-    ${nutSchemaBlock}
-  }
-}`;
+287: 11. TARGET RPE DIRECTIVE: Assign a 'targetRPE' property to EVERY workout object as a single integer from 1 to 5 (1=Recovery/Restful, 2=Easy/Conversational, 3=Moderate/Steady, 4=Hard/Threshold, 5=Max Effort/Failure).
+288: 
+289: Return ONLY a valid JSON object matching this exact structure:
+290: {
+291:   "workouts": [
+292:     {
+293:       "id": "act-X",
+294:       "phaseNumber": ${phaseIndex || 1},
+295:       "sequenceOrder": 1,
+296:       "workoutTitle": "String",
+297:       "type": "String (MUST be exactly one of the validated types above)",
+298:       "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training')",
+299:       "targetRPE": "Number (Integer 1 to 5)",
+300:       "isSpeedWorkout": Boolean,
+301:       "isBenchmark": Boolean,
+302:       "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
+303:       "targetDuration": "Number (Target duration in minutes, if applicable, e.g., 45 or 60)",
+304:       "targetInstructions": "String (Keep under 100 characters)",
+305:       "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: easy, goal, tempo, long, or null)",
+306:       "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
+307:       "strengthGuideReference": "String (e.g. 'A')",
+308:       "activities": [
+309:         {
+310:           "name": "String (e.g., Warmup, Strength Circuit A)",
+311:           "type": "String (prep, work, cool)",
+312:           "sets": Number,
+313:           "repsDistanceTime": "String",
+314:           "isCircuit": Boolean,
+315:           "circuitRounds": Number
+316:         }
+317:       ]
+318:     }
+319:   ],
+320:   "strengthGuides": [
+321:     {
+322:       "id": "String (e.g., 'A', 'B', 'C')",
+323:       "title": "String (e.g. Hip Stability)",
+324:       "exercises": [
+325:         {
+326:           "name": "String (e.g. Goblet Squats)",
+327:           "exerciseKey": "String (lowercase_snake_case e.g. goblet_squat)",
+328:           "targetType": "String ('reps', 'seconds', 'failure')",
+329:           "targetValue": Number,
+330:           "minimumViableTarget": Number,
+331:           "isPerSide": Boolean,
+332:           "sets": Number,
+333:           "restSeconds": Number,
+334:           "circuitRestSeconds": Number,
+335:           "equipmentRequired": "String (e.g. Dumbbells, Bodyweight)",
+336:           "coachingCue": "String (1 short actionable form tip)",
+337:           "description": "String (1-2 sentence overview)",
+338:           "setsReps": "String (Standardized fallback string e.g. '10 reps')"
+339:         }
+340:       ]
+341:     }
+342:   ],
+343:   "healthInsights": {
+344:     "movementTip": "String",
+345:     "hydrationRecovery": "String",
+346:     ${nutSchemaBlock}
+347:   }
+348: }`;
 
     try {
         const model = ai.getGenerativeModel({ 
@@ -396,14 +399,24 @@ Return ONLY a valid JSON object matching this exact structure:
             deduplicatedWorkouts.push(w);
         });
         
-        workouts = deduplicatedWorkouts.map((w, index) => ({
-            ...w,
-            id: "ai-act-" + Date.now() + "-" + index,
-            completed: false,
-            dateExecuted: null,
-            actualLoggedPace: null,
-            rpeScore: null
-        }));
+        workouts = deduplicatedWorkouts.map((w, index) => {
+            let defaultRpe = 2;
+            if (w.type === 'fast' || w.isSpeedWorkout || w.isBenchmark) defaultRpe = 4;
+            else if (w.type === 'strength') defaultRpe = 3;
+            else if (w.type === 'rest') defaultRpe = 1;
+
+            const targetRPE = typeof w.targetRPE === 'number' && w.targetRPE >= 1 && w.targetRPE <= 5 ? Math.round(w.targetRPE) : defaultRpe;
+
+            return {
+                ...w,
+                id: "ai-act-" + Date.now() + "-" + index,
+                targetRPE: targetRPE,
+                completed: false,
+                dateExecuted: null,
+                actualLoggedPace: null,
+                rpeScore: null
+            };
+        });
         
         const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || []);
         

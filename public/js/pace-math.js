@@ -38,12 +38,17 @@ function convertRunToEst5KPaceSec(w) {
 
             let hrInput = (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgHeartRate) || w.actualHeartRate || w.rawHr;
             if (!hrInput && w.rpeScore) {
-                // Map RPE rating (1-10) to the middle HR value of its corresponding range
+                // Map 5-Zone Effort (1-5) or legacy RPE (1-10) to representative HR estimate
+                let score = Number(w.rpeScore);
+                if (score > 5) score = Math.round(score * 0.5); // Normalize legacy 1-10 scores
                 const rpeToHr = {
-                    1: 95, 2: 108, 3: 123, 4: 138, 5: 150,
-                    6: 160, 7: 168, 8: 173, 9: 178, 10: 185
+                    1: 100, // Zone 1: Recovery (~55% max HR)
+                    2: 125, // Zone 2: Easy Aerobic (~65% max HR)
+                    3: 150, // Zone 3: Moderate / Tempo (~75% max HR)
+                    4: 168, // Zone 4: Hard / Threshold (~85% max HR)
+                    5: 185  // Zone 5: Max Effort (>90% max HR)
                 };
-                hrInput = rpeToHr[w.rpeScore];
+                hrInput = rpeToHr[score] || 125;
             }
 
             if (hrInput && hrInput > 60) {

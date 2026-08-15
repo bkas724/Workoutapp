@@ -1,3 +1,27 @@
+function getEffortZoneInfo(workout) {
+    let rpe = workout ? workout.targetRPE : null;
+    if (!rpe || typeof rpe !== 'number' || rpe < 1 || rpe > 5) {
+        if (workout) {
+            if (workout.type === 'fast' || workout.isSpeedWorkout || workout.isBenchmark) rpe = 4;
+            else if (workout.type === 'strength') rpe = 3;
+            else if (workout.type === 'rest') rpe = 1;
+            else rpe = 2;
+        } else {
+            rpe = 2;
+        }
+    }
+
+    const zones = {
+        1: { zone: 1, name: "Z-1", modalLabel: "Zone - 1 • Recovery", desc: "Recovery", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30" },
+        2: { zone: 2, name: "Z-2", modalLabel: "Zone - 2 • Easy", desc: "Easy", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
+        3: { zone: 3, name: "Z-3", modalLabel: "Zone - 3 • Moderate", desc: "Moderate", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/30" },
+        4: { zone: 4, name: "Z-4", modalLabel: "Zone - 4 • Hard", desc: "Hard", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/30" },
+        5: { zone: 5, name: "Z-5", modalLabel: "Zone - 5 • Max Effort", desc: "Max Effort", color: "text-rose-400", bg: "bg-rose-500/10 border-rose-500/30" }
+    };
+
+    return zones[rpe] || zones[2];
+}
+
 function buildActivePhaseHTML() {
             const container = document.getElementById('jit-checklist-container');
             container.innerHTML = "";
@@ -323,7 +347,7 @@ function renderNextActivityCard() {
                 }
 
                 let paceHtml = "";
-                if (nextStep.targetPaceZone || getDisplayDuration(nextStep)) {
+                if (nextStep.targetPaceZone || getDisplayDuration(nextStep) || nextStep.type !== 'rest') {
                     paceHtml = `<div class="mt-4 flex gap-8 flex-wrap">`;
 
                     if (getDisplayDuration(nextStep)) {
@@ -341,6 +365,12 @@ function renderNextActivityCard() {
                             <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${pType}">Computing...</span>
                         </div>`;
                     }
+
+                    const zoneInfo = getEffortZoneInfo(nextStep);
+                    paceHtml += `<div>
+                        <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Effort</span>
+                        <span class="font-mono text-xl md:text-2xl font-black ${zoneInfo.color}">${zoneInfo.modalLabel}</span>
+                    </div>`;
 
                     paceHtml += `</div>`;
                 }
@@ -414,12 +444,13 @@ function renderNextActivityCard() {
                                     ${iconSVG}
                                 </div>
 
-                                <!-- Left Section: Badges, Title & Mobile Subtext (Flex-1 on Mobile, Cols 1-4 on Desktop) -->
-                                <div class="flex flex-col min-w-0 flex-1 md:col-span-4 relative z-10">
-                                    <!-- Top Row (Prep Badge & Large Time Readout) -->
+                                <!-- Left Section: Badges, Title & Time/Zone Pill (Flex-1 on Mobile, Cols 1-9 on Desktop) -->
+                                <div class="flex flex-col min-w-0 flex-1 md:col-span-9 relative z-10">
+                                    <!-- Top Row (Prep Badge, Time Readout & Subtle Z-X Zone Badge) -->
                                     <div class="flex items-center gap-2 flex-wrap mb-1">
                                         ${nextStep.jitPreparationTip ? `<button id="jit-badge-${nextStep.id}" onclick="event.stopPropagation(); openPrepTipModal(event, '${nextStep.id}')" class="text-[9px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full hover:bg-amber-900/60 transition-colors cursor-pointer ${!nextStep.hasReadJitTip ? 'pulse-slow' : ''}">🔥 Prep</button>` : ''}
                                         ${(() => {
+                                            const zoneInfo = getEffortZoneInfo(nextStep);
                                             const dur = getDisplayDuration(nextStep);
                                             let timeStr = "";
                                             if (nextStep.type === 'rest') timeStr = "Rest Day";
@@ -427,103 +458,18 @@ function renderNextActivityCard() {
                                             else if (dur && !dur.toLowerCase().includes('mile')) timeStr = dur;
                                             else if (nextStep.type === 'strength') timeStr = "35 mins";
                                             else timeStr = "30 mins";
-                                            return `<span class="text-sm md:text-base font-black text-indigo-400 flex items-center gap-1"><i class="fa-regular fa-clock text-xs md:text-sm text-indigo-400"></i> ${timeStr}</span>`;
+
+                                            return `
+                                            <span class="text-sm md:text-base font-black text-indigo-400 flex items-center gap-1">
+                                                <i class="fa-regular fa-clock text-xs md:text-sm text-indigo-400"></i> ${timeStr}
+                                            </span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-black border ${zoneInfo.bg} ${zoneInfo.color}">Z-${zoneInfo.zone}</span>
+                                            `;
                                         })()}
                                     </div>
 
-                                    <!-- Workout Title (Non-truncated 2-line wrapping, enlarged for mobile readability) -->
+                                    <!-- Workout Title -->
                                     <h2 class="text-lg md:text-xl font-black text-white tracking-tight leading-snug line-clamp-2" title="${nextStep.workoutTitle}">${nextStep.workoutTitle}</h2>
-
-                                    <!-- Mobile Inline Subtext (Harmonized High-Contrast Slate-200) -->
-                                    <div class="md:hidden flex items-center gap-2 mt-1 flex-wrap text-sm font-semibold text-slate-200">
-                                        ${(() => {
-                                            if (nextStep.type === 'rest') {
-                                                return `<span class="font-semibold text-slate-300">Recovery & Hydration</span>`;
-                                            } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
-                                                const exCount = getAccurateStrengthExerciseCount(nextStep);
-                                                return `<span class="font-semibold text-slate-300">${exCount} Exercises</span>`;
-                                            } else {
-                                                let parts = [];
-                                                const dur = getDisplayDuration(nextStep);
-                                                let distStr = "";
-                                                if (nextStep.targetDistance) distStr = `${nextStep.targetDistance} mi`;
-                                                else if (dur && dur.toLowerCase().includes('mile')) distStr = dur;
-                                                if (distStr) parts.push(`<span class="font-semibold text-slate-200">${distStr}</span>`);
-
-                                                let paceStr = "";
-                                                if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
-                                                    paceStr = `${defaultMin}:${defaultSec} /mi`;
-                                                } else if (nextStep.targetPaceZone) {
-                                                    paceStr = `${nextStep.targetPaceZone}`;
-                                                }
-                                                if (paceStr) parts.push(`<span class="font-semibold text-slate-200">${paceStr}</span>`);
-
-                                                return parts.join(` <span class="text-slate-500 font-bold">•</span> `);
-                                            }
-                                        })()}
-                                    </div>
-                                </div>
-
-                                <!-- Center Section: Standardized 3-Slot Horizontal Metrics Grid (Visible ONLY on Desktop md:) -->
-                                <div class="hidden md:grid md:grid-cols-3 gap-2 relative z-10 my-1 md:my-0 md:col-span-5 w-full">
-                                    ${(() => {
-                                        let slot1Text = "", slot1Icon = "fa-solid fa-route text-teal-400";
-                                        let slot2Text = "", slot2Icon = "fa-solid fa-stopwatch text-emerald-400";
-                                        let slot3Text = "", slot3Icon = "";
-
-                                        if (nextStep.type === 'rest') {
-                                            slot1Text = "Recovery & Hydration";
-                                            slot1Icon = "fa-solid fa-droplet text-teal-400";
-                                        } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
-                                            const exCount = getAccurateStrengthExerciseCount(nextStep);
-                                            slot1Text = `${exCount} Exercises`;
-                                            slot1Icon = "fa-solid fa-dumbbell text-amber-400";
-                                        } else {
-                                            // Run / Walk / Speed / Endurance
-                                            const dur = getDisplayDuration(nextStep);
-                                            if (nextStep.targetDistance) slot1Text = `${nextStep.targetDistance} mi`;
-                                            else if (dur && dur.toLowerCase().includes('mile')) slot1Text = dur;
-
-                                            if (nextStep.targetPaceZone && targetMidDecimal !== null && defaultMin !== "") {
-                                                slot2Text = `${defaultMin}:${defaultSec} /mi`;
-                                            } else if (nextStep.targetPaceZone) {
-                                                slot2Text = `${nextStep.targetPaceZone}`;
-                                                slot2Icon = "fa-solid fa-gauge-high text-emerald-400";
-                                            }
-                                        }
-
-                                        return `
-                                        <!-- Slot 1: Volume / Scope -->
-                                        <div class="flex items-center justify-start sm:justify-center">
-                                            ${slot1Text ? `
-                                            <div class="bg-slate-950/75 border border-slate-800/80 backdrop-blur-sm px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-slate-200 shadow-sm w-full justify-center">
-                                                <i class="${slot1Icon} text-[11px]"></i>
-                                                <span class="whitespace-nowrap">${slot1Text}</span>
-                                            </div>
-                                            ` : '<div></div>'}
-                                        </div>
-
-                                        <!-- Slot 2: Pace / Intensity -->
-                                        <div class="flex items-center justify-start sm:justify-center">
-                                            ${slot2Text ? `
-                                            <div class="bg-slate-950/75 border border-slate-800/80 backdrop-blur-sm px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-slate-200 shadow-sm w-full justify-center">
-                                                <i class="${slot2Icon} text-[11px]"></i>
-                                                <span class="whitespace-nowrap">${slot2Text}</span>
-                                            </div>
-                                            ` : '<div></div>'}
-                                        </div>
-
-                                        <!-- Slot 3: Reserved for Target RPE / Effort -->
-                                        <div class="flex items-center justify-start sm:justify-center">
-                                            ${slot3Text ? `
-                                            <div class="bg-slate-950/75 border border-slate-800/80 backdrop-blur-sm px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-slate-200 shadow-sm w-full justify-center">
-                                                <i class="${slot3Icon} text-[11px]"></i>
-                                                <span class="whitespace-nowrap">${slot3Text}</span>
-                                            </div>
-                                            ` : '<div></div>'}
-                                        </div>
-                                        `;
-                                    })()}
                                 </div>
 
                                 <!-- Right Section: Action Controls Station (Stacked Checkbox + Log Button on Mobile, Horizontal on Desktop) -->
@@ -683,27 +629,27 @@ function renderNextActivityCard() {
                                             `}
                                             <div class="flex flex-wrap items-center gap-2 mt-1">
                                                  <div class="flex-1 min-w-[120px]">
-                                                     <select id="logged-rpe-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800/80 text-slate-200 text-xs font-bold py-2 px-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
-                                                         <option value="" disabled ${!nextStep.rpeScore ? 'selected' : ''}>Effort</option>
-                                                         <option value="1" ${nextStep.rpeScore == '1' ? 'selected' : ''}>1 - Restful (Avg HR < 100)</option>
-                                                         <option value="2" ${nextStep.rpeScore == '2' ? 'selected' : ''}>2 - Easy (Avg HR 100-115)</option>
-                                                         <option value="3" ${nextStep.rpeScore == '3' ? 'selected' : ''}>3 - Light (Avg HR 115-130)</option>
-                                                         <option value="4" ${nextStep.rpeScore == '4' ? 'selected' : ''}>4 - Comfortable (Avg HR 130-145)</option>
-                                                         <option value="5" ${nextStep.rpeScore == '5' ? 'selected' : ''}>5 - Moderate (Avg HR 145-155)</option>
-                                                         <option value="6" ${nextStep.rpeScore == '6' ? 'selected' : ''}>6 - Steady (Avg HR 155-165)</option>
-                                                         <option value="7" ${nextStep.rpeScore == '7' ? 'selected' : ''}>7 - Hard (Avg HR 165-170)</option>
-                                                         <option value="8" ${nextStep.rpeScore == '8' ? 'selected' : ''}>8 - Very Hard (Avg HR 170-175)</option>
-                                                         <option value="9" ${nextStep.rpeScore == '9' ? 'selected' : ''}>9 - Exhausting (Avg HR 175-180)</option>
-                                                         <option value="10" ${nextStep.rpeScore == '10' ? 'selected' : ''}>10 - Maximum (Avg HR 180+)</option>
-                                                     </select>
+                                                     ${(() => {
+                                                         const selRpe = nextStep.rpeScore || nextStep.targetRPE || 2;
+                                                         return `
+                                                         <select id="logged-rpe-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800/80 text-slate-200 text-xs font-bold py-2 px-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                                                             <option value="" disabled ${!selRpe ? 'selected' : ''}>Select Zone</option>
+                                                             <option value="1" ${selRpe == '1' ? 'selected' : ''}>Zone - 1 (Recovery / Very Light)</option>
+                                                             <option value="2" ${selRpe == '2' ? 'selected' : ''}>Zone - 2 (Easy / Conversational)</option>
+                                                             <option value="3" ${selRpe == '3' ? 'selected' : ''}>Zone - 3 (Moderate / Steady)</option>
+                                                             <option value="4" ${selRpe == '4' ? 'selected' : ''}>Zone - 4 (Hard / Threshold)</option>
+                                                             <option value="5" ${selRpe == '5' ? 'selected' : ''}>Zone - 5 (Max Effort / Failure)</option>
+                                                         </select>
+                                                         `;
+                                                     })()}
                                                  </div>
                                                  <div class="flex-1 min-w-[130px] max-w-full bg-slate-900 py-1.5 px-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
                                                      <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="w-full bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
                                                  </div>
+                                                 <div class="w-full mt-1">
+                                                     <textarea id="logged-notes-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:border-indigo-500 placeholder-slate-600 resize-none h-16" placeholder="Add workout notes or splits...">${nextStep.actualLoggedNotes || ''}</textarea>
+                                                 </div>
                                              </div>
-                                            <div class="w-full mt-1">
-                                                <textarea id="logged-notes-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:border-indigo-500 placeholder-slate-600 resize-none h-16" placeholder="Add workout notes or splits...">${nextStep.actualLoggedNotes || ''}</textarea>
-                                            </div>
                                             ${isSpeed ? `
                                             <div class="flex items-center gap-1.5 w-full mt-1">
                                                 <input type="file" id="workout-file-upload-${nextStep.id}" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleWorkoutFileUpload(this, '${nextStep.id}')">

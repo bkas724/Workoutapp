@@ -2834,26 +2834,21 @@
                             class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-white font-bold text-sm focus:outline-none focus:border-indigo-500/80 cursor-pointer select-none">
                     </div>
                     <div class="flex-1" id="alt-rpe-container">
-                        <label
+                        <label id="alt-rpe-label"
                             class="block text-[10px] text-indigo-300 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                            Effort Score
-                            <span
+                            Effort Zone (1–5)
+                            <span id="alt-rpe-tooltip"
                                 class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors"
-                                title="Exertion score from 1 (very light) to 10 (max effort).">?</span>
+                                title="Effort score from Zone 1 (Recovery) to Zone 5 (Max Effort).">?</span>
                         </label>
                         <select id="alt-rpe"
                             class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-slate-200 font-bold text-sm focus:outline-none focus:border-indigo-500/80 cursor-pointer">
-                            <option value="" disabled selected>Effort</option>
-                            <option value="1">1 - Restful</option>
-                            <option value="2">2 - Easy</option>
-                            <option value="3">3 - Light</option>
-                            <option value="4">4 - Comfortable</option>
-                            <option value="5">5 - Moderate</option>
-                            <option value="6">6 - Steady</option>
-                            <option value="7">7 - Hard</option>
-                            <option value="8">8 - Very Hard</option>
-                            <option value="9">9 - Exhausting</option>
-                            <option value="10">10 - Maximum</option>
+                            <option value="" disabled selected>Select Zone</option>
+                            <option value="1">Zone - 1 (Recovery / Very Light)</option>
+                            <option value="2">Zone - 2 (Easy / Conversational)</option>
+                            <option value="3">Zone - 3 (Moderate / Steady)</option>
+                            <option value="4">Zone - 4 (Hard / Threshold)</option>
+                            <option value="5">Zone - 5 (Max Effort / Failure)</option>
                         </select>
                     </div>
                 </div>
@@ -3000,7 +2995,6 @@
         // ------------------ WORKOUT FILE PARSER ENGINE ------------------
     </script>
     <script src="js/gpx-parser.js"></script>
-    <script src="js/onboarding.js"></script>
     <script src="js/journey.js"></script>
     <script>
 
@@ -3587,6 +3581,7 @@
     <script src="js/timeline-utils.js"></script>
     <script src="js/loaders.js"></script>
     <script src="js/schedule-modals.js"></script>
+    <script src="js/onboarding.js"></script>
 </body>
 
 </html>
