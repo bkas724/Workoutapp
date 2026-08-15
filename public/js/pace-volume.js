@@ -30,6 +30,15 @@ async function updatePaceAndVolumeHub(data) {
                 est5KEl.innerText = `${est5KPace} / mi`;
             }
 
+            const estLabel = document.getElementById('est-race-pace-label');
+            if (estLabel) {
+                let distanceLabel = '5K';
+                if (data.dynamicGoalData && data.dynamicGoalData.targetDistance && data.dynamicGoalData.targetDistance !== 'Other') {
+                    distanceLabel = data.dynamicGoalData.targetDistance;
+                }
+                estLabel.innerText = `Est. ${distanceLabel} Pace`;
+            }
+
             updatePaceChart(data, completedRuns);
         }
 

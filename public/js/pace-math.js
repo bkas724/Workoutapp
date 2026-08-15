@@ -2,30 +2,44 @@ function calculateEst5KRacePace(completedRuns, baseline5kStr) {
             if (!completedRuns || completedRuns.length === 0) {
                 return baseline5kStr || "8:10";
             }
-            const runsWithPace = completedRuns.filter(w => w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace))
-                .sort((a, b) => {
-                    const dateA = a.dateExecuted ? new Date(a.dateExecuted).getTime() : (a.sequenceOrder || 0);
-                    const dateB = b.dateExecuted ? new Date(b.dateExecuted).getTime() : (b.sequenceOrder || 0);
-                    return dateB - dateA;
-                });
+            
+            // Filter to only running-based activities
+            const excludedTypes = ['bike', 'walk', 'swim', 'row', 'strength', 'yoga', 'mobility', 'hike'];
+            
+            const runsWithPace = completedRuns.filter(w => {
+                const type = (w.type || '').toLowerCase();
+                const isExcluded = excludedTypes.some(ex => type.includes(ex));
+                const hasPace = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
+                return hasPace && !isExcluded;
+            }).sort((a, b) => {
+                const dateA = a.dateExecuted ? new Date(a.dateExecuted).getTime() : (a.sequenceOrder || 0);
+                const dateB = b.dateExecuted ? new Date(b.dateExecuted).getTime() : (b.sequenceOrder || 0);
+                return dateB - dateA;
+            });
 
             if (runsWithPace.length === 0) return baseline5kStr || "8:10";
 
-            const lastTwo = runsWithPace.slice(0, 2);
-            let totalEstSec = 0;
-            let validCount = 0;
+            // Take up to the last 5 valid running activities
+            const lastFive = runsWithPace.slice(0, 5);
+            let projectedSecs = [];
 
-            lastTwo.forEach(w => {
+            lastFive.forEach(w => {
                 const est5KSec = convertRunToEst5KPaceSec(w);
                 if (est5KSec !== null) {
-                    totalEstSec += est5KSec;
-                    validCount++;
+                    projectedSecs.push(est5KSec);
                 }
             });
 
-            if (validCount === 0) return baseline5kStr || "8:10";
+            if (projectedSecs.length === 0) return baseline5kStr || "8:10";
 
-            const avg5KSec = Math.round(totalEstSec / validCount);
+            // If we have 3 or more runs, discard the absolute slowest projected outlier
+            if (projectedSecs.length >= 3) {
+                projectedSecs.sort((a, b) => a - b); // Ascending order (fastest to slowest)
+                projectedSecs.pop(); // Remove the last item (slowest pace)
+            }
+
+            const totalEstSec = projectedSecs.reduce((sum, sec) => sum + sec, 0);
+            const avg5KSec = Math.round(totalEstSec / projectedSecs.length);
             const mins = Math.floor(avg5KSec / 60);
             const secs = avg5KSec % 60;
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -36,36 +50,84 @@ function convertRunToEst5KPaceSec(w) {
             if (!rawPaceStr) return null;
             const loggedSec = paceStringToSeconds(rawPaceStr);
 
+            // First, determine user's Age for Max HR calculation
+            let age = 35; // Default age fallback
+            let targetDistance = '5K'; // Default
+            if (typeof userProfileData !== 'undefined' && userProfileData) {
+                if (userProfileData.age) {
+                    age = userProfileData.age;
+                } else if (userProfileData.birthYear) {
+                    age = new Date().getFullYear() - userProfileData.birthYear;
+                }
+                if (userProfileData.dynamicGoalData && userProfileData.dynamicGoalData.targetDistance) {
+                    targetDistance = userProfileData.dynamicGoalData.targetDistance;
+                }
+            }
+            const maxHr = 220 - age;
+
             let hrInput = (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgHeartRate) || w.actualHeartRate || w.rawHr;
-            if (!hrInput && w.rpeScore) {
-                // Map 5-Zone Effort (1-5) or legacy RPE (1-10) to representative HR estimate
-                let score = Number(w.rpeScore);
-                if (score > 5) score = Math.round(score * 0.5); // Normalize legacy 1-10 scores
-                const rpeToHr = {
-                    1: 100, // Zone 1: Recovery (~55% max HR)
-                    2: 125, // Zone 2: Easy Aerobic (~65% max HR)
-                    3: 150, // Zone 3: Moderate / Tempo (~75% max HR)
-                    4: 168, // Zone 4: Hard / Threshold (~85% max HR)
-                    5: 185  // Zone 5: Max Effort (>90% max HR)
-                };
-                hrInput = rpeToHr[score] || 125;
+            
+function calculateHrForZone(zoneValue) {
+    if (!zoneValue) return "";
+    let age = 35; // Default age fallback
+    if (typeof userProfileData !== 'undefined' && userProfileData) {
+        if (userProfileData.age) {
+            age = userProfileData.age;
+        } else if (userProfileData.birthYear) {
+            age = new Date().getFullYear() - userProfileData.birthYear;
+        }
+    }
+    const maxHr = 220 - age;
+    const effortToHrMultiplier = {
+        1: 0.60, // Zone 1: Recovery (~60% max HR)
+        2: 0.70, // Zone 2: Easy Aerobic (~70% max HR)
+        3: 0.80, // Zone 3: Moderate / Tempo (~80% max HR)
+        4: 0.88, // Zone 4: Hard / Threshold (~88% max HR)
+        5: 0.95  // Zone 5: Max Effort (~95% max HR)
+    };
+    const mult = effortToHrMultiplier[Number(zoneValue)];
+    if (!mult) return "";
+    return Math.round(maxHr * mult);
+}
+
+            if (!hrInput) {
+                if (w.effortZone) {
+                    // New System: Map 5-Zone Effort (1-5) to representative HR estimate using percentage of Max HR
+                    hrInput = calculateHrForZone(w.effortZone);
+                } else if (w.rpeScore) {
+                    // Legacy System: Map old 1-10 RPE scores to representative HR estimate using percentage of Max HR
+                    let score = Number(w.rpeScore);
+                    const legacyRpeToHrMultiplier = {
+                        1: 0.50, // 1: <100 BPM (~50% max HR)
+                        2: 0.57, // 2: 100-115 BPM (~57% max HR)
+                        3: 0.64, // 3: 115-125 BPM (~64% max HR)
+                        4: 0.70, // 4: 125-135 BPM (~70% max HR)
+                        5: 0.75, // 5: 135-145 BPM (~75% max HR)
+                        6: 0.80, // 6: 145-155 BPM (~80% max HR)
+                        7: 0.85, // 7: 155-165 BPM (~85% max HR)
+                        8: 0.90, // 8: 165-175 BPM (~90% max HR)
+                        9: 0.95, // 9: 175-180 BPM (~95% max HR)
+                        10: 0.98 // 10: 180+ BPM (~98% max HR)
+                    };
+                    hrInput = Math.round(maxHr * (legacyRpeToHrMultiplier[score] || 0.70));
+                }
             }
 
             if (hrInput && hrInput > 60) {
-                // Determine user's Age for Max HR calculation
-                let age = 35; // Default age fallback
-                if (typeof userProfileData !== 'undefined' && userProfileData) {
-                    if (userProfileData.age) {
-                        age = userProfileData.age;
-                    } else if (userProfileData.birthYear) {
-                        age = new Date().getFullYear() - userProfileData.birthYear;
-                    }
-                }
-                const maxHr = 220 - age;
-                const raceHr = Math.round(maxHr * 0.92); // Realistic 5K avg \"Race\" HR (approx 92% of Max HR)
+                // Dynamic race HR multiplier based on target distance
+                let hrMultiplier = 0.92; // default 5K
+                if (targetDistance === '10K') hrMultiplier = 0.90;
+                else if (targetDistance === 'Half Marathon') hrMultiplier = 0.85;
+                else if (targetDistance === 'Marathon') hrMultiplier = 0.80;
+                else if (targetDistance === 'Ultra') hrMultiplier = 0.75;
+                else if (targetDistance === 'Other') hrMultiplier = 0.85;
+
+                const raceHr = Math.round(maxHr * hrMultiplier);
 
                 // Dynamic Turkey Trot formula based on User's projected Race HR
-                const projectedPaceSecPerMile = loggedSec * ((hrInput - 60) / (raceHr - 60));
+                // Clamp the ratio between 0.65 and 1.15 to prevent extreme mathematical anomalies
+                const ratio = Math.max(0.65, Math.min(1.15, (hrInput - 60) / (raceHr - 60)));
+                const projectedPaceSecPerMile = loggedSec * ratio;
                 return Math.max(270, Math.round(projectedPaceSecPerMile)); // Min clamp 4:30/mi
             }
 
@@ -76,9 +138,9 @@ function convertRunToEst5KPaceSec(w) {
             if (type.includes('easy') || zone.includes('easy')) {
                 offsetSec = -80; // Easy run pace ~80s slower than 5K pace
             } else if (type.includes('long') || zone.includes('long')) {
-                offsetSec = -55; // Long run pace ~55s slower than 5K pace
+                offsetSec = -90; // Long run pace ~90s slower than 5K pace
             } else if (type.includes('tempo') || zone.includes('tempo')) {
-                offsetSec = 25;  // Tempo run pace offset
+                offsetSec = -25; // Tempo run pace ~25s slower than 5K pace
             } else if (type.includes('fast') || type.includes('speed') || type.includes('interval') || w.isBenchmark) {
                 offsetSec = 0;   // Direct 5K effort
             } else {

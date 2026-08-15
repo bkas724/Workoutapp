@@ -7,6 +7,9 @@ function submitWorkout(activityId, isBenchmark, defaultType, cbElement) {
             const warning = document.getElementById(`gatekeeper-warn-${activityId}`);
             const rpeVal = rpeSelect ? rpeSelect.value : null;
 
+            const hrInputEl = document.getElementById(`logged-hr-${activityId}`);
+            const hrVal = hrInputEl ? hrInputEl.value : null;
+
             let actualDistance = null;
             let actualDuration = null;
             let actualWorkoutPaceDecimal = null;
@@ -119,7 +122,8 @@ function submitWorkout(activityId, isBenchmark, defaultType, cbElement) {
                     actualLoggedDistance: actualDistance,
                     actualLoggedDuration: actualDuration,
                     actualLoggedPace: paceStr,
-                    rpeScore: (rpeVal && !isNaN(parseInt(rpeVal))) ? parseInt(rpeVal) : null,
+                    actualHeartRate: (hrVal && !isNaN(parseInt(hrVal))) ? parseInt(hrVal) : null,
+                    effortZone: (rpeVal && !isNaN(parseInt(rpeVal))) ? parseInt(rpeVal) : null,
                     dateExecuted: completionDate
                 };
                 if (repSplits.length > 0) {
@@ -172,7 +176,7 @@ function quickCompleteWorkout(activityId, isBenchmark, type) {
                 actualActivityType: type,
                 actualLoggedDistance: defaultDist,
                 actualLoggedDuration: defaultDur,
-                rpeScore: 5
+                effortZone: 5
             }).then(() => {
                 console.log("Quick completed workout:", activityId);
             }).catch(err => {
@@ -340,7 +344,7 @@ function submitAlternativeActivity() {
                     alert("Please select an RPE score.");
                     return;
                 }
-                updatePayload.rpeScore = !isNaN(parseInt(rpeVal)) ? parseInt(rpeVal) : null;
+                updatePayload.effortZone = !isNaN(parseInt(rpeVal)) ? parseInt(rpeVal) : null;
             }
 
             if (['run', 'walk', 'bike', 'swim'].includes(type)) {

@@ -39,11 +39,22 @@ Unlike calendar-based grid apps, our database tracks a user's progress through a
 
 ## 4. Analytical Math Models (Frontend)
 
-### Dynamic 5K Projection (The "Turkey Trot" Formula)
-We calculate a projected 5K race pace for the user off of *any* logged run (even a Zone 1 easy run) by mathematically extrapolating their recorded average Heart Rate against their theoretical maximums.
+### Dynamic Race Pace Projection (The "Turkey Trot" Formula)
+We calculate a projected race pace for the user off of *any* logged running activity by mathematically extrapolating their recorded average Heart Rate against their theoretical maximums.
 *   **The Formula:** `projected_Pace_Sec = logged_Sec * ((logged_HR - 60) / (race_HR - 60))`
-*   **Assumptions:** Base resting HR is assumed to be `60` BPM. The `race_HR` (a 5K race effort) is calculated as `92%` of the user's `Max HR` (which is `220 - Age`).
-*   **Pace Offsets:** If a user logs an `Easy` run, we mathematically adjust the logged pace by `-80` seconds per mile before extrapolating, to account for the intentional biomechanical slowdown. Long runs receive a `-55` second offset. Tempo runs receive a `+25` second offset.
+*   **Assumptions:** Base resting HR is assumed to be `60` BPM. `Max HR` is calculated as `220 - Age`. 
+*   **Dynamic Race HR Thresholds:** The `race_HR` in the formula scales dynamically based on the user's `targetDistance` in their profile, because longer races require a lower sustainable HR:
+    *   **5K**: 92% of Max HR
+    *   **10K**: 90% of Max HR
+    *   **Half Marathon**: 85% of Max HR
+    *   **Marathon**: 80% of Max HR
+    *   **Ultra**: 75% of Max HR
+*   **Dynamic RPE Scaling (Dual-Track):** If the user does not log a smartwatch Heart Rate, the system creates a mathematical HR equivalent using a percentage of their specific Max HR. The database maintains two distinct tracks to preserve historical integrity:
+    *   **New System (`effortZone`):** Uses a 1-5 scale (Zone 1 = 60%, Zone 2 = 70%, Zone 3 = 80%, Zone 4 = 88%, Zone 5 = 95%).
+    *   **Legacy System (`rpeScore`):** Preserves historical runs logged on a 1-10 scale by mapping them to the same HR percentages (e.g. 1-2 = 60%, 3-4 = 70%, 9-10 = 95%). This prevents older "Easy" runs (e.g. a 4/10) from being misread as a new "Zone 4 (Threshold)" run.
+*   **Ratio Clamping:** To prevent extreme mathematical anomalies (e.g. an absurdly low logged HR generating a world-record 5K pace), the `((logged_HR - 60) / (race_HR - 60))` multiplier is safely clamped between `0.65` and `1.15`.
+*   **Pace Offsets:** If a user does not have HR data or an RPE score, we mathematically adjust the logged pace based on the activity type before extrapolating: `Easy` runs receive a `-80s` offset (making the projected pace 80s faster). `Long` runs receive a `-90s` offset. `Tempo` runs receive a `-25s` offset.
+*   **Activity Filtering & Smoothing:** To eliminate anomalies like hikes or bike rides, only running-based activities (`run`, `interval`, `tempo`, `easy`, `benchmark`, etc.) are processed. The system gathers the last **5 valid runs**, discards the absolute slowest outlier (to account for a random trail run or injury), and averages the remaining 4 to plot a smooth trajectory on the dashboard.
 
 ### JIT Consistency Score Calculation
 To quantify "Guilt-Free Consistency", the app calculates a rolling metric (10 to 100 score) based on the *velocity* of completing workout blocks, not specific calendar dates.

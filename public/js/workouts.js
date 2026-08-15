@@ -169,7 +169,8 @@ function buildActivePhaseHTML() {
                                         ${step.actualLoggedDistance ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20" title="Actual Logged Distance">${step.actualLoggedDistance} mi</span>` : ''}
                                         ${step.actualLoggedDuration ? `<span class="text-[10px] text-emerald-400 font-bold font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20" title="Actual Logged Duration">${step.actualLoggedDuration} min</span>` : ''}
                                         ${step.actualLoggedPace ? `<span class="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20" title="Actual Logged Pace">${step.actualLoggedPace} /mi</span>` : ''}
-                                        ${step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20" title="Effort Score">RPE: ${step.rpeScore}/10</span>` : ''}
+                                        ${(step.actualHeartRate || (step.uploadedWorkoutFile && step.uploadedWorkoutFile.avgHeartRate)) ? `<span class="text-[10px] font-bold text-rose-400 font-mono bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20" title="Average Heart Rate"><i class="fa-solid fa-heart-pulse text-[9px] mr-0.5"></i> ${step.actualHeartRate || step.uploadedWorkoutFile.avgHeartRate} BPM</span>` : ''}
+                                        ${step.effortZone ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20" title="Effort Zone">Zone ${step.effortZone}</span>` : (step.rpeScore ? `<span class="text-[10px] font-bold text-violet-400 font-mono bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20" title="Effort Score">RPE: ${step.rpeScore}/10</span>` : '')}
                                     `}
                                 </div>
 
@@ -628,11 +629,12 @@ function renderNextActivityCard() {
                                             </div>
                                             `}
                                             <div class="flex flex-wrap items-center gap-2 mt-1">
-                                                 <div class="flex-1 min-w-[120px]">
+                                                 <div class="flex-1 min-w-[120px] flex items-center gap-1">
                                                      ${(() => {
                                                          const selRpe = nextStep.rpeScore || nextStep.targetRPE || 2;
+                                                         const defaultHr = typeof calculateHrForZone === 'function' ? calculateHrForZone(selRpe) : '';
                                                          return `
-                                                         <select id="logged-rpe-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800/80 text-slate-200 text-xs font-bold py-2 px-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer">
+                                                         <select id="logged-rpe-${nextStep.id}" class="flex-1 bg-slate-900 border border-slate-800/80 text-slate-200 text-xs font-bold py-2 px-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer" onchange="if(typeof calculateHrForZone === 'function') document.getElementById('logged-hr-${nextStep.id}').value = calculateHrForZone(this.value)">
                                                              <option value="" disabled ${!selRpe ? 'selected' : ''}>Select Zone</option>
                                                              <option value="1" ${selRpe == '1' ? 'selected' : ''}>Zone - 1 (Recovery / Very Light)</option>
                                                              <option value="2" ${selRpe == '2' ? 'selected' : ''}>Zone - 2 (Easy / Conversational)</option>
@@ -640,6 +642,10 @@ function renderNextActivityCard() {
                                                              <option value="4" ${selRpe == '4' ? 'selected' : ''}>Zone - 4 (Hard / Threshold)</option>
                                                              <option value="5" ${selRpe == '5' ? 'selected' : ''}>Zone - 5 (Max Effort / Failure)</option>
                                                          </select>
+                                                         <div class="bg-slate-900 border border-slate-800/80 px-2 py-1.5 rounded-xl flex items-center gap-1 w-[70px] shrink-0" title="Average Heart Rate for this Effort Zone">
+                                                             <input type="number" id="logged-hr-${nextStep.id}" value="${defaultHr}" class="w-full bg-transparent text-slate-200 text-xs font-bold text-center focus:outline-none placeholder-slate-600" placeholder="HR">
+                                                             <span class="text-[9px] text-slate-500 font-bold">BPM</span>
+                                                         </div>
                                                          `;
                                                      })()}
                                                  </div>
