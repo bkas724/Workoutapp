@@ -60,6 +60,16 @@ We calculate a projected race pace for the user off of *any* logged running acti
     *   **Full Journey Modal (`full-pace-journey-chart`):** Renders the entire macrocycle (12–16 weeks) from journey start to target race date, illustrating long-term linear pace targets and volume progression.
     *   **Chart Aggregation Logic:** Weekly volume bars aggregate total miles across all logged workouts. Weekly pace trend points only aggregate valid running workouts converted via the dynamic Turkey Trot formula, ensuring non-running cross-training sessions do not distort weekly running pace trends.
 
+### Weight Trend Engine & Biometrics Trajectory Model
+To support safe weight progression and defeat cognitive overload, weight tracking is decoupled into an active phase window and a full journey exponential decay model.
+*   **Master Exponential Decay Curve:** Rather than a linear drop, human weight trajectory follows an exponential decay model:
+    `W_target(t) = TargetWeight + (StartWeight - TargetWeight) * e^(-k * t)`
+    where `t` is elapsed weeks from `journeyStartDate`, and `k = 2.9957 / TotalJourneyWeeks` (calibrating 95% target achievement by the final target date).
+*   **Dual-View Time Horizon:**
+    *   **Phase Isolation (Dashboard Default):** Anchors strictly to `currentPhaseIndex` (`phaseStart` to `phaseEnd`). Sets `x = 0` to the last known weight recorded before entering the active phase (`phaseStartWeight`), and plots only logs recorded within the phase. Slices the master exponential decay curve to display the **active phase target** and computes phase delta (`latestWeight - phaseStartWeight`).
+    *   **Full Journey Modal (`full-journey-chart`):** Expands the entire timeline across all macrocycle phases (12–26 weeks), plotting the full historical dataset, total journey delta, and the ultimate target weight bullseye.
+*   **7-Day Moving Average & Smoothing:** Filters daily fluid and glycogen shifts by computing a rolling average across nearby weight logs (`|dx| <= 0.5` weeks).
+
 ### JIT Consistency Score Calculation
 To quantify "Guilt-Free Consistency", the app calculates a rolling metric (10 to 100 score) based on the *velocity* of completing workout blocks, not specific calendar dates.
 *   **The Math:** For every block of 7 workouts, we calculate `Score = (7 / Actual_Days_Taken) * 100`.

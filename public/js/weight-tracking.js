@@ -238,6 +238,63 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                     }
                     history.sort((a, b) => new Date(a.date) - new Date(b.date));
 
+                    // Master Journey Timeline & Decay Parameters
+                    const pad = n => n.toString().padStart(2, '0');
+                    const userTargetWeight = data.targetWeight ? parseFloat(data.targetWeight) : maxHealthyWeight;
+                    const journeyStart = data.journeyStartDate ? new Date(data.journeyStartDate) : new Date(history[0].date);
+                    const masterStartD = new Date(journeyStart);
+                    masterStartD.setHours(0, 0, 0, 0);
+
+                    const macroPlan = data.macrocyclePlan || [];
+                    const phaseIndex = data.currentPhaseIndex || 1;
+
+                    let masterEndD = new Date(masterStartD);
+                    if (data.targetDate && new Date(data.targetDate) > masterStartD) {
+                        masterEndD = new Date(data.targetDate);
+                    } else if (macroPlan.length > 0) {
+                        for (let i = 0; i < macroPlan.length; i++) {
+                            const weeks = macroPlan[i].expectedDurationWeeks || 4;
+                            masterEndD.setDate(masterEndD.getDate() + (weeks * 7));
+                        }
+                    } else {
+                        masterEndD.setDate(masterEndD.getDate() + 182); // 6 months fallback
+                    }
+                    masterEndD.setHours(23, 59, 59, 999);
+
+                    const masterTotalWeeks = Math.max(1, Math.round((masterEndD - masterStartD) / (1000 * 60 * 60 * 24 * 7)));
+                    const masterInitialWeight = history.length > 0 ? history[0].weight : (data.weight || userTargetWeight);
+
+                    // Master exponential decay rate constant k: e^(-k * masterTotalWeeks) = 0.05 => 95% progress
+                    const k = 2.9957 / Math.max(1, masterTotalWeeks);
+
+                    const getProjectedTargetWeight = (dateObj) => {
+                        const weeksElapsed = Math.max(0, (dateObj.getTime() - masterStartD.getTime()) / (1000 * 60 * 60 * 24 * 7));
+                        return userTargetWeight + (masterInitialWeight - userTargetWeight) * Math.exp(-k * weeksElapsed);
+                    };
+
+                    // Active Phase Start & End Boundaries
+                    let phaseStart = new Date(masterStartD);
+                    for (let i = 0; i < phaseIndex - 1; i++) {
+                        const weeks = (macroPlan[i] && macroPlan[i].expectedDurationWeeks) || 4;
+                        phaseStart.setDate(phaseStart.getDate() + (weeks * 7));
+                    }
+                    phaseStart.setHours(0, 0, 0, 0);
+
+                    let phaseEnd = new Date(phaseStart);
+                    const currentPhasePlan = macroPlan[phaseIndex - 1];
+                    const currentPhaseWeeks = (currentPhasePlan && currentPhasePlan.expectedDurationWeeks) || 4;
+                    phaseEnd.setDate(phaseEnd.getDate() + (currentPhaseWeeks * 7));
+                    phaseEnd.setHours(23, 59, 59, 999);
+
+                    // Determine baseline weight entering the active phase
+                    let phaseStartWeight = masterInitialWeight;
+                    for (let i = history.length - 1; i >= 0; i--) {
+                        if (new Date(history[i].date) <= phaseStart) {
+                            phaseStartWeight = history[i].weight;
+                            break;
+                        }
+                    }
+
                     // Update biometrics ticker stats
                     if (history.length > 0) {
                         const latestLog = history[history.length - 1];
@@ -266,89 +323,20 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                         const rateEl = document.getElementById('weight-ticker-rate');
                         if (rateEl) rateEl.innerText = rateText;
 
-                        // Phase Change calculation
-                        const phaseStart = data.journeyStartDate ? new Date(data.journeyStartDate) : new Date(history[0].date);
-                        let firstInPhase = history.find(h => new Date(h.date) >= phaseStart) || history[0];
-                        const phaseDiffVal = parseFloat((latestLog.weight - firstInPhase.weight).toFixed(1));
+                        // Phase Change calculation (strictly delta from current phase entry baseline)
+                        const phaseDiffVal = parseFloat((latestLog.weight - phaseStartWeight).toFixed(1));
                         const phaseDiffText = phaseDiffVal > 0 ? `+${phaseDiffVal} lbs` : `${phaseDiffVal} lbs`;
                         const phaseEl = document.getElementById('weight-ticker-phase');
                         if (phaseEl) phaseEl.innerText = phaseDiffText;
                     }
 
-                    const pad = n => n.toString().padStart(2, '0');
+                    // Determine active chart boundaries and labels
+                    const startD = isFullJourney ? new Date(masterStartD) : new Date(phaseStart);
+                    const endD = isFullJourney ? new Date(masterEndD) : new Date(phaseEnd);
 
                     let labels = [];
                     let fullDates = [];
-
-                    const userTargetWeight = data.targetWeight ? parseFloat(data.targetWeight) : maxHealthyWeight; // Fallback to max healthy if unset
-
-                    const journeyStart = data.journeyStartDate ? new Date(data.journeyStartDate) : new Date(history[0].date);
-                    const lastHistoryDate = new Date(history[history.length - 1].date);
-
-                    let startD = new Date(journeyStart);
-                    startD.setHours(0, 0, 0, 0); // Normalize to start of day so same-day weights aren't negative
-                    let endD;
-
-                    // Always default to a sensible fallback
-                    let fallbackEndD = new Date(startD);
-                    fallbackEndD.setDate(fallbackEndD.getDate() + 182); // 6 months
-
-                    if (isFullJourney) {
-                        // Full Journey: Try targetDate first, then full macrocyclePlan, then fallback
-                        if (data.targetDate && new Date(data.targetDate) > startD) {
-                            endD = new Date(data.targetDate);
-                        } else if (data.macrocyclePlan && data.macrocyclePlan.length > 0) {
-                            let accumulatedEndD = new Date(startD);
-                            for (let i = 0; i < data.macrocyclePlan.length; i++) {
-                                const weeks = data.macrocyclePlan[i].expectedDurationWeeks || 4;
-                                accumulatedEndD.setDate(accumulatedEndD.getDate() + (weeks * 7));
-                            }
-                            endD = accumulatedEndD > startD ? accumulatedEndD : fallbackEndD;
-                        } else {
-                            endD = fallbackEndD;
-                        }
-                    } else {
-                        // Stage View: Dynamically calculate current phase end date based on macrocyclePlan
-                        const phaseIndex = data.currentPhaseIndex || 1;
-                        const macroPlan = data.macrocyclePlan || [];
-
-                        let accumulatedEndD = new Date(startD);
-                        let validPlanFound = false;
-
-                        for (let i = 0; i < phaseIndex; i++) {
-                            if (macroPlan[i]) {
-                                const weeks = macroPlan[i].expectedDurationWeeks || 4;
-                                accumulatedEndD.setDate(accumulatedEndD.getDate() + (weeks * 7));
-                                validPlanFound = true;
-                            }
-                        }
-
-                        if (validPlanFound && accumulatedEndD > startD) {
-                            endD = accumulatedEndD;
-                        } else if (data.currentPhaseEndDate && new Date(data.currentPhaseEndDate) > startD) {
-                            endD = new Date(data.currentPhaseEndDate);
-                        } else {
-                            // Fallback: From start to 2 weeks past the last history point or today
-                            const today = new Date();
-                            endD = lastHistoryDate > today ? new Date(lastHistoryDate) : new Date(today);
-                            endD.setDate(endD.getDate() + 14);
-                            if (endD < startD) {
-                                endD = new Date(startD);
-                                endD.setDate(endD.getDate() + 14);
-                            }
-                        }
-                    }
-
                     let curr = new Date(startD);
-                    curr.setHours(0, 0, 0, 0);
-                    endD.setHours(23, 59, 59, 999);
-
-                    // Failsafe in case endD somehow became invalid or before startD
-                    if (isNaN(endD) || endD <= curr) {
-                        endD = new Date(curr);
-                        endD.setDate(endD.getDate() + 182);
-                        endD.setHours(23, 59, 59, 999);
-                    }
 
                     while (curr <= endD) {
                         labels.push(`${pad(curr.getMonth() + 1)}/${pad(curr.getDate())}`);
@@ -356,18 +344,45 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                         curr.setDate(curr.getDate() + 7); // weekly steps
                     }
 
-                    // Generate all points at their exact fractional X location for the continuous line
+                    // Ensure minimum 2 labels for scale rendering
+                    if (labels.length < 2) {
+                        let nextWeek = new Date(startD);
+                        nextWeek.setDate(nextWeek.getDate() + 7);
+                        labels.push(`${pad(nextWeek.getMonth() + 1)}/${pad(nextWeek.getDate())}`);
+                        fullDates.push(nextWeek);
+                    }
+
+                    // Build visible data points
                     let allPoints = [];
-                    for (let h of history) {
-                        let hd = new Date(h.date);
-                        let fractionalWeeks = (hd - startD) / (7 * 24 * 60 * 60 * 1000);
-                        // Only add points that fall within or slightly after the chart boundary
-                        if (fractionalWeeks >= 0 && fractionalWeeks <= labels.length) {
-                            allPoints.push({ x: fractionalWeeks, y: h.weight });
+                    const startWeight = isFullJourney ? masterInitialWeight : phaseStartWeight;
+
+                    // Base anchor at x=0
+                    allPoints.push({ x: 0, y: startWeight });
+
+                    if (isFullJourney) {
+                        // Plot all logs across entire journey
+                        for (let h of history) {
+                            let hd = new Date(h.date);
+                            let fractionalWeeks = (hd - masterStartD) / (7 * 24 * 60 * 60 * 1000);
+                            if (fractionalWeeks > 0.05 && fractionalWeeks <= labels.length - 1) {
+                                allPoints.push({ x: fractionalWeeks, y: h.weight });
+                            }
+                        }
+                    } else {
+                        // Plot only logs within active phase
+                        for (let h of history) {
+                            let hd = new Date(h.date);
+                            if (hd > phaseStart && hd <= phaseEnd) {
+                                let fractionalWeeks = (hd - phaseStart) / (7 * 24 * 60 * 60 * 1000);
+                                if (fractionalWeeks > 0.05 && fractionalWeeks <= labels.length - 1) {
+                                    allPoints.push({ x: fractionalWeeks, y: h.weight });
+                                }
+                            }
                         }
                     }
                     allPoints.sort((a, b) => a.x - b.x);
 
+                    // Markers (Start & Latest in view)
                     let journeyMarkers = [];
                     let markerBgColors = [];
                     if (allPoints.length > 0) {
@@ -380,38 +395,12 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                         }
                     }
 
-                    // The starting weight for the trajectory and loss calculation
-                    const startWeight = history.length > 0 ? history[0].weight : 0;
-
-                    // Generate target trajectory using Exponential Decay
-                    // To maintain the correct curve on the Stage view, we must calculate the true journey length
-                    let trueEndD = new Date(startD);
-                    if (data.targetDate && new Date(data.targetDate) > startD) {
-                        trueEndD = new Date(data.targetDate);
-                    } else if (data.macrocyclePlan && data.macrocyclePlan.length > 0) {
-                        for (let i = 0; i < data.macrocyclePlan.length; i++) {
-                            const weeks = data.macrocyclePlan[i].expectedDurationWeeks || 4;
-                            trueEndD.setDate(trueEndD.getDate() + (weeks * 7));
-                        }
-                    } else {
-                        trueEndD.setDate(trueEndD.getDate() + 182);
-                    }
-
-                    const trueTotalWeeks = Math.max(1, Math.round((trueEndD - startD) / (1000 * 60 * 60 * 24 * 7)));
-
-                    // k factor: We want to be 95% of the way there at the end of the full journey
-                    // e^(-k * trueTotalWeeks) = 0.05 => k = -ln(0.05) / trueTotalWeeks
-                    const k = 2.9957 / Math.max(1, trueTotalWeeks);
-
-                    const journeyStartDateTime = fullDates.length > 0 ? fullDates[0].getTime() : new Date().getTime();
-
+                    // Target line points evaluated at visible date steps
                     const targetPoints = [];
                     for (let i = 0; i < fullDates.length; i++) {
                         const d = fullDates[i];
-                        let weeksElapsed = Math.max(0, (d.getTime() - journeyStartDateTime) / (1000 * 60 * 60 * 24 * 7));
-                        // Decay formula: TargetWeight + (StartWeight - TargetWeight) * e^(-k * t)
-                        const projectedWeight = userTargetWeight + (startWeight - userTargetWeight) * Math.exp(-k * weeksElapsed);
-                        targetPoints.push({ x: i, y: projectedWeight });
+                        const projY = getProjectedTargetWeight(d);
+                        targetPoints.push({ x: i, y: projY });
                     }
 
                     // Labels Update
@@ -421,13 +410,17 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                     const targetBmi = (userTargetWeight / (totalInches * totalInches)) * 703;
 
                     let stageTargetWeight = targetPoints.length > 0 ? targetPoints[targetPoints.length - 1].y : userTargetWeight;
-                    const stageTargetBmi = (stageTargetWeight / (totalInches * totalInches)) * 703;
 
                     if (!isFullJourney) {
                         const lblCurr = document.getElementById('bmi-label-current');
                         const lblTarg = document.getElementById('bmi-label-target');
                         if (lblCurr) lblCurr.innerText = `${weight} lbs`;
                         if (lblTarg) lblTarg.innerText = `${stageTargetWeight.toFixed(1)} lbs Target`;
+
+                        const titleEl = document.getElementById('weight-progression-title');
+                        if (titleEl) {
+                            titleEl.innerText = `Weight Progression (Phase ${phaseIndex})`;
+                        }
                     } else {
                         const modCurr = document.getElementById('modal-bmi-label-current');
                         const modTarg = document.getElementById('modal-bmi-label-target');

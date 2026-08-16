@@ -108,8 +108,7 @@ The application navigation is organized into clean visual views (tabs):
   * **Threshold / Tempo Pace** (e.g., 7:40 min/mi)
   * **Interval Pace** (e.g., 6:50 min/mi)
   * **Repetition Pace** (e.g., 6:15 min/mi)
-* **70/30 EMA Pace Recalibration Log**: Visual record showing baseline shifts triggered by completed benchmark runs.
-* **Weight & Biometrics Dashboard**: Interactive logger and 7-day moving average chart tracking weight trends over time, with its own 5-week focus and Full Journey expansion.
+* **Weight & Biometrics Dashboard**: Interactive logger and 7-day moving average chart tracking weight trends over time. The main chart isolates data to the **active phase** with phase-specific targets and entry baselines, with an expandable **Full Journey** modal to visualize the complete multi-phase trajectory.
 
 ### 3.4 Strength & Equipment Matrix (`tab-strength`)
 **Goal**: Supplement running with targeted, equipment-aware strength and durability routines.
@@ -182,9 +181,9 @@ For workouts designated with interval repetitions (e.g., *6x400m*):
 
 ### Weight Tracking & Trend Analysis
 1. Navigate to **Analytics (`tab-analytics`)**.
-2. Under **Biometrics & Weight Tracking**, enter your current weight.
-3. Click **Log Weight**.
-4. View the 7-day moving average curve and target delta progress bar, ignoring daily water weight fluctuations.
+2. Under **Biometrics & Weight Tracking**, enter your current weight and click **Log Weight**.
+3. View the **Phase Weight Progression** chart: strictly isolated to your active training block with entry baseline, 7-day moving average, and phase-specific target weight.
+4. Click **Full Journey** to open the trajectory expansion modal and inspect your multi-phase progress from Day 1 to your ultimate target.
 
 ---
 
