@@ -36,10 +36,13 @@ async function updatePaceAndVolumeHub(data) {
                 if (data.dynamicGoalData && data.dynamicGoalData.targetDistance && data.dynamicGoalData.targetDistance !== 'Other') {
                     distanceLabel = data.dynamicGoalData.targetDistance;
                 }
-                estLabel.innerText = `Est. ${distanceLabel} Pace`;
+                estLabel.innerText = distanceLabel === '5K' ? 'Pace Est.' : `${distanceLabel} Est.`;
             }
 
-            updatePaceChart(data, completedRuns);
+            window.cachedPaceCompletedRuns = completedRuns;
+            window.cachedPaceData = data;
+
+            updatePaceChart(data, completedRuns, false);
         }
 
 function calculateRollingJITConsistency(historyWorkouts, activeWorkouts) {
@@ -224,4 +227,36 @@ window.closePaceBreakdownModal = function() {
     setTimeout(() => {
         modal.classList.add('hidden');
     }, 300);
+};
+
+// -----------------------------------------------------------------------------
+// FULL JOURNEY PACE MODAL LOGIC
+// -----------------------------------------------------------------------------
+window.openFullPaceJourneyModal = function () {
+    const modal = document.getElementById('full-pace-journey-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    const data = window.cachedPaceData || (typeof userProfileData !== 'undefined' ? userProfileData : null);
+    const runs = window.cachedPaceCompletedRuns || [];
+
+    if (data) {
+        setTimeout(() => {
+            try {
+                updatePaceChart(data, runs, true);
+            } catch (e) {
+                console.error("Crash in updatePaceChart full journey:", e);
+            }
+        }, 100);
+    }
+};
+
+window.closeFullPaceJourneyModal = function () {
+    const modal = document.getElementById('full-pace-journey-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+
+    const data = window.cachedPaceData || (typeof userProfileData !== 'undefined' ? userProfileData : null);
+    const runs = window.cachedPaceCompletedRuns || [];
+    if (data) updatePaceChart(data, runs, false);
 };

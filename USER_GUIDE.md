@@ -98,13 +98,18 @@ The application navigation is organized into clean visual views (tabs):
 ### 3.3 Analytics & Dynamic Pace Blueprint (`tab-analytics`)
 **Goal**: Track physiological adaptation, baseline pacing zones, and body metrics.
 
+* **Pace & Volume Performance Card**:
+  * **5-Week Focus Window**: Main dashboard chart defaults to a clean 5-week view of weekly mileage bars and estimated race pace trend lines.
+  * **Full Journey Modal**: Click the `<i class="fa-solid fa-expand"></i> Full Journey` button to expand a full-screen macrocycle view spanning Week 1 to Race Day.
+  * **Interactive Pace Attribution**: Tap the **Pace Est.** pill to open the *Pace Calculation Breakdown* modal, displaying the exact HR/RPE inputs and outlier-dropped math behind your current estimated race pace.
+  * **Key Shorthand Metrics**: Displays *Starting Baseline*, *Target Pace*, *Total Miles*, and *Pace Est.*
 * **Dynamic Pace Blueprint Card**: Displays your active VDOT score and calculated target training zones:
   * **Easy / Recovery Pace** (e.g., 9:15 - 9:45 min/mi)
   * **Threshold / Tempo Pace** (e.g., 7:40 min/mi)
   * **Interval Pace** (e.g., 6:50 min/mi)
   * **Repetition Pace** (e.g., 6:15 min/mi)
 * **70/30 EMA Pace Recalibration Log**: Visual record showing baseline shifts triggered by completed benchmark runs.
-* **Weight & Biometrics Dashboard**: Interactive logger and 7-day moving average chart tracking weight trends over time.
+* **Weight & Biometrics Dashboard**: Interactive logger and 7-day moving average chart tracking weight trends over time, with its own 5-week focus and Full Journey expansion.
 
 ### 3.4 Strength & Equipment Matrix (`tab-strength`)
 **Goal**: Supplement running with targeted, equipment-aware strength and durability routines.

@@ -156,219 +156,273 @@ function calculateHrForZone(zoneValue) {
             return Math.max(270, loggedSec + offsetSec); // Clamp at 4:30 min/mi minimum
         }
 
-function updatePaceChart(data, completedRuns) {
-            if (!data) return;
-            const canvas = document.getElementById('pace-chart');
-            if (!canvas) return;
+function updatePaceChart(data, completedRuns, isFullJourney = false) {
+    if (!data) return;
+    const canvasId = isFullJourney ? 'full-pace-journey-chart' : 'pace-chart';
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
 
-            // Set Goal Target display text
-            const goalDisplay = document.getElementById('goal-pace-display');
-            if (goalDisplay) {
-                goalDisplay.innerText = `${data.activeAdjustedGoal || "-"} / mi`;
+    // Clean up activeAdjustedGoal string (e.g. remove leading zeros like '06:46' -> '6:46')
+    let rawGoal = data.activeAdjustedGoal || "-";
+    let cleanGoal = rawGoal;
+    if (typeof cleanGoal === 'string' && cleanGoal.startsWith('0') && cleanGoal.length > 1 && cleanGoal[1] !== ':') {
+        cleanGoal = cleanGoal.replace(/^0+/, '');
+    } else if (typeof cleanGoal === 'string' && cleanGoal.startsWith('0') && cleanGoal.includes(':')) {
+        cleanGoal = cleanGoal.replace(/^0/, '');
+    }
+
+    // Set Goal Target display text
+    const goalDisplay = document.getElementById('goal-pace-display');
+    if (goalDisplay) {
+        goalDisplay.innerText = cleanGoal !== '-' ? `${cleanGoal} / mi` : '-';
+    }
+
+    const modalPaceStart = document.getElementById('modal-pace-start');
+    if (modalPaceStart) {
+        modalPaceStart.innerText = `${data.baseline5k || "8:10"} / mi`;
+    }
+
+    const modalPaceTarget = document.getElementById('modal-pace-target');
+    if (modalPaceTarget) {
+        modalPaceTarget.innerText = cleanGoal !== '-' ? `${cleanGoal} / mi` : '-';
+    }
+
+    const startSec = paceStringToSeconds(data.baseline5k || "8:10");
+    const goalSec = paceStringToSeconds(cleanGoal || "6:26");
+
+    // 1. Generate Timeline for EVERY Week across the macrocycle
+    const { labels: allLabels, windows: allWindows, numWeeks, startMs } = generateWeeklyTimeline(data.journeyStartDate, data.targetDate, 12);
+
+    // 2. Linear Projected Goal Line across all weeks
+    const allProjected = [];
+    for (let i = 0; i < numWeeks; i++) {
+        const sec = startSec - (i * (startSec - goalSec) / Math.max(1, numWeeks - 1));
+        allProjected.push(sec / 60);
+    }
+
+    // 3. Calculate Weekly Volume & Weekly Est. Pace for EVERY Week
+    const allWeeklyVolume = Array(numWeeks).fill(0);
+    const allWeeklyEstPace = Array(numWeeks).fill(null);
+
+    // Baseline bubble at Week 1 if initialized
+    if (allWeeklyEstPace.length > 0) {
+        allWeeklyEstPace[0] = startSec / 60;
+    }
+
+    const runs = completedRuns || (typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : []);
+
+    for (let wIdx = 0; wIdx < numWeeks; wIdx++) {
+        const weekWin = allWindows[wIdx];
+        let weekVolume = 0;
+        let weekPaceSecs = [];
+
+        runs.forEach(w => {
+            let wMs = 0;
+            if (w.dateExecuted) {
+                wMs = new Date(w.dateExecuted).getTime();
+            } else if (w.sequenceOrder) {
+                const wkOffset = Math.floor((w.sequenceOrder - 1) / 3);
+                wMs = startMs + (wkOffset * 7 * 24 * 60 * 60 * 1000);
             }
 
-            const startSec = paceStringToSeconds(data.baseline5k || "8:10");
-            const goalSec = paceStringToSeconds(data.activeAdjustedGoal || "6:26");
+            if (wMs >= weekWin.start && wMs < weekWin.end) {
+                const miles = extractWorkoutMileage(w);
+                if (miles > 0) weekVolume += miles;
 
-            // 1. Generate Timeline for EVERY Week across the macrocycle
-            const { labels, windows, numWeeks, startMs } = generateWeeklyTimeline(data.journeyStartDate, data.targetDate, 12);
+                const type = (w.type || '').toLowerCase();
+                const excludedTypes = ['bike', 'walk', 'swim', 'row', 'strength', 'yoga', 'mobility', 'hike'];
+                const isExcluded = excludedTypes.some(ex => type.includes(ex));
+                const hasPace = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
 
-            // 2. Linear Projected Goal Line
-            const projectedData = [];
-            for (let i = 0; i < numWeeks; i++) {
-                const sec = startSec - (i * (startSec - goalSec) / (numWeeks - 1));
-                projectedData.push(sec / 60);
-            }
-
-            // 3. Calculate Weekly Volume & Weekly Est. 5K Race Pace Bubbles for EVERY Week
-            const weeklyVolumeData = Array(numWeeks).fill(0);
-            const weeklyEstPaceData = Array(numWeeks).fill(null);
-
-            // Baseline bubble at Week 1 if no runs completed yet
-            weeklyEstPaceData[0] = startSec / 60;
-
-            const runs = completedRuns || (typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : []);
-
-            for (let wIdx = 0; wIdx < numWeeks; wIdx++) {
-                const weekWin = windows[wIdx];
-                let weekVolume = 0;
-                let weekPaceSecs = [];
-
-                runs.forEach(w => {
-                    let wMs = 0;
-                    if (w.dateExecuted) {
-                        wMs = new Date(w.dateExecuted).getTime();
-                    } else if (w.sequenceOrder) {
-                        const wkOffset = Math.floor((w.sequenceOrder - 1) / 3);
-                        wMs = startMs + (wkOffset * 7 * 24 * 60 * 60 * 1000);
+                if (hasPace && !isExcluded) {
+                    const estSec = convertRunToEst5KPaceSec(w);
+                    if (estSec !== null) {
+                        weekPaceSecs.push(estSec);
                     }
-
-                    if (wMs >= weekWin.start && wMs < weekWin.end) {
-                        const miles = extractWorkoutMileage(w);
-                        if (miles > 0) weekVolume += miles;
-
-                        const type = (w.type || '').toLowerCase();
-                        const excludedTypes = ['bike', 'walk', 'swim', 'row', 'strength', 'yoga', 'mobility', 'hike'];
-                        const isExcluded = excludedTypes.some(ex => type.includes(ex));
-                        const hasPace = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
-
-                        if (hasPace && !isExcluded) {
-                            const estSec = convertRunToEst5KPaceSec(w);
-                            if (estSec !== null) {
-                                weekPaceSecs.push(estSec);
-                            }
-                        }
-                    }
-                });
-
-                weeklyVolumeData[wIdx] = parseFloat(weekVolume.toFixed(1));
-
-                if (weekPaceSecs.length > 0) {
-                    const avgSec = weekPaceSecs.reduce((a, b) => a + b, 0) / weekPaceSecs.length;
-                    weeklyEstPaceData[wIdx] = avgSec / 60;
                 }
             }
+        });
 
-            // Update or Create Mixed Dual-Axis Chart Instance
-            if (paceChartInstance) {
-                paceChartInstance.data.labels = labels;
-                paceChartInstance.data.datasets[0].data = weeklyEstPaceData;
-                paceChartInstance.data.datasets[1].data = projectedData;
-                paceChartInstance.data.datasets[2].data = weeklyVolumeData;
-                paceChartInstance.update();
-            } else {
-                const ctx = canvas.getContext('2d');
-                paceChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'Weekly Est. 5K Pace',
-                                type: 'line',
-                                yAxisID: 'y',
-                                data: weeklyEstPaceData,
-                                borderColor: '#6366f1', // Indigo-500
-                                backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                                borderWidth: 3.5,
-                                pointBackgroundColor: '#6366f1',
-                                pointBorderColor: '#ffffff',
-                                pointBorderWidth: 2,
-                                pointRadius: 6.5,
-                                pointHoverRadius: 9,
-                                tension: 0.2,
-                                spanGaps: true,
-                                order: 1
-                            },
-                            {
-                                label: 'Projected Pace Target',
-                                type: 'line',
-                                yAxisID: 'y',
-                                data: projectedData,
-                                borderColor: '#94a3b8', // Slate-400
-                                borderDash: [6, 6],
-                                borderWidth: 1.5,
-                                pointBackgroundColor: '#94a3b8',
-                                pointHoverRadius: 4,
-                                tension: 0.1,
-                                fill: false,
-                                order: 2
-                            },
-                            {
-                                label: 'Weekly Volume',
-                                type: 'bar',
-                                yAxisID: 'y1',
-                                data: weeklyVolumeData,
-                                backgroundColor: 'rgba(16, 185, 129, 0.35)',
-                                borderColor: '#10b981',
-                                borderWidth: 1.5,
-                                borderRadius: 6,
-                                barPercentage: 0.45,
-                                order: 3
-                            }
-                        ]
+        allWeeklyVolume[wIdx] = parseFloat(weekVolume.toFixed(1));
+
+        if (weekPaceSecs.length > 0) {
+            const avgSec = weekPaceSecs.reduce((a, b) => a + b, 0) / weekPaceSecs.length;
+            allWeeklyEstPace[wIdx] = avgSec / 60;
+        }
+    }
+
+    // Determine dataset slice for default 5-week focus vs full journey
+    let labels, weeklyEstPaceData, projectedData, weeklyVolumeData;
+
+    if (isFullJourney) {
+        labels = allLabels;
+        weeklyEstPaceData = allWeeklyEstPace;
+        projectedData = allProjected;
+        weeklyVolumeData = allWeeklyVolume;
+    } else {
+        // Find latest active week index (by logged volume/pace or current calendar date)
+        let latestActiveWeekIdx = 0;
+        const nowMs = Date.now();
+        for (let i = 0; i < numWeeks; i++) {
+            if (allWeeklyVolume[i] > 0 || (allWeeklyEstPace[i] !== null && i > 0) || (nowMs >= allWindows[i].start)) {
+                latestActiveWeekIdx = i;
+            }
+        }
+
+        let sliceEnd = Math.max(5, latestActiveWeekIdx + 1);
+        sliceEnd = Math.min(numWeeks, sliceEnd);
+        let sliceStart = Math.max(0, sliceEnd - 5);
+
+        labels = allLabels.slice(sliceStart, sliceEnd);
+        weeklyEstPaceData = allWeeklyEstPace.slice(sliceStart, sliceEnd);
+        projectedData = allProjected.slice(sliceStart, sliceEnd);
+        weeklyVolumeData = allWeeklyVolume.slice(sliceStart, sliceEnd);
+    }
+
+    const instanceKey = isFullJourney ? 'fullPaceChartInstance' : 'paceChartInstance';
+
+    if (window[instanceKey]) {
+        window[instanceKey].data.labels = labels;
+        window[instanceKey].data.datasets[0].data = weeklyEstPaceData;
+        window[instanceKey].data.datasets[1].data = projectedData;
+        window[instanceKey].data.datasets[2].data = weeklyVolumeData;
+        window[instanceKey].options.scales.x.ticks.maxTicksLimit = isFullJourney ? 8 : 5;
+        window[instanceKey].update();
+    } else {
+        const ctx = canvas.getContext('2d');
+        window[instanceKey] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Est. Pace',
+                        type: 'line',
+                        yAxisID: 'y',
+                        data: weeklyEstPaceData,
+                        borderColor: '#6366f1', // Indigo-500
+                        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                        borderWidth: 3.5,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: isFullJourney ? 5 : 6.5,
+                        pointHoverRadius: 8,
+                        tension: 0.2,
+                        spanGaps: true,
+                        order: 1
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    color: '#94a3b8',
-                                    font: { family: 'Plus Jakarta Sans', weight: '600', size: 11 },
-                                    boxWidth: 12,
-                                    boxHeight: 12,
-                                    padding: 15
+                    {
+                        label: 'Target Trend',
+                        type: 'line',
+                        yAxisID: 'y',
+                        data: projectedData,
+                        borderColor: '#94a3b8', // Slate-400
+                        borderDash: [6, 6],
+                        borderWidth: 1.5,
+                        pointBackgroundColor: '#94a3b8',
+                        pointHoverRadius: 4,
+                        tension: 0.1,
+                        fill: false,
+                        order: 2
+                    },
+                    {
+                        label: 'Weekly Volume',
+                        type: 'bar',
+                        yAxisID: 'y1',
+                        data: weeklyVolumeData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.35)',
+                        borderColor: '#10b981',
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        barPercentage: isFullJourney ? 0.6 : 0.45,
+                        order: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#94a3b8',
+                            font: { family: 'Plus Jakarta Sans', weight: '600', size: 11 },
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            padding: 12
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        borderColor: '#334155',
+                        borderWidth: 1,
+                        titleColor: '#fff',
+                        titleFont: { family: 'Plus Jakarta Sans', weight: 'bold' },
+                        bodyColor: '#94a3b8',
+                        bodyFont: { family: 'Plus Jakarta Sans' },
+                        callbacks: {
+                            label: function (context) {
+                                const val = context.raw;
+                                if (val === null || val === undefined) return '';
+                                const label = context.dataset.label || '';
+                                if (context.dataset.yAxisID === 'y1') {
+                                    return ` ${label}: ${parseFloat(val.toFixed(1))} miles`;
                                 }
-                            },
-                            tooltip: {
-                                backgroundColor: '#0f172a',
-                                borderColor: '#334155',
-                                borderWidth: 1,
-                                titleColor: '#fff',
-                                titleFont: { family: 'Plus Jakarta Sans', weight: 'bold' },
-                                bodyColor: '#94a3b8',
-                                bodyFont: { family: 'Plus Jakarta Sans' },
-                                callbacks: {
-                                    label: function (context) {
-                                        const val = context.raw;
-                                        if (val === null || val === undefined) return '';
-                                        const label = context.dataset.label || '';
-                                        if (context.dataset.yAxisID === 'y1') {
-                                            return ` ${label}: ${parseFloat(val.toFixed(1))} miles`;
-                                        }
-                                        const mins = Math.floor(val);
-                                        const secs = Math.round((val - mins) * 60);
-                                        return ` ${label}: ${mins}:${secs < 10 ? '0' : ''}${secs} /mi`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { display: false },
-                                ticks: {
-                                    color: '#64748b',
-                                    font: { family: 'Plus Jakarta Sans', weight: '600', size: 10 },
-                                    autoSkip: true,
-                                    maxTicksLimit: 4,
-                                    maxRotation: 0,
-                                    minRotation: 0
-                                }
-                            },
-                            y: {
-                                type: 'linear',
-                                position: 'left',
-                                title: { display: true, text: 'Pace (min/mi)', color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 10, weight: 'bold' } },
-                                grid: { color: 'rgba(51, 65, 85, 0.3)' },
-                                ticks: {
-                                    color: '#64748b',
-                                    font: { family: 'Plus Jakarta Sans', weight: '600', size: 10 },
-                                    callback: function (value) {
-                                        const mins = Math.floor(value);
-                                        const secs = Math.round((value - mins) * 60);
-                                        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                                    }
-                                }
-                            },
-                            y1: {
-                                type: 'linear',
-                                position: 'right',
-                                title: { display: true, text: 'Weekly Volume (mi)', color: '#10b981', font: { family: 'Plus Jakarta Sans', size: 10, weight: 'bold' } },
-                                grid: { display: false },
-                                ticks: {
-                                    color: '#10b981',
-                                    font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' },
-                                    callback: function (v) { return `${v} mi`; }
-                                }
+                                const mins = Math.floor(val);
+                                const secs = Math.round((val - mins) * 60);
+                                return ` ${label}: ${mins}:${secs < 10 ? '0' : ''}${secs} /mi`;
                             }
                         }
                     }
-                });
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#64748b',
+                            font: { family: 'Plus Jakarta Sans', weight: '600', size: 10 },
+                            autoSkip: false,
+                            maxTicksLimit: isFullJourney ? 8 : 5,
+                            maxRotation: 0,
+                            minRotation: 0
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'Pace (min/mi)', color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 10, weight: 'bold' } },
+                        grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                        ticks: {
+                            color: '#64748b',
+                            font: { family: 'Plus Jakarta Sans', weight: '600', size: 10 },
+                            callback: function (value) {
+                                const mins = Math.floor(value);
+                                const secs = Math.round((value - mins) * 60);
+                                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Weekly Volume (mi)', color: '#10b981', font: { family: 'Plus Jakarta Sans', size: 10, weight: 'bold' } },
+                        grid: { display: false },
+                        ticks: {
+                            color: '#10b981',
+                            font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' },
+                            callback: function (v) {
+                                return (typeof window !== 'undefined' && window.innerWidth < 480) ? `${v}m` : `${v} mi`;
+                            }
+                        }
+                    }
+                }
             }
-        }
+        });
+    }
+}
 
 function formatPace(totalMinutes) {
             const mins = Math.floor(totalMinutes);
