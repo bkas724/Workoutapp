@@ -136,3 +136,92 @@ async function updateJITConsistencyBadge() {
             }
         }
 
+// -----------------------------------------------------------------------------
+// PACE BREAKDOWN MODAL LOGIC
+// -----------------------------------------------------------------------------
+window.openPaceBreakdownModal = function() {
+    const modal = document.getElementById('pace-breakdown-modal');
+    const listContainer = document.getElementById('pace-breakdown-list');
+    const finalDisplay = document.getElementById('pace-breakdown-final');
+
+    if (!modal || !listContainer) return;
+
+    listContainer.innerHTML = '';
+    
+    if (!window.lastPaceBreakdown || window.lastPaceBreakdown.length === 0) {
+        listContainer.innerHTML = '<div class="text-xs text-slate-500 italic p-4 text-center">No runs available to calculate an estimated pace.</div>';
+        finalDisplay.innerText = "--:-- /mi";
+    } else {
+        window.lastPaceBreakdown.forEach(item => {
+            const w = item.workout;
+            const isDiscarded = item.discarded;
+            
+            // Format projected pace
+            const mins = Math.floor(item.estSec / 60);
+            const secs = item.estSec % 60;
+            const paceStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+            // Parse Date
+            const d = new Date(w.dateExecuted || w.createdAt || Date.now());
+            const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            const mathText = item.mathType || "Fallback";
+
+            // Visual state for discarded vs active
+            const borderClass = isDiscarded ? "border-slate-800/50 bg-slate-900/30 opacity-50 grayscale" : "border-indigo-500/30 bg-slate-900";
+            const strikeClass = isDiscarded ? "line-through text-slate-500" : "text-amber-400";
+            const badgeHTML = isDiscarded ? `<span class="absolute -top-2 -right-2 bg-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded-md border border-slate-700 text-slate-400 uppercase tracking-wider">Outlier</span>` : '';
+
+            const el = document.createElement('div');
+            el.className = `relative p-3 rounded-xl border flex flex-col gap-1.5 transition-all ${borderClass}`;
+            el.innerHTML = `
+                ${badgeHTML}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black text-slate-300">${dateStr}</span>
+                        <span class="text-[9px] font-bold font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">${w.actualLoggedDistance || 0} mi</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Logged:</span>
+                        <span class="text-xs font-bold font-mono text-slate-300">${item.rawPace || "--:--"}</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-800/50">
+                    <span class="text-[10px] font-bold text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20"><i class="fa-solid fa-microchip mr-1 opacity-70"></i> ${mathText}</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">= Est. Pace</span>
+                        <span class="text-sm font-black font-mono ${strikeClass}">${paceStr}</span>
+                    </div>
+                </div>
+            `;
+            listContainer.appendChild(el);
+        });
+
+        const activeRuns = window.lastPaceBreakdown.filter(d => !d.discarded);
+        if (activeRuns.length > 0) {
+            const totalSec = activeRuns.reduce((sum, d) => sum + d.estSec, 0);
+            const avg = Math.round(totalSec / activeRuns.length);
+            const m = Math.floor(avg / 60);
+            const s = avg % 60;
+            finalDisplay.innerText = `${m}:${s < 10 ? '0' : ''}${s} /mi`;
+        } else {
+            finalDisplay.innerText = "--:-- /mi";
+        }
+    }
+
+    modal.classList.remove('hidden');
+    // slight delay for transition
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+    }, 10);
+};
+
+window.closePaceBreakdownModal = function() {
+    const modal = document.getElementById('pace-breakdown-modal');
+    if (!modal) return;
+    modal.classList.add('opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
