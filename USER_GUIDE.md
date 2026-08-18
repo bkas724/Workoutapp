@@ -78,6 +78,7 @@ The application navigation is organized into clean visual views (tabs):
 ### 3.1 Dashboard View (`tab-home`)
 **Goal**: Serve as your primary daily cockpit—giving you immediate clarity on today's single focus without overanalysis.
 
+* **Mindset Kick (Motivational Popup)**: A floating mindset banner delivering punchy, funny, anti-excuse sayings (e.g., *"You can suck, but you can't skip."*, *"I wonder what would happen if you worked out today."*). Automatically surfaces once per week using a non-repeating shuffle rotation, equipped with a 🎲 roll button to cycle sayings on demand and a 1-tap dismiss.
 * **Up-Next Action Card**: Displays the immediate workout queued by the JIT engine, highlighting target pace, exact duration, workout type, movement prep tips, and pre-run notes.
 * **Big Checkmark Box (Quick Complete)**: A single-click completion button located right on the action card. If you followed the coach's recommendation pretty closely, click this box to log the workout using the coach's target default metrics instantly—requiring zero typing and zero entry friction.
 * **Daily Fuel & Nutrition Strategy Card**: Provides recommended nutrition guidelines (Rest, Light, or Hard day strategy) tuned to your daily workout volume.

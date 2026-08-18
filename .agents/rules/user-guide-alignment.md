@@ -19,6 +19,7 @@ Verify that any requested feature or change aligns with the 4 foundational pilla
 ## 2. Mandatory Documentation Updates
 * Whenever new features, tabs, UI components, or workflow options are introduced or modified, update [USER_GUIDE.md](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/USER_GUIDE.md) to keep it in sync.
 * Ensure all page goals, button actions, and user instructions in [USER_GUIDE.md](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/USER_GUIDE.md) reflect live app functionality.
+* Maintain [REMAINING_UPDATES.md](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/REMAINING_UPDATES.md): Remove completed items as features/fixes are deployed to keep the active backlog lean and accurate.
 
 ---
 

@@ -12,6 +12,7 @@ Whenever modifying code, adding features, or maintaining this repository, all AI
    - Refer to [Context/Spec.txt](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/Context/Spec.txt) and [USER_GUIDE.md](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/USER_GUIDE.md) before making architectural changes.
    - Update [USER_GUIDE.md](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/USER_GUIDE.md) whenever user-facing features, tabs, or workflows are added or modified.
    - Update [BACKEND_METHODOLOGY.md](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/BACKEND_METHODOLOGY.md) whenever backend calculations, mathematical models (e.g. Heart Rate, Pace), or AI Coach data payloads are altered.
+   - Maintain [REMAINING_UPDATES.md](file:///c:/Users/IsItI/Documents/GitHub/Workoutapp/REMAINING_UPDATES.md): Check this document for pending tasks and actively **remove items** as they are completed or resolved.
 
 3. **Conflict Resolution**:
    - If a requested feature conflicts with these principles, notify the user and offer an adaptive, habit-building alternative.
