@@ -122,41 +122,47 @@ function updateCockpitProgressBar(stepId) {
     if (!dotsContainer || total === 0) return;
 
     if (state.isCircuit && state.circuitRounds > 1) {
-        // CIRCUIT: Groupings of dots per round with subtle background changes on completion
+        // CIRCUIT ACCORDION: Expanded active round dots + compact past/future badges
         let html = '';
+        const isAllWorkoutDone = state.completedActivities.size >= state.activities.length && state.currentCircuitRound >= state.circuitRounds;
+
         for (let r = 1; r <= state.circuitRounds; r++) {
             const isPastRound = r < state.currentCircuitRound;
             const isCurrentRound = r === state.currentCircuitRound;
             const isCurrentRoundCompleted = isCurrentRound && state.completedActivities.size >= state.activities.length;
 
-            let capsuleClass = 'bg-slate-900/60 border border-slate-800/80 opacity-40';
-            if (isPastRound || isCurrentRoundCompleted) {
-                capsuleClass = 'bg-emerald-950/40 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]';
-            } else if (isCurrentRound) {
-                capsuleClass = 'bg-slate-800/90 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.2)] ring-1 ring-amber-400/30';
-            }
-
-            const dotsHtml = state.activities.map((_, idx) => {
-                let dotClass = 'bg-slate-700';
-                if (isPastRound || isCurrentRoundCompleted) {
-                    dotClass = 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]';
-                } else if (isCurrentRound) {
+            if (isPastRound || (isCurrentRoundCompleted && isAllWorkoutDone)) {
+                // COMPACT COMPLETED ROUND BADGE (Green Checkmark)
+                html += `
+                    <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-950/60 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.25)] shrink-0 transition-all duration-300" title="Round ${r} Complete">
+                        <i class="fa-solid fa-check text-[10px] sm:text-xs"></i>
+                    </div>
+                `;
+            } else if (isCurrentRound && !isAllWorkoutDone) {
+                // EXPANDED ACTIVE ROUND CAPSULE (R[X] + Live Dot Matrix)
+                const dotsHtml = state.activities.map((_, idx) => {
+                    let dotClass = 'bg-slate-700';
                     if (state.completedActivities.has(idx)) {
                         dotClass = 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]';
                     } else if (idx === state.activeIdx) {
                         dotClass = 'bg-amber-400 scale-125 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.9)]';
-                    } else {
-                        dotClass = 'bg-slate-700';
                     }
-                }
-                return `<span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${dotClass}"></span>`;
-            }).join('');
+                    return `<span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${dotClass}"></span>`;
+                }).join('');
 
-            html += `
-                <div class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full flex items-center gap-1 sm:gap-1.5 transition-all duration-300 ${capsuleClass}" title="Round ${r} of ${state.circuitRounds}">
-                    ${dotsHtml}
-                </div>
-            `;
+                html += `
+                    <div class="bg-slate-900/95 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all duration-300 shrink-0" title="Active Round ${r}">
+                        ${dotsHtml}
+                    </div>
+                `;
+            } else {
+                // COMPACT UPCOMING ROUND BADGE (Muted Number)
+                html += `
+                    <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-500 font-bold text-[10px] sm:text-xs shrink-0 transition-all duration-300 opacity-60" title="Upcoming Round ${r}">
+                        ${r}
+                    </div>
+                `;
+            }
         }
         dotsContainer.innerHTML = html;
     } else {
@@ -413,33 +419,22 @@ function renderCockpitHeroStage(stepId) {
 
     stage.innerHTML = `
         <div class="flex flex-col items-center justify-center text-center max-w-2xl w-full h-full my-auto animate-fade-in py-2 gap-2">
-            <!-- Circuit Round Badge if applicable -->
-            ${state.isCircuit && state.circuitRounds > 1 ? `
-            <span class="text-[11px] sm:text-xs font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-xl shadow-sm mb-1">
-                Round ${state.currentCircuitRound} of ${state.circuitRounds}
-            </span>
-            ` : ''}
-
             <!-- Exercise Name (Massive, Fluidly Scaled) -->
-            <h2 style="font-size: clamp(1.75rem, min(5vw, 5.5vh), 4.25rem); line-height: 1.1;" class="font-black text-white tracking-tight">
+            <h2 style="font-size: clamp(1.65rem, min(4.8vw, 5vh), 3.75rem); line-height: 1.1;" class="font-black text-white tracking-tight">
                 ${act.name}
             </h2>
 
             <!-- Metric & Equipment -->
-            <div style="font-size: clamp(0.95rem, min(2.2vw, 2.4vh), 1.65rem);" class="font-extrabold text-indigo-300 mt-1 flex items-center justify-center gap-2 flex-wrap">
+            <div style="font-size: clamp(0.9rem, min(2vw, 2.2vh), 1.5rem);" class="font-extrabold text-indigo-300 mt-0.5 flex items-center justify-center gap-2 flex-wrap">
                 <span>${targetDisplay}</span>
                 ${eqStr}
             </div>
 
-            <!-- Subtle Form Tip Pill -->
+            <!-- Open Form Tip / Coaching Cue -->
             ${cueText ? `
-            <div class="my-1.5 flex flex-col items-center">
-                <button onclick="toggleCockpitTip('${stepId}')" style="font-size: clamp(0.75rem, min(1.5vw, 1.8vh), 1rem);" class="font-bold text-slate-400 hover:text-indigo-200 bg-slate-800/90 px-3.5 py-1.5 rounded-xl border border-slate-700/60 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
-                    <i class="fa-regular fa-lightbulb text-amber-400"></i> Form Tip <i id="cockpit-tip-chevron-${stepId}" class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200"></i>
-                </button>
-                <div id="cockpit-tip-${stepId}" style="font-size: clamp(0.8rem, min(1.6vw, 1.9vh), 1.05rem);" class="hidden text-slate-300 bg-slate-950/95 p-3.5 sm:p-4 rounded-2xl border border-slate-800 mt-2 text-center leading-relaxed shadow-2xl max-w-sm sm:max-w-md md:max-w-lg">
-                    ${cueText}
-                </div>
+            <div class="my-1 px-3.5 py-1.5 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs sm:text-sm text-slate-300 flex items-center justify-center gap-2 shadow-inner max-w-md">
+                <i class="fa-regular fa-lightbulb text-amber-400 text-xs shrink-0"></i>
+                <span class="leading-snug font-medium line-clamp-2">${cueText}</span>
             </div>
             ` : ''}
 
@@ -527,34 +522,41 @@ function startCockpitRestTimer(stepId, actIdx, currentSetIdx, durationSec) {
             ? ` • ${act.equipmentRequired}` : '';
 
         restBox.innerHTML = `
-            <div class="flex flex-col items-center gap-3 sm:gap-4 p-4 sm:p-6 bg-slate-950/90 rounded-3xl border border-slate-800/80 shadow-2xl w-full max-w-md md:max-w-lg">
-                <!-- Large Fluid Circular Countdown Ring -->
-                <div style="width: clamp(130px, min(28vw, 24vh), 210px); height: clamp(130px, min(28vw, 24vh), 210px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group" onclick="event.stopPropagation(); if(window.workoutTimer){ if(window.workoutTimer.isPaused) window.workoutTimer.resume(); else window.workoutTimer.pause(); }">
-                    <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_20px_rgba(99,102,241,0.4)]" viewBox="0 0 36 36">
-                        <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
-                        <path id="cockpit-rest-ring-${stepId}" class="text-indigo-500 transition-all duration-200" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
-                    </svg>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center">
-                        <span id="cockpit-rest-text-${stepId}" style="font-size: clamp(2.5rem, min(7vw, 6.5vh), 4.75rem);" class="font-black text-white font-mono tracking-tight leading-none">${durationSec}</span>
-                        <span style="font-size: clamp(0.7rem, min(1.5vw, 1.6vh), 0.95rem);" class="font-black text-indigo-300 uppercase tracking-widest mt-1">Rest</span>
+            <div class="flex flex-col items-center gap-2 p-3 sm:p-4 bg-slate-950/90 rounded-3xl border border-slate-800/80 shadow-2xl w-full max-w-sm sm:max-w-md">
+                <!-- 3-Column Balanced Layout: [Left Stack: +15s & Reset] [Center: Timer Ring] [Right: Check Done] -->
+                <div class="flex items-center justify-between w-full px-2">
+                    <!-- Left Column: Utility Stack (+15s & Reset) -->
+                    <div class="flex flex-col items-center gap-2 shrink-0">
+                        <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" class="w-11 h-11 sm:w-12 sm:h-12 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-black text-xs transition-all shadow-md flex items-center justify-center active:scale-95 cursor-pointer" title="Add 15 Seconds">
+                            +15s
+                        </button>
+                        <button onclick="event.stopPropagation(); resetActiveCockpitTimer('${stepId}');" class="w-11 h-11 sm:w-12 sm:h-12 bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-2xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 cursor-pointer border border-slate-800" title="Reset Timer">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Center Column: Fluid Circular Countdown Ring (Tap to Play/Pause) -->
+                    <div style="width: clamp(105px, min(26vw, 18vh), 145px); height: clamp(105px, min(26vw, 18vh), 145px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group" onclick="event.stopPropagation(); toggleCockpitTimer('${stepId}', 'cockpit-rest-icon-${stepId}');">
+                        <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_15px_rgba(99,102,241,0.4)]" viewBox="0 0 36 36">
+                            <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
+                            <path id="cockpit-rest-ring-${stepId}" class="text-indigo-500 transition-all duration-200" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="cockpit-rest-text-${stepId}" style="font-size: clamp(2rem, min(6.5vw, 4.8vh), 3.5rem);" class="font-black text-white font-mono tracking-tight leading-none">${durationSec}</span>
+                            <i id="cockpit-rest-icon-${stepId}" class="fa-solid fa-pause text-[11px] text-indigo-400 opacity-80 mt-1"></i>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Glowing Emerald Checkmark Done Button -->
+                    <div class="flex items-center justify-center shrink-0">
+                        <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.skip();" class="w-12 h-24 sm:w-14 sm:h-26 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center active:scale-95 cursor-pointer" title="Done / Next Set">
+                            <i class="fa-solid fa-check text-xl sm:text-2xl"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Ghost Controls Bar Below Timer -->
-                <div class="flex items-center justify-center gap-3 sm:gap-4 w-full">
-                    <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" style="font-size: clamp(0.85rem, min(1.8vw, 2vh), 1.15rem); padding: clamp(0.5rem, 1.2vh, 0.75rem) clamp(1rem, 2vw, 1.75rem);" class="bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-extrabold transition-all shadow-md active:scale-95 cursor-pointer">
-                        +15s
-                    </button>
-                    <button onclick="event.stopPropagation(); resetActiveCockpitTimer('${stepId}');" style="width: clamp(38px, min(8vw, 6vh), 48px); height: clamp(38px, min(8vw, 6vh), 48px);" class="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl font-bold transition-all shadow-md active:scale-95 cursor-pointer" title="Reset Timer">
-                        <i class="fa-solid fa-rotate-left text-sm sm:text-base"></i>
-                    </button>
-                    <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.skip();" style="font-size: clamp(0.85rem, min(1.8vw, 2vh), 1.15rem); padding: clamp(0.5rem, 1.2vh, 0.75rem) clamp(1.2rem, 2.5vw, 2rem);" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black transition-all shadow-[0_0_20px_rgba(16,185,129,0.35)] active:scale-95 cursor-pointer">
-                        <i class="fa-solid fa-check mr-1.5"></i> Done
-                    </button>
-                </div>
-
                 <!-- Rest Runway Identifier -->
-                <div style="font-size: clamp(0.85rem, min(1.7vw, 1.9vh), 1.15rem);" class="font-bold text-indigo-200 text-center tracking-tight bg-indigo-950/50 border border-indigo-500/30 px-4 py-2 rounded-2xl mt-1 shadow-sm">
+                <div style="font-size: clamp(0.75rem, min(1.6vw, 1.8vh), 0.95rem);" class="font-bold text-indigo-200 text-center tracking-tight bg-indigo-950/50 border border-indigo-500/30 px-3 py-1 rounded-xl w-full">
                     Next: Set ${nextSetNum} of ${act.sets}${eqLabel}
                 </div>
             </div>
@@ -597,29 +599,33 @@ function startCockpitTimedHold(stepId, actIdx, durationSec, isPerSide, sideNum) 
     if (!timerBox) return;
 
     timerBox.innerHTML = `
-        <div class="flex flex-col items-center gap-3 sm:gap-4 p-4 sm:p-6 bg-slate-950/90 rounded-3xl border border-slate-800/80 shadow-2xl w-full max-w-md md:max-w-lg">
-            <!-- Large Fluid Circular Countdown Ring -->
-            <div style="width: clamp(130px, min(28vw, 24vh), 210px); height: clamp(130px, min(28vw, 24vh), 210px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group" onclick="event.stopPropagation(); if(window.workoutTimer){ if(window.workoutTimer.isPaused) window.workoutTimer.resume(); else window.workoutTimer.pause(); }">
-                <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_25px_rgba(99,102,241,0.45)]" viewBox="0 0 36 36">
+        <div class="flex items-center justify-between p-3 sm:p-4 bg-slate-950/90 rounded-3xl border border-slate-800/80 shadow-2xl w-full max-w-sm sm:max-w-md px-3 sm:px-4">
+            <!-- Left Column: Utility Stack (+15s & Reset) -->
+            <div class="flex flex-col items-center gap-2 shrink-0">
+                <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" class="w-11 h-11 sm:w-12 sm:h-12 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-black text-xs transition-all shadow-md flex items-center justify-center active:scale-95 cursor-pointer" title="Add 15 Seconds">
+                    +15s
+                </button>
+                <button onclick="event.stopPropagation(); resetActiveCockpitTimer('${stepId}');" class="w-11 h-11 sm:w-12 sm:h-12 bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-2xl font-bold text-xs transition-all flex items-center justify-center active:scale-95 cursor-pointer border border-slate-800" title="Reset Timer">
+                    <i class="fa-solid fa-rotate-left text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Center Column: Fluid Circular Countdown Ring (Tap to Play/Pause) -->
+            <div style="width: clamp(105px, min(26vw, 18vh), 145px); height: clamp(105px, min(26vw, 18vh), 145px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group" onclick="event.stopPropagation(); toggleCockpitTimer('${stepId}', 'cockpit-hold-icon-${stepId}');">
+                <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_20px_rgba(99,102,241,0.45)]" viewBox="0 0 36 36">
                     <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
                     <path id="cockpit-hold-ring-${stepId}" class="text-indigo-500 transition-all duration-200" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
                 </svg>
                 <div class="absolute inset-0 flex flex-col items-center justify-center">
-                    <span id="cockpit-hold-text-${stepId}" style="font-size: clamp(2.5rem, min(7vw, 6.5vh), 4.75rem);" class="font-black text-white font-mono tracking-tight leading-none">${durationSec}</span>
-                    <span style="font-size: clamp(0.7rem, min(1.5vw, 1.6vh), 0.95rem);" class="font-black text-indigo-300 uppercase tracking-widest mt-1">${isPerSide ? `Side ${sideNum}` : 'Hold'}</span>
+                    <span id="cockpit-hold-text-${stepId}" style="font-size: clamp(2rem, min(6.5vw, 4.8vh), 3.5rem);" class="font-black text-white font-mono tracking-tight leading-none">${durationSec}</span>
+                    <i id="cockpit-hold-icon-${stepId}" class="fa-solid fa-pause text-[11px] text-indigo-400 opacity-80 mt-1"></i>
                 </div>
             </div>
 
-            <!-- Ghost Controls Bar Below Timer -->
-            <div class="flex items-center justify-center gap-3 sm:gap-4 w-full">
-                <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" style="font-size: clamp(0.85rem, min(1.8vw, 2vh), 1.15rem); padding: clamp(0.5rem, 1.2vh, 0.75rem) clamp(1rem, 2vw, 1.75rem);" class="bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-extrabold transition-all shadow-md active:scale-95 cursor-pointer">
-                    +15s
-                </button>
-                <button onclick="event.stopPropagation(); resetActiveCockpitTimer('${stepId}');" style="width: clamp(38px, min(8vw, 6vh), 48px); height: clamp(38px, min(8vw, 6vh), 48px);" class="flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl font-bold transition-all shadow-md active:scale-95 cursor-pointer" title="Reset Timer">
-                    <i class="fa-solid fa-rotate-left text-sm sm:text-base"></i>
-                </button>
-                <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.skip();" style="font-size: clamp(0.85rem, min(1.8vw, 2vh), 1.15rem); padding: clamp(0.5rem, 1.2vh, 0.75rem) clamp(1.2rem, 2.5vw, 2rem);" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black transition-all shadow-[0_0_20px_rgba(16,185,129,0.35)] active:scale-95 cursor-pointer">
-                    <i class="fa-solid fa-check mr-1.5"></i> Done
+            <!-- Right Column: Glowing Emerald Checkmark Done Button -->
+            <div class="flex items-center justify-center shrink-0">
+                <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.skip();" class="w-12 h-24 sm:w-14 sm:h-26 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center active:scale-95 cursor-pointer" title="Complete / Next">
+                    <i class="fa-solid fa-check text-xl sm:text-2xl"></i>
                 </button>
             </div>
         </div>
@@ -776,4 +782,19 @@ function advanceCircuitRound(stepId) {
     renderCockpitHeroStage(stepId);
     renderCockpitPlaylist(stepId);
     updateCockpitProgressBar(stepId);
+}
+
+/**
+ * Toggle Timer Play/Pause with visual icon update
+ */
+function toggleCockpitTimer(stepId, iconId) {
+    if (!window.workoutTimer) return;
+    const iconEl = document.getElementById(iconId);
+    if (window.workoutTimer.isPaused) {
+        window.workoutTimer.resume();
+        if (iconEl) iconEl.className = 'fa-solid fa-pause text-[11px] text-indigo-400 opacity-80 mt-1';
+    } else {
+        window.workoutTimer.pause();
+        if (iconEl) iconEl.className = 'fa-solid fa-play text-[11px] text-amber-400 opacity-90 mt-1';
+    }
 }
