@@ -302,11 +302,19 @@ function renderNextActivityCard() {
                 <div class="flex flex-col gap-4 w-full">`;
             let modalsAccumulator = '';
 
+            let activeFound = false;
+
             for (let i = 0; i < dailySlate.length; i++) {
                 const nextStep = dailySlate[i];
                 const isSpeed = nextStep.isSpeedWorkout;
                 const isBenchmark = nextStep.isBenchmark;
                 const iconSVG = icons[nextStep.type] || icons.easy;
+                
+                let isActiveCard = false;
+                if (!nextStep.completed && !activeFound) {
+                    isActiveCard = true;
+                    activeFound = true;
+                }
 
                 // Calculate defaults
                 let defaultDistance = nextStep.actualLoggedDistance || "";
@@ -383,10 +391,12 @@ function renderNextActivityCard() {
                     Boolean(nextStep.strengthGuideReference) ||
                     (nextStep.activities && nextStep.activities.filter(a => a.type === 'work').length > 1);
 
+                const activeGlowClass = isActiveCard ? "border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)] scale-[1.02]" : "border-slate-800";
+
                 htmlAccumulator += `
-                    <div id="focus-card-${nextStep.id}" class="relative ${opacityClass} transition-all duration-300 w-full">
+                    <div id="focus-card-${nextStep.id}" class="relative ${opacityClass} transition-all duration-300 w-full ${isActiveCard ? 'z-20 my-2' : ''}">
                         <!-- Outer Card Container -->
-                        <div class="w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-xl relative group">
+                        <div class="w-full bg-slate-950 border rounded-2xl overflow-hidden shadow-xl relative group ${activeGlowClass}">
                             ${nextStep.completed ? `
                             <!-- CONDENSED COMPLETED STATE -->
                             <div class="p-3 md:p-4 flex flex-col gap-3">
@@ -432,7 +442,7 @@ function renderNextActivityCard() {
                                 ` : ''}
                             </div>
                             <!-- Option B: Post-Execution Smart Button (Visible ONLY after today's workout is completed) -->
-                            <button onclick="event.stopPropagation(); openAddActivityModal(${nextStep.sequenceOrder || 1});" class="mt-3 w-full py-2.5 rounded-xl bg-slate-900/90 hover:bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 border border-slate-800 hover:border-indigo-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98" title="Add a secondary activity to today's log">
+                            <button onclick="event.stopPropagation(); openAddActivityModal(${nextStep.sequenceOrder || 1});" class="mt-3 w-full py-2.5 rounded-xl bg-slate-900/90 hover:bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 border-t border-slate-800 hover:border-indigo-500/30 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98" title="Add a secondary activity to today's log">
                                 <i class="fa-solid fa-plus text-xs text-indigo-400"></i> Add Secondary Activity Today
                             </button>
                             ` : `
@@ -682,309 +692,253 @@ function renderNextActivityCard() {
                     </div>
                 `;
 
-                modalsAccumulator += `
-                <!-- FULL SCREEN MODAL FOR WORKOUT DETAILS -->
-                <div id="workout-modal-${nextStep.id}" class="fixed inset-0 z-[9999] hidden bg-slate-950 flex flex-col overflow-y-auto">
-                    <!-- Modal Header -->
-                    <div class="sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 md:p-6 flex items-center justify-between z-50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 shrink-0 text-slate-300 opacity-90 flex items-center justify-center">${iconSVG}</div>
-                            <div class="flex flex-col">
-                                <h2 class="text-lg md:text-xl font-extrabold text-white tracking-tight">${nextStep.workoutTitle}</h2>
-                            </div>
-                        </div>
-                        <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700">
-                            <i class="fa-solid fa-times text-lg"></i>
-                        </button>
-                    </div>
                 
-                <!-- Modal Body (The original detailed view) -->
-                <div class="p-5 md:p-8 max-w-3xl mx-auto w-full flex-1">
-                    <div class="flex flex-col gap-6 w-full pb-10">
-                        
-                        <div class="flex flex-col gap-4">
-                            ${nextStep.activities && Array.isArray(nextStep.activities) && nextStep.activities.length > 0 ? `
-                            <div class="mt-2">
-                                <div class="flex flex-col gap-4">
-                                    ${(() => {
-                            let displayActivities = [];
-                            let guidesToSearch = [];
-                            if (typeof userProfileData !== 'undefined') {
-                                const isSimpleChecked = document.getElementById('simple-mode-toggle') && document.getElementById('simple-mode-toggle').checked;
-                                guidesToSearch = (isSimpleChecked && userProfileData.simpleStrengthGuides) ? userProfileData.simpleStrengthGuides : userProfileData.currentStrengthGuides;
+                // ========================================================
+                // 1. NORMALIZE ACTIVITIES FOR THIS WORKOUT (COCKPIT STATE)
+                // ========================================================
+                let displayActivities = [];
+                let guidesToSearch = [];
+                if (typeof userProfileData !== 'undefined') {
+                    const isSimpleChecked = document.getElementById('simple-mode-toggle') && document.getElementById('simple-mode-toggle').checked;
+                    guidesToSearch = (isSimpleChecked && userProfileData.simpleStrengthGuides) ? userProfileData.simpleStrengthGuides : userProfileData.currentStrengthGuides;
+                }
+                if ((!guidesToSearch || guidesToSearch.length === 0) && typeof getDefaultStrengthGuides === 'function') {
+                    guidesToSearch = getDefaultStrengthGuides();
+                }
+
+                const findStrengthGuide = (guides, step, actRef) => {
+                    if (!guides) return null;
+                    if (actRef) {
+                        const exactMatch = guides.find(g => g.id && g.id.toLowerCase() === actRef.toLowerCase());
+                        if (exactMatch) return exactMatch;
+                    }
+                    const ref = (actRef || "").toLowerCase();
+                    const title = (step && step.workoutTitle ? step.workoutTitle : "").toLowerCase();
+                    for (const letter of ['a', 'b', 'c']) {
+                        if (ref.includes(letter) || title.includes(letter)) {
+                            const guide = guides.find(g => (g.id && g.id.toLowerCase() === letter) || (g.id && g.id.toLowerCase().includes(letter)));
+                            if (guide) return guide;
+                        }
+                    }
+                    let guide = guides.find(g => ref && g.title && g.title.toLowerCase().includes(ref));
+                    if (guide) return guide;
+                    return null;
+                };
+
+                // Explicit Schema-Driven Circuit Identification (No Text Parsing)
+                let isCircuit = !!(nextStep.isCircuit || (typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 1));
+                let circuitRounds = typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 0 ? nextStep.circuitRounds : 1;
+
+                if (nextStep.activities && Array.isArray(nextStep.activities)) {
+                    let expandedGuideForStep = false;
+                    nextStep.activities.forEach(act => {
+                        // Check explicit activity properties
+                        if (act.isCircuit || (typeof act.circuitRounds === 'number' && act.circuitRounds > 1)) {
+                            isCircuit = true;
+                            if (typeof act.circuitRounds === 'number' && act.circuitRounds > 1) {
+                                circuitRounds = act.circuitRounds;
+                            } else if (circuitRounds === 1) {
+                                circuitRounds = 3;
                             }
-                            if ((!guidesToSearch || guidesToSearch.length === 0) && typeof getDefaultStrengthGuides === 'function') {
-                                guidesToSearch = getDefaultStrengthGuides();
-                            }
+                        }
 
-                            const findStrengthGuide = (guides, step, actRef) => {
-                                if (!guides || !step) return null;
+                        const guideRef = nextStep.strengthGuideReference || act.strengthGuideReference || act.name;
+                        const isStrengthGuidePlaceholder = act.type === 'work' && !expandedGuideForStep && guideRef;
 
-                                // Best match: Check for explicit ID match
-                                if (actRef) {
-                                    const exactMatch = guides.find(g => g.id && g.id.toLowerCase() === actRef.toLowerCase());
-                                    if (exactMatch) return exactMatch;
+                        if (isStrengthGuidePlaceholder) {
+                            const guide = findStrengthGuide(guidesToSearch, nextStep, guideRef);
+                            if (guide && guide.exercises && guide.exercises.length > 0) {
+                                expandedGuideForStep = true;
+                                if (typeof guide.circuitRounds === 'number' && guide.circuitRounds > 0) {
+                                    circuitRounds = guide.circuitRounds;
+                                }
+                                if (guide.isCircuit !== undefined) {
+                                    isCircuit = !!guide.isCircuit;
                                 }
 
-                                const ref = (actRef || "").toLowerCase();
-                                const title = (step.workoutTitle || "").toLowerCase();
-
-                                // Fallback: Check for A, B, C specifically (legacy data support)
-                                for (const letter of ['a', 'b', 'c']) {
-                                    if (ref.includes(`workout ${letter}`) || title.includes(`workout ${letter}`)) {
-                                        const guide = guides.find(g => (g.id && g.id.toLowerCase().includes(letter)) || (g.title && g.title.toLowerCase().includes(`workout ${letter}`)));
-                                        if (guide) return guide;
+                                guide.exercises.forEach(ex => {
+                                    let sets = typeof ex.sets === 'number' ? ex.sets : 1;
+                                    let extractedReps = "";
+                                    if (ex.targetValue) {
+                                        extractedReps = ex.targetValue.toString();
                                     }
-                                }
 
-                                // Fallback: check if guide title includes ref
-                                let guide = guides.find(g => ref && g.title && g.title.toLowerCase().includes(ref));
-                                if (guide) return guide;
-
-                                // Fallback: check if ref includes guide title or title includes guide title
-                                guide = guides.find(g => g.title && ((ref && ref.includes(g.title.toLowerCase())) || (title && title.includes(g.title.toLowerCase()))));
-                                return guide;
-                            };
-
-                            let expandedGuideForStep = false;
-                            nextStep.activities.forEach(act => {
-                                if (act.type === 'work' && nextStep.strengthGuideReference && !expandedGuideForStep) {
-                                    const workActivities = nextStep.activities.filter(a => a.type === 'work');
-                                    const isGenericPlaceholder = workActivities.length === 1 ||
-                                        /circuit|routine|workout|guide|strength/i.test(act.name) ||
-                                        (nextStep.strengthGuideReference && act.name.toLowerCase().includes(nextStep.strengthGuideReference.toLowerCase()));
-
-                                    if (isGenericPlaceholder) {
-                                        const guide = findStrengthGuide(guidesToSearch, nextStep, nextStep.strengthGuideReference);
-                                        if (guide && guide.exercises && guide.exercises.length > 0) {
-                                            expandedGuideForStep = true;
-                                            guide.exercises.forEach(ex => {
-                                                let sets = typeof ex.sets === 'number' ? ex.sets : 1;
-                                                if (ex.setsReps && typeof ex.sets !== 'number') {
-                                                    const match = ex.setsReps.match(/^(\d+)\s*sets?/i);
-                                                    if (match) sets = parseInt(match[1]);
-                                                }
-
-                                                let extractedReps = "";
-                                                if (ex.setsReps && (ex.setsReps.toLowerCase().includes("failure") || ex.setsReps.toLowerCase().includes("fail"))) {
-                                                    extractedReps = "Fail";
-                                                } else if (ex.setsReps) {
-                                                    const rMatch = ex.setsReps.match(/(?:of\s+)?(\d+(?:-\d+)?)/);
-                                                    if (rMatch) extractedReps = rMatch[1];
-                                                }
-
-                                                displayActivities.push({
-                                                    ...act,
-                                                    name: ex.name,
-                                                    exerciseKey: ex.exerciseKey,
-                                                    targetType: ex.targetType,
-                                                    targetValue: ex.targetValue,
-                                                    minimumViableTarget: ex.minimumViableTarget,
-                                                    isPerSide: ex.isPerSide,
-                                                    restSeconds: ex.restSeconds,
-                                                    circuitRestSeconds: ex.circuitRestSeconds,
-                                                    equipmentRequired: ex.equipmentRequired,
-                                                    coachingCue: ex.coachingCue,
-                                                    repsDistanceTime: ex.setsReps,
-                                                    description: ex.coachingCue || ex.description,
-                                                    sets: sets,
-                                                    extractedReps: extractedReps,
-                                                    isExpandedStrength: true
-                                                });
-                                            });
-                                            return;
-                                        }
-                                    }
-                                }
-
-                                let extractedReps = "";
-                                if (act.repsDistanceTime) {
-                                    if (act.repsDistanceTime.toLowerCase().includes("failure") || act.repsDistanceTime.toLowerCase().includes("fail")) {
-                                        extractedReps = "Fail";
-                                    } else {
-                                        const rMatch = act.repsDistanceTime.match(/(?:of\s+)?(\d+(?:-\d+)?)/);
-                                        if (rMatch) extractedReps = rMatch[1];
-                                    }
-                                }
-                                displayActivities.push({
-                                    ...act,
-                                    extractedReps: extractedReps
+                                    displayActivities.push({
+                                        ...act,
+                                        name: ex.name,
+                                        exerciseKey: ex.exerciseKey,
+                                        targetType: ex.targetType || 'reps',
+                                        targetValue: ex.targetValue || null,
+                                        minimumViableTarget: ex.minimumViableTarget,
+                                        isPerSide: !!ex.isPerSide,
+                                        restSeconds: ex.restSeconds || null,
+                                        circuitRestSeconds: ex.circuitRestSeconds || null,
+                                        equipmentRequired: ex.equipmentRequired || 'Bodyweight',
+                                        coachingCue: ex.coachingCue || ex.description || '',
+                                        repsDistanceTime: ex.setsReps || '',
+                                        description: ex.coachingCue || ex.description || '',
+                                        sets: sets,
+                                        extractedReps: extractedReps,
+                                        isExpandedStrength: true
+                                    });
                                 });
-                            });
-
-                            function formatActivityRepsDisplay(actItem, isCircuit) {
-                                if (!actItem) return '';
-                                
-                                // 1. Structured Numeric Schema check
-                                if (typeof actItem.targetValue === 'number' && actItem.targetValue > 0) {
-                                    const val = actItem.targetValue;
-                                    const type = actItem.targetType === 'seconds' ? 'sec' : (actItem.targetType === 'failure' ? 'to failure' : 'reps');
-                                    const sideStr = actItem.isPerSide ? '/side' : '';
-                                    const restStr = actItem.restSeconds ? ` • ${actItem.restSeconds}s rest` : '';
-                                    const eqStr = (actItem.equipmentRequired && actItem.equipmentRequired !== 'Bodyweight' && actItem.equipmentRequired !== 'None') 
-                                        ? ` • ${actItem.equipmentRequired}` : '';
-
-                                    if (isCircuit) {
-                                        return `${val} ${type}${sideStr} per round${restStr}${eqStr}`;
-                                    } else {
-                                        const sets = actItem.sets && actItem.sets > 1 ? `${actItem.sets} sets × ` : '';
-                                        return `${sets}${val} ${type}${sideStr}${restStr}${eqStr}`;
-                                    }
-                                }
-
-                                // 2. Legacy / Fallback String Sanitization
-                                let text = (actItem.repsDistanceTime || '').trim();
-                                if (!text && !actItem.sets) return '';
-
-                                if (isCircuit) {
-                                    text = text.replace(/^(\d+)\s*sets?\s*(?:of|x|\*)\s*/i, '');
-                                    if (!text.toLowerCase().includes('round')) {
-                                        text += ' per round';
-                                    }
-                                    return text;
-                                }
-
-                                const hasRepsRegex = /\b(\d+)\s*(?:x|reps?|sets?|times)\b/i;
-                                const hasLeadingMultiplier = /^(\d+)\s*x\b/i;
-
-                                if (hasRepsRegex.test(text) || hasLeadingMultiplier.test(text)) {
-                                    return text;
-                                }
-
-                                if (actItem.sets && actItem.sets > 1) {
-                                    return `${actItem.sets} x ${text}`;
-                                }
-
-                                const actName = (actItem.name || '').toLowerCase();
-                                const isStrideOrRepeat = ['stride', 'sprint', 'repeat', 'interval', 'hill'].some(keyword => actName.includes(keyword));
-                                if (isStrideOrRepeat && text) {
-                                    return `4 x ${text}`;
-                                }
-
-                                return text;
+                                return;
                             }
+                        }
 
-                            let hasShownTargetInstructions = false;
-                            let renderedCircuitTrackerFor = null;
+                        displayActivities.push({
+                            ...act,
+                            sets: typeof act.sets === 'number' ? act.sets : 1,
+                            targetValue: typeof act.targetValue === 'number' ? act.targetValue : null,
+                            targetType: act.targetType || 'reps',
+                            isPerSide: !!act.isPerSide
+                        });
+                    });
+                }
 
-                            return displayActivities.map((act, actIdx) => {
-                                let prefixHtml = '';
-                                let isCircuit = act.isCircuit;
-                                let circuitRounds = act.circuitRounds || 0;
-                                if (act.isExpandedStrength && !isCircuit && act.parentActId && act.parentActId.toLowerCase().includes('circuit')) {
-                                    isCircuit = true;
-                                    circuitRounds = nextStep.circuitRounds || act.circuitRounds || 3;
-                                }
+                // If circuit was explicitly flagged, guarantee circuitRounds >= 2
+                if (isCircuit && circuitRounds <= 1) {
+                    circuitRounds = 3;
+                }
 
-                                if (isCircuit && renderedCircuitTrackerFor !== act.parentActId) {
-                                    renderedCircuitTrackerFor = act.parentActId;
-                                    const rounds = circuitRounds || 1;
-                                    const circuitIdStr = (act.parentActId || '').replace(/\s+/g, '-');
-                                    prefixHtml = `
-                                                <div class="sticky top-[73px] z-40 bg-slate-950/90 backdrop-blur-md border-y border-slate-800 p-4 -mx-5 px-5 md:-mx-8 md:px-8 shadow-md mt-4 mb-4 flex items-center justify-between">
-                                                    <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Circuit Rounds</span>
-                                                    <div class="flex items-center gap-2 flex-wrap">
-                                                        ${Array.from({ length: rounds }).map((_, r) => `
-                                                        <button id="circuit-bubble-${nextStep.id}-${circuitIdStr}-${r}" 
-                                                                onclick="toggleCircuitRound(this, '${circuitIdStr}')"
-                                                                class="w-10 h-10 rounded-full border border-slate-700 bg-slate-800 flex items-center justify-center transition-all focus:outline-none hover:border-teal-400/50 group shrink-0">
-                                                            <span class="text-[12px] font-bold text-slate-400 group-[.bg-teal-500]:hidden">${r + 1}</span>
-                                                            <i class="fa-solid fa-check text-sm text-white hidden group-[.bg-teal-500]:block"></i>
-                                                        </button>
-                                                        `).join('')}
-                                                    </div>
-                                                </div>
-                                                `;
-                                }
+                // Initialize State in Memory
+                if (typeof getOrCreateCockpitState === 'function') {
+                    getOrCreateCockpitState(nextStep.id, nextStep.workoutTitle, displayActivities, isCircuit, circuitRounds);
+                }
 
-                                let coachTipText = act.description || act.coachingCue || '';
-                                if (!act.isExpandedStrength && nextStep.strengthGuideReference) {
-                                    const guide = findStrengthGuide(guidesToSearch, nextStep, nextStep.strengthGuideReference);
-                                    if (guide && guide.exercises) {
-                                        const ex = guide.exercises.find(e => e.name.toLowerCase().includes(act.name.toLowerCase()) || act.name.toLowerCase().includes(e.name.toLowerCase()));
-                                        if (ex && (ex.coachingCue || ex.description)) coachTipText = ex.coachingCue || ex.description;
-                                    }
-                                }
+                function formatActivityReps(actItem, isCirc) {
+                    if (!actItem) return '';
+                    if (typeof actItem.targetValue === 'number' && actItem.targetValue > 0) {
+                        const val = actItem.targetValue;
+                        const type = actItem.targetType === 'seconds' ? 'sec' : (actItem.targetType === 'failure' ? 'to failure' : 'reps');
+                        const sideStr = actItem.isPerSide ? '/side' : '';
+                        const restStr = actItem.restSeconds ? ` • ${actItem.restSeconds}s rest` : '';
+                        const eqStr = (actItem.equipmentRequired && actItem.equipmentRequired !== 'Bodyweight' && actItem.equipmentRequired !== 'None') 
+                            ? ` • ${actItem.equipmentRequired}` : '';
 
-                                if (act.type === 'work') {
-                                    const showInstructions = !hasShownTargetInstructions && !act.isExpandedStrength;
-                                    if (showInstructions) hasShownTargetInstructions = true;
+                        if (isCirc) {
+                            return `${val} ${type}${sideStr} per round${restStr}${eqStr}`;
+                        } else {
+                            const sets = actItem.sets && actItem.sets > 1 ? `${actItem.sets} sets × ` : '';
+                            return `${sets}${val} ${type}${sideStr}${restStr}${eqStr}`;
+                        }
+                    }
+                    let text = (actItem.repsDistanceTime || '').trim();
+                    if (!text && !actItem.sets) return '';
+                    const sets = actItem.sets && actItem.sets > 1 ? `${actItem.sets} sets × ` : '';
+                    return `${sets}${text}`;
+                }
 
-                                    return prefixHtml + `
-                                            <div id="act-container-${nextStep.id}-${actIdx}" class="flex flex-col gap-3 bg-slate-900 border border-indigo-500/30 p-5 rounded-2xl relative shadow-[0_0_15px_rgba(79,70,229,0.1)] transition-all duration-300">
-                                                <div ${coachTipText ? `onclick="toggleStrengthTip(this, '${nextStep.id}', ${actIdx})"` : ''} class="flex flex-row items-start justify-between gap-3 ${coachTipText ? 'cursor-pointer group' : ''}">
-                                                    <div class="flex-1 leading-tight">
-                                                        <div class="flex items-center justify-between">
-                                                            <span class="text-sm font-bold text-slate-200 block">${act.isExpandedStrength ? '' : 'Workout - '}${act.name}</span>
-                                                            <div class="flex items-center gap-3">
-                                                                <button id="act-checkbox-${nextStep.id}-${actIdx}" 
-                                                                        data-circuit-id="${(act.parentActId || '').replace(/\s+/g, '-')}"
-                                                                        data-step-id="${nextStep.id}" data-act-idx="${actIdx}"
-                                                                        onclick="event.stopPropagation(); toggleActivityCheck(this, '${nextStep.id}', ${actIdx});"
-                                                                        class="w-7 h-7 rounded-md border border-slate-600 bg-slate-800 flex items-center justify-center transition-all focus:outline-none hover:border-teal-400/50 shrink-0">
-                                                                    <i class="fa-solid fa-check text-sm text-white opacity-0 transition-opacity"></i>
-                                                                </button>
-                                                                ${coachTipText ? `
-                                                                <i class="fa-solid fa-chevron-down text-slate-500 text-[12px] transition-transform duration-300 coach-tip-caret-${nextStep.id}-${actIdx} group-hover:text-slate-300"></i>
-                                                                ` : ''}
-                                                            </div>
-                                                        </div>
-                                                        <div id="act-subtitle-${nextStep.id}-${actIdx}" class="flex items-center gap-3 mt-1 flex-wrap transition-all duration-300">
-                                                            <span class="text-xs text-slate-400 font-medium">${formatActivityRepsDisplay(act, isCircuit)}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                ${coachTipText ? `
-                                                <div id="strength-tip-${nextStep.id}-${actIdx}" class="hidden mt-1 text-xs text-slate-400 italic leading-relaxed animate-fade-in pr-6">
-                                                    ${coachTipText}
-                                                </div>
-                                                ` : ''}
-                                                
-                                                ${showInstructions && nextStep.targetInstructions ? `
-                                                <div id="act-instructions-${nextStep.id}-${actIdx}" class="mt-2 transition-all duration-300">
-                                                    <p class="text-base text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
-                                                    ${paceHtml ? `<div class="mt-4">${paceHtml.replace('mt-4', 'mt-0')}</div>` : ''}
-                                                </div>
-                                                ` : ''}
-                                            </div>
-                                            `;
-                                } else {
-                                    return prefixHtml + `
-                                            <div class="flex flex-col gap-1 bg-slate-900/50 p-4 rounded-xl border border-slate-800/50 border-dashed">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="text-[10px] font-bold uppercase tracking-wider ${act.type === 'prep' ? 'text-amber-500' : 'text-sky-400'}">${act.type === 'prep' ? 'Warm Up' : 'Cool Down'}</span>
-                                                    <span class="text-sm font-bold text-slate-300">${act.name}</span>
-                                                </div>
-                                                <span class="text-xs text-slate-400 font-medium">${formatActivityRepsDisplay(act)}</span>
-                                            </div>
-                                            `;
-                                }
-                            }).join('');
-                        })()}
+                const hasActivities = displayActivities.length > 0;
+
+                // ========================================================
+                // 2. ASSEMBLE 2-PHASE HTML MODAL
+                // ========================================================
+                modalsAccumulator += `
+                <!-- FULL SCREEN MODAL FOR WORKOUT (2-PHASE: WORKOUT LIST & 50/50 COCKPIT) -->
+                <div id="workout-modal-${nextStep.id}" class="fixed inset-0 z-[9999] hidden bg-slate-950 flex flex-col overflow-hidden select-none">
+                    
+                    <!-- VIEW 1: WORKOUT LIST (CLEAN BRIEFING OVERVIEW) -->
+                    <div id="workout-list-view-${nextStep.id}" class="flex flex-col h-full overflow-y-auto w-full">
+                        <!-- Sticky Header Bar -->
+                        <div class="sticky top-0 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-4 md:p-6 flex items-center justify-between z-50">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-8 h-8 shrink-0 text-slate-300 opacity-90 flex items-center justify-center">${iconSVG}</div>
+                                <div class="flex flex-col min-w-0">
+                                    <h2 class="text-base md:text-lg font-extrabold text-white tracking-tight truncate">${nextStep.workoutTitle}</h2>
+                                    <span class="text-[10px] font-bold text-slate-400 font-mono">${displayActivities.length} Movements Planned</span>
                                 </div>
                             </div>
-                            ` : `
-                            <div class="flex items-start gap-3 mt-2">
-                                <div>
-                                    <p class="text-base text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
-                                </div>
+                            <div class="flex items-center gap-2.5 shrink-0">
+                                ${hasActivities ? `
+                                <button onclick="startWorkoutCockpit('${nextStep.id}', 0)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs md:text-sm py-2 px-4 rounded-xl shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                                    <i class="fa-solid fa-play text-[10px]"></i> Start Workout
+                                </button>
+                                ` : ''}
+                                <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden')" class="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700">
+                                    <i class="fa-solid fa-times text-sm"></i>
+                                </button>
                             </div>
-                            ${paceHtml ? `<div>${paceHtml}</div>` : ''}
-                            `}
                         </div>
-                        <div class="mt-8 flex justify-center pb-8">
-                            <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden'); toggleGatekeeper('${nextStep.id}', true)" class="w-full sm:w-auto min-w-[250px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-8 rounded-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-all flex items-center justify-center gap-3 text-lg">
-                                Log Activity <i class="fa-solid fa-arrow-right"></i>
+
+                        <!-- List Body -->
+                        <div class="p-4 md:p-8 max-w-2xl mx-auto w-full flex-1 pb-16">
+                            ${nextStep.targetInstructions ? `
+                            <div class="mb-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800/60">
+                                <p class="text-xs md:text-sm text-slate-300 leading-relaxed">${nextStep.targetInstructions}</p>
+                            </div>
+                            ` : ''}
+
+                            <div class="flex flex-col gap-2.5">
+                                ${displayActivities.map((act, actIdx) => {
+                                    const cue = act.coachingCue || act.description || '';
+                                    const isWork = act.type === 'work';
+                                    return `
+                                    <div onclick="startWorkoutCockpit('${nextStep.id}', ${actIdx})" class="flex flex-col gap-1 p-3.5 rounded-xl border ${isWork ? 'bg-slate-900/80 border-slate-800/80 hover:border-indigo-500/50' : 'bg-slate-900/30 border-slate-800/40 border-dashed'} transition-all cursor-pointer group hover:bg-slate-800/60 active:scale-98">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="flex items-center gap-2.5 min-w-0">
+                                                <span class="w-5 h-5 rounded-full ${isWork ? 'bg-slate-800 text-indigo-300 border border-slate-700' : 'bg-slate-800/50 text-slate-500'} flex items-center justify-center text-[10px] font-bold font-mono shrink-0">${actIdx + 1}</span>
+                                                <span class="text-xs md:text-sm font-bold text-slate-200 group-hover:text-white transition-colors truncate">${act.name}</span>
+                                            </div>
+                                            <span class="text-[10px] font-bold text-indigo-400 group-hover:text-indigo-300 shrink-0 flex items-center gap-1">Start <i class="fa-solid fa-arrow-right text-[8px]"></i></span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-[11px] text-slate-400 pl-7.5">
+                                            <span>${formatActivityReps(act, isCircuit)}</span>
+                                            ${act.equipmentRequired && act.equipmentRequired !== 'Bodyweight' && act.equipmentRequired !== 'None' ? `<span class="text-[9px] text-slate-500 font-semibold uppercase">${act.equipmentRequired}</span>` : ''}
+                                        </div>
+                                        ${cue ? `<p class="text-[10px] text-slate-500 italic pl-7.5 mt-0.5 line-clamp-1">${cue}</p>` : ''}
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+
+                            <div class="mt-8 flex justify-center pb-6">
+                                <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden'); toggleGatekeeper('${nextStep.id}', true)" class="w-full sm:w-auto min-w-[220px] bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 font-bold py-3 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer shadow-sm">
+                                    Log Session Directly <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 2: WORKOUT COCKPIT (50/50 SPLIT EXECUTION COCKPIT) -->
+                    <div id="workout-cockpit-view-${nextStep.id}" class="hidden flex flex-col h-full w-full overflow-hidden select-none">
+                        <!-- 2px Top Emerald Volume Line -->
+                        <div id="cockpit-progress-bar-${nextStep.id}" class="h-0.5 bg-emerald-500 transition-all duration-300 w-0"></div>
+
+                        <!-- Cockpit Header -->
+                        <div class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 flex items-center justify-between z-30 shrink-0">
+                            <button onclick="exitWorkoutCockpit('${nextStep.id}')" class="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
+                                <i class="fa-solid fa-list-ul text-[11px] text-indigo-400"></i> Overview
+                            </button>
+                            <div id="cockpit-progress-dots-${nextStep.id}" class="flex items-center gap-1.5 sm:gap-2 justify-center"></div>
+                            <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden'); exitWorkoutCockpit('${nextStep.id}')" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700 text-xs cursor-pointer">
+                                <i class="fa-solid fa-times"></i>
                             </button>
                         </div>
+
+                        <!-- 50/50 Body: Top Hero / Bottom Playlist -->
+                        <div class="flex-1 flex flex-col md:flex-row overflow-hidden w-full">
+                            <!-- TOP 50% / LEFT 55%: HERO STAGE -->
+                            <div id="cockpit-hero-stage-${nextStep.id}" class="h-[52%] md:h-full md:w-[55%] bg-slate-900/60 border-b md:border-b-0 md:border-r border-slate-800 p-4 md:p-6 flex flex-col justify-center items-center relative overflow-y-auto shrink-0">
+                                <!-- Populated dynamically by renderCockpitHeroStage() -->
+                            </div>
+
+                            <!-- BOTTOM 50% / RIGHT 45%: SCROLLABLE PLAYLIST -->
+                            <div class="h-[48%] md:h-full md:w-[45%] bg-slate-950 flex flex-col overflow-hidden">
+                                <div class="px-3.5 py-2 border-b border-slate-800/80 bg-slate-900/40 flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 tracking-wider shrink-0">
+                                    <span>Exercise Schedule</span>
+                                    <span class="text-slate-500 font-normal">Tap to jump machine</span>
+                                </div>
+                                <div id="cockpit-playlist-${nextStep.id}" class="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
+                                    <!-- Populated dynamically by renderCockpitPlaylist() -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
                 </div>
                 `;
             }
-
-            htmlAccumulator += `</div>`;
+htmlAccumulator += `</div>`;
 
             const isSlateFullyCompleted = dailySlate.every(w => w.completed);
             if (isSlateFullyCompleted && renderSequenceOrder === (lastCompletedStep ? lastCompletedStep.sequenceOrder : null)) {
@@ -1107,6 +1061,41 @@ function toggleStepCheck(activityId, completed) {
         }
 
 function toggleActivityCheck(btn, stepId, actIdx) {
+            // If we are UNCHECKING a timer checkbox, reset it to the timer UI
+            if (btn.classList.contains('bg-teal-500') && btn.dataset.isTimer === 'true') {
+                const duration = btn.dataset.duration;
+                const rest = btn.dataset.rest;
+                const isPerSide = btn.dataset.perSide === 'true';
+                
+                const mount = document.getElementById(`timer-mount-${stepId}-${actIdx}`);
+                if (mount) {
+                    mount.dataset.side = '1';
+                    mount.innerHTML = `
+                        <button id="act-timer-btn-${stepId}-${actIdx}" onclick="event.stopPropagation(); startWorkoutTimer('${stepId}', ${actIdx}, ${duration}, ${rest}, false, ${isPerSide});" class="w-14 h-14 rounded-full border-2 border-indigo-500 bg-indigo-900/30 flex flex-col items-center justify-center transition-all hover:bg-indigo-800/50 hover:scale-110 shrink-0 relative overflow-hidden group shadow-[0_0_15px_rgba(99,102,241,0.3)]" title="Start Timer">
+                            <i class="fa-solid fa-play text-indigo-400 text-[14px] ml-1 mb-0.5 group-hover:text-white transition-colors"></i>
+                            <span class="text-[10px] font-bold text-indigo-300 group-hover:text-white transition-colors">${duration}s</span>
+                        </button>
+                        <div id="active-timer-ui-${stepId}-${actIdx}" class="hidden items-center gap-3"></div>
+                    `;
+                }
+                
+                // Restore container styles
+                const container = document.getElementById(`act-container-${stepId}-${actIdx}`);
+                if (container) {
+                    container.classList.remove('opacity-50', 'scale-[0.98]', 'border-slate-700/50');
+                    container.classList.add('shadow-[0_0_15px_rgba(79,70,229,0.1)]', 'border-indigo-500/30');
+                    const tip = document.getElementById(`strength-tip-${stepId}-${actIdx}`);
+                    if (tip) tip.classList.remove('hidden');
+                    const subtitle = document.getElementById(`act-subtitle-${stepId}-${actIdx}`);
+                    if (subtitle) subtitle.classList.remove('hidden');
+                    const instructions = document.getElementById(`act-instructions-${stepId}-${actIdx}`);
+                    if (instructions) instructions.classList.remove('hidden');
+                }
+                
+                updateModalProgress(stepId);
+                return;
+            }
+
             btn.classList.toggle('bg-teal-500');
             btn.classList.toggle('border-teal-500');
             btn.classList.toggle('bg-slate-800');
@@ -1140,6 +1129,7 @@ function toggleActivityCheck(btn, stepId, actIdx) {
                     if (instructions) instructions.classList.remove('hidden');
                 }
             }
+            updateModalProgress(stepId);
         }
 
 function updateWorkoutDate(activityId, newDate) {
@@ -1329,4 +1319,3 @@ function getCheckpointIndex(phase, activityId) {
             }
             return -1;
         }
-

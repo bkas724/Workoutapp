@@ -9,7 +9,9 @@
 ## 📋 Active Backlog & Feature Enhancements
 
 ### 1. Dashboard & Daily Flow (`tab-home`)
+- [ ] **"5-Minute Launchpad" (Micro-Start Mode)**: Add a 1-tap "Just Give Me 5 Minutes" prompt on the Up-Next Card that starts a 5-minute countdown to overcome task initiation paralysis.
 - [ ] **Quick Rest Day / Active Recovery Action**: Add a 1-tap "Convert Today to Rest / Stretch Day" shortcut directly on the Up-Next Card for high-fatigue days without opening submenus.
+- [ ] **"Total Friction Time" Header Box**: Display a clear breakdown (`[4m Prep]` ➔ `[30m Run]` ➔ `[4m Cool]`) to eliminate time perception anxiety.
 - [ ] **Workout Completion Feedback Animation**: Add a subtle, satisfying micro-animation / haptic pulse when checking off the Big Checkmark box.
 - [ ] **Offline Workout Queuing**: Ensure workouts checked off while temporarily offline queue cleanly in IndexedDB/localStorage and auto-sync immediately upon reconnection.
 

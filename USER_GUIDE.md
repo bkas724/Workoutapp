@@ -39,6 +39,7 @@ YourFlow is built around four human-centered product pillars designed to support
    - [Challenge Hub & Fog of War (`tab-turkey-trot`)](#36-challenge-hub--fog-of-war-tab-turkey-trot)
 4. [Core Workflows & Operating Instructions](#4-core-workflows--operating-instructions)
    - [Logging a Workout (Quick Checkmark vs. Gatekeeper Modal)](#logging-a-workout-quick-checkmark-vs-gatekeeper-modal)
+   - [Active Workout Timer Modal](#active-workout-timer-modal)
    - [Recording Advanced Rep Splits](#recording-advanced-rep-splits)
    - [Benchmark Runs & 70/30 EMA Pace Recalibration](#benchmark-runs--7030-ema-pace-recalibration)
    - [Importing GPX Activity Files](#importing-gpx-activity-files)
@@ -153,6 +154,22 @@ If you ran a custom pace, want to record precise interval split times, adjust RP
 3. Select your **Rate of Perceived Exertion (RPE)** (e.g., *Smooth*, *Moderate*, *Hard*, *Exhausting*).
 4. (Optional) Add conversational notes (e.g., *"Felt strong on the final hill"*).
 5. Click **Complete Session** to save your log and advance the sequential queue.
+
+
+### Workout List & 50/50 Workout Modal
+When tapping the Up-Next Card for any scheduled session containing movements or strength circuits, the app opens a streamlined, two-phase training environment:
+
+1. **Phase 1: Workout List (Briefing Mode)**:
+   - A clean, passive reference sheet displaying all planned exercises, sets/reps, equipment, and coaching cues without interactive clutter.
+   - Includes a permanently sticky top header with **`[ ▶ Start Workout ]`** and the ability to tap *any* exercise in the list to begin the interactive runner starting directly at that movement.
+   - Includes a secondary **`[ Log Session Directly ]`** action at the bottom for autonomous athletes who prefer to check off the routine without timers.
+
+2. **Phase 2: Workout Modal (50/50 Execution Cockpit)**:
+   - **Top 50% (Fixed Hero Stage)**: Viewport-anchored stage displaying the active exercise, large interactive set bubbles (`[ 1 ] [ 2 ] [ 3 ]`), 56px countdown timer ring, collapsible form tip pills, and ghost controls (`[ +15s ]`, `[ ↺ Reset ]`, `[ ✓ Done ]`).
+   - **Rest Runway Preview**: Automatically triggers a 30s rest countdown between sets, displaying the upcoming set and equipment directly beneath the timer ring (`Next: Set 2 of 3 • Dumbbells`).
+   - **Patient Transitions**: When an exercise finishes, the app smoothly advances to the next movement and waits in a "Ready" state without auto-starting holds or rushing the athlete.
+   - **Bottom 50% (Scrollable Gym Playlist)**: Displays the full session list, auto-scrolling to keep your active movement in view, and allowing 1-tap jumping to any machine if equipment is occupied.
+   - **Zero-Drift Background Timing & WakeLock**: Timers persist accurately across tab switches via epoch timestamps (`Date.now()`), synthesize 3-2-1 audio beeps and completion chimes, and maintain screen wake-lock throughout execution.
 
 ### Recording Advanced Rep Splits
 For workouts designated with interval repetitions (e.g., *6x400m*):
