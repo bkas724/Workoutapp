@@ -707,25 +707,36 @@ function renderNextActivityCard() {
         }
 
         const findStrengthGuide = (guides, step, actRef) => {
-            if (!guides) return null;
+            if (!guides || guides.length === 0) return null;
+            
+            // 1. Strict ID Match (e.g. actRef === "A" or "guide-a")
             if (actRef) {
-                const exactMatch = guides.find(g => g.id && g.id.toLowerCase() === actRef.toLowerCase());
+                const exactMatch = guides.find(g => g.id && g.id.toLowerCase() === actRef.toString().toLowerCase().trim());
                 if (exactMatch) return exactMatch;
             }
-            const ref = (actRef || "").toLowerCase();
-            const title = (step && step.workoutTitle ? step.workoutTitle : "").toLowerCase();
+
+            const refStr = (actRef || "").toString().toLowerCase();
+            const titleStr = (step && step.workoutTitle ? step.workoutTitle : "").toLowerCase();
+
+            // 2. Strict Word-Boundary Letter Match (e.g. "Circuit A", "Workout B", "Guide C")
             for (const letter of ['a', 'b', 'c']) {
-                if (ref.includes(letter) || title.includes(letter)) {
-                    const guide = guides.find(g => (g.id && g.id.toLowerCase() === letter) || (g.id && g.id.toLowerCase().includes(letter)));
+                const pattern = new RegExp(`\\b(?:circuit|workout|guide|routine)\\s+${letter}\\b`, 'i');
+                if (pattern.test(refStr) || pattern.test(titleStr)) {
+                    const guide = guides.find(g => g.id && g.id.toLowerCase() === letter);
                     if (guide) return guide;
                 }
             }
-            let guide = guides.find(g => ref && g.title && g.title.toLowerCase().includes(ref));
-            if (guide) return guide;
+
+            // 3. Exact Guide Title Match
+            if (refStr) {
+                const titleMatch = guides.find(g => g.title && g.title.toLowerCase() === refStr);
+                if (titleMatch) return titleMatch;
+            }
+
             return null;
         };
 
-        // Explicit Schema-Driven Circuit Identification (No Text Parsing)
+        // Explicit Schema-Driven Circuit Identification
         let isCircuit = !!(nextStep.isCircuit || (typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 1));
         let circuitRounds = typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 0 ? nextStep.circuitRounds : 1;
 
@@ -742,11 +753,23 @@ function renderNextActivityCard() {
                     }
                 }
 
-                const guideRef = nextStep.strengthGuideReference || act.strengthGuideReference || act.name;
-                const isStrengthGuidePlaceholder = act.type === 'work' && !expandedGuideForStep && guideRef;
+                // Protect running/cardio activities from ever being replaced by a strength guide
+                const isCardioOrRun = /run|jog|walk|stride|sprint|interval|bike|swim|cycle|treadmill|rowing|warm-up|cool-down|cooldown|warmup/i.test(act.name);
+
+                // An activity is ONLY a strength guide placeholder if:
+                // 1. It is NOT a cardio/run/walk activity
+                // 2. act.type === 'work'
+                // 3. It explicitly specifies strengthGuideReference OR its name is a strength circuit placeholder OR the workout category is strictly strength
+                const isStrengthGuidePlaceholder = !isCardioOrRun && act.type === 'work' && !expandedGuideForStep && (
+                    act.strengthGuideReference ||
+                    /circuit|routine|strength guide|strength circuit/i.test(act.name) ||
+                    ((nextStep.workoutCategory === 'strength' || nextStep.type === 'strength') && nextStep.strengthGuideReference)
+                );
 
                 if (isStrengthGuidePlaceholder) {
+                    const guideRef = act.strengthGuideReference || nextStep.strengthGuideReference || act.name;
                     const guide = findStrengthGuide(guidesToSearch, nextStep, guideRef);
+
                     if (guide && guide.exercises && guide.exercises.length > 0) {
                         expandedGuideForStep = true;
                         if (typeof guide.circuitRounds === 'number' && guide.circuitRounds > 0) {
@@ -786,6 +809,7 @@ function renderNextActivityCard() {
                     }
                 }
 
+                // Standard / Cardio / Regular Activity (Preserve intact)
                 displayActivities.push({
                     ...act,
                     sets: typeof act.sets === 'number' ? act.sets : 1,
@@ -813,7 +837,7 @@ function renderNextActivityCard() {
                 const type = actItem.targetType === 'seconds' ? 'sec' : (actItem.targetType === 'failure' ? 'to failure' : 'reps');
                 const sideStr = actItem.isPerSide ? '/side' : '';
                 const restStr = actItem.restSeconds ? ` • ${actItem.restSeconds}s rest` : '';
-                const eqStr = (actItem.equipmentRequired && actItem.equipmentRequired !== 'Bodyweight' && actItem.equipmentRequired !== 'None')
+                const eqStr = (actItem.equipmentRequired && actItem.equipmentRequired !== 'Bodyweight' && actItem.equipmentRequired !== 'None') 
                     ? ` • ${actItem.equipmentRequired}` : '';
 
                 if (isCirc) {
