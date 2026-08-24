@@ -313,11 +313,11 @@ ${nutInstructionBlock}
 9. CRITICAL STRUCTURED INTERVAL DIRECTIVE: For any interval, track, tempo interval, or speed session (where workoutCategory is 'intervals' or type is 'interval'/'tempo'/'fast' with reps):
    - You MUST set 'intervalRepCount' to the integer rep count (e.g. 3, 5, 8).
    - You MUST set 'intervalType' to 'time' or 'distance'.
-   - You MUST set 'intervalWorkValue' (e.g. 5 for 5 mins, 400 for 400m, 1000 for 1000m, 1.5 for 1.5 miles).
+   - You MUST set 'intervalWorkValue' (e.g. 5 for 5 mins, 400 for 400m, 1000 for 1000m). If specifying minutes and seconds (e.g. 5 min 15 sec), set 'intervalWorkValue' as integer seconds (315) with 'intervalWorkUnit': 'seconds', or integer minutes (5) with 'intervalWorkUnit': 'mins'. NEVER output decimal minutes like 5.25.
    - You MUST set 'intervalWorkUnit' ('mins', 'seconds', 'm', 'km', 'mi').
-   - You MUST set 'intervalRestSeconds' (e.g. 120 for 2 min rest, 90 for 90s rest, 60 for 1 min rest).
+   - You MUST set 'intervalRestSeconds' as an integer number of seconds (e.g. 120 for 2 min rest, 90 for 90s rest, 60 for 1 min rest).
    - You MUST set 'intervalTargetPace' to a SINGLE discrete target pace in MM:SS format (e.g. '7:08'). NEVER return a range like '7:00-7:15'. If you calculate a range, return the exact midpoint integer.
-   - In 'repsDistanceTime' on the work activity, state the structure clearly (e.g. '5 mins @ 7:08 (2 min rest)').
+   - In 'repsDistanceTime' on the work activity, state the structure clearly formatted with clean times (e.g. '5 mins @ 7:08 (2 min rest)' or '5:15 @ 7:08 (2 min rest)'). NEVER output decimal strings like '5.25 mins' or '5.25 reps'.
 10. SINGLE TARGET PACE DIRECTIVE: Whenever specifying a target pace (in 'targetPaceZone' or 'intervalTargetPace'), you MUST output a SINGLE discrete target pace in MM:SS format (e.g. '7:08', '8:15'). NEVER return a range like '7:00-7:15'. Return the exact midpoint.
 11. BEGINNER & RECOVERY PACING RULE: If the user's primary goal is 'health' or 'recovery', or fitness level is beginner, DO NOT enforce rigid numerical MM:SS paces in targetPaceZone. Always prescribe clear, comfortable targetDistance (in miles) or targetDuration (in minutes), but use qualitative targetPaceZone descriptions such as "Easy Walk", "Brisk Walk", "Conversational Jog", or "Active Flush".
 12. TARGET RPE DIRECTIVE: Assign a 'targetRPE' property to EVERY workout object as a single integer from 1 to 5 (1=Recovery/Restful, 2=Easy/Conversational, 3=Moderate/Steady, 4=Hard/Threshold, 5=Max Effort/Failure).
@@ -718,6 +718,7 @@ ${profileContext?.currentBlock ? JSON.stringify(profileContext.currentBlock) : "
 Please generate a short, complimentary session tailored to this week's active block.
 For example, if the type is "yoga" or "stretching", provide a recovery/mobility flow. If the type is "core", provide a quick core circuit. If the type is "run", provide a very easy recovery or short interval run depending on what they are lacking this week.
 CRITICAL TARGET PACE DIRECTIVE: If specifying a target pace, output a SINGLE discrete target pace in MM:SS format (e.g. '7:08'). NEVER return a range like '7:00-7:15'. Return the exact midpoint.
+CRITICAL TIMING DIRECTIVE: If specifying interval durations or timed holds, use integer seconds (e.g. 315, 45) or integer minutes (e.g. 5), and format 'repsDistanceTime' with clean MM:SS strings (e.g. '5:15 @ 7:08'). NEVER output decimal strings like '5.25 mins' or '5.25 reps'.
 
 Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
 {
@@ -883,10 +884,11 @@ CRITICAL TARGET PACE DIRECTIVE: If specifying a target pace (in 'targetPaceZone'
 CRITICAL STRUCTURED INTERVAL DIRECTIVE: If generating an interval or tempo workout (workoutCategory: 'intervals'):
 - Set 'intervalRepCount' to the integer rep count (e.g. 3, 5, 8).
 - Set 'intervalType' to 'time' or 'distance'.
-- Set 'intervalWorkValue' (e.g. 5 for 5 mins, 400 for 400m).
+- Set 'intervalWorkValue' (e.g. 5 for 5 mins, 400 for 400m). If specifying minutes and seconds (e.g. 5 min 15 sec), use integer seconds (315) or integer minutes (5). NEVER output decimal minutes like 5.25.
 - Set 'intervalWorkUnit' ('mins', 'seconds', 'm', 'km', 'mi').
-- Set 'intervalRestSeconds' (e.g. 120, 90, 60).
+- Set 'intervalRestSeconds' as an integer number of seconds (e.g. 120, 90, 60).
 - Set 'intervalTargetPace' (single MM:SS e.g. '7:08').
+- In 'repsDistanceTime' on the work activity, format cleanly as MM:SS (e.g. '5 mins @ 7:08 (2 min rest)' or '5:15 @ 7:08 (2 min rest)'). NEVER output decimal strings like '5.25 mins' or '5.25 reps'.
 
 Return ONLY a valid JSON object matching exactly this structure without any markdown wrappers or text:
 {

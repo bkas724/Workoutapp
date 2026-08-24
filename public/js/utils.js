@@ -187,7 +187,7 @@ function getNextMotivationSaying() {
     try {
         localStorage.setItem('motivation_unseen_pool', JSON.stringify(pool));
         localStorage.setItem('motivation_last_saying_index', nextIndex.toString());
-    } catch (e) {}
+    } catch (e) { }
 
     return MOTIVATION_SAYINGS[nextIndex] || MOTIVATION_SAYINGS[0];
 }
@@ -258,3 +258,366 @@ tailwind.config = {
         }
     }
 };
+
+/**
+ * Converts decimal minute patterns (e.g. "5.25 mins", "5.25 reps", "1.5 min") into proper time strings ("5:15 min", "1:30 min").
+ */
+function formatDecimalMinutesString(str) {
+    if (!str) return '';
+    let result = String(str);
+    result = result.replace(/(\d+)\.(\d+)\s*(?:mins?|minutes?|min|reps)/gi, (match, mStr, decStr) => {
+        const val = parseFloat(`${mStr}.${decStr}`);
+        const totalSec = Math.round(val * 60);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        const isReps = /reps/i.test(match);
+        if (s > 0) {
+            return `${m}:${s < 10 ? '0' + s : s} min`;
+        }
+        return isReps ? `${m} reps` : `${m} min`;
+    });
+    return result;
+}
+
+/**
+ * Splits a rep target string (e.g. "5:15 min", "400m", "1.5 mi") into distinct value and unit for clean UI rendering.
+ */
+function parseRepValueAndUnit(str, type) {
+    if (!str) return { val: type === 'time' ? '5:00' : '400', unit: type === 'time' ? 'min' : 'm' };
+    const clean = formatDecimalMinutesString(str).trim();
+    
+    // Time format (e.g. "5:15 min", "5:00 min", "5 min")
+    const timeMatch = clean.match(/^(\d+:\d+|\d+(?:\.\d+)?)\s*(?:mins?|minutes?|min)?/i);
+    if (timeMatch && (type === 'time' || clean.includes(':') || /min/i.test(clean))) {
+        let val = timeMatch[1];
+        if (!val.includes(':') && type === 'time') {
+            const num = parseFloat(val);
+            if (num % 1 !== 0) {
+                const totalSec = Math.round(num * 60);
+                const m = Math.floor(totalSec / 60);
+                const s = totalSec % 60;
+                val = `${m}:${s < 10 ? '0' + s : s}`;
+            } else {
+                val = `${val}:00`;
+            }
+        }
+        return { val, unit: 'min' };
+    }
+    
+    // Distance format (e.g. "400m", "1.5 mi", "1000m")
+    const distMatch = clean.match(/^(\d+(?:\.\d+)?)\s*(m|meters?|mi|miles?|k|km)?/i);
+    if (distMatch) {
+        return { val: distMatch[1], unit: distMatch[2] || 'm' };
+    }
+    return { val: clean, unit: '' };
+}
+
+/**
+ * Universal formatter for activity targets across playlists, hero stages, and cards.
+ * Handles holds/seconds, time intervals (MM:SS), distance, failure, and reps cleanly.
+ */
+function formatTargetDisplay(act, options = {}) {
+    if (!act) return '';
+    const { includeSets = true, isCircuit = false, short = false } = options;
+    const setsStr = (includeSets && act.sets && act.sets > 1 && !isCircuit) ? `${act.sets}×` : '';
+    const setsPrefix = (includeSets && act.sets && act.sets > 1 && !isCircuit) ? `${act.sets} sets × ` : '';
+
+    const targetType = (act.targetType || '').toLowerCase();
+    const targetUnit = (act.targetUnit || '').toLowerCase();
+    const val = (typeof act.targetValue === 'number' && act.targetValue > 0) ? act.targetValue : null;
+
+    // 1. TIMED HOLD / DURATION IN SECONDS
+    if (targetType === 'seconds' || targetUnit.includes('sec')) {
+        const secVal = val !== null ? val : parseInt(act.repsDistanceTime) || 30;
+        const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
+        if (secVal >= 60 && secVal % 60 !== 0) {
+            const m = Math.floor(secVal / 60);
+            const s = secVal % 60;
+            const timeStr = `${m}:${s < 10 ? '0' + s : s}`;
+            return `${short ? setsStr : setsPrefix}${timeStr} hold${sideStr}`;
+        }
+        return `${short ? setsStr : setsPrefix}${secVal}s hold${sideStr}`;
+    }
+
+    // 2. TIME-BASED INTERVAL / RUN (e.g. 5 mins, 5.25 mins -> 5:15)
+    if (targetType === 'time' || targetUnit.includes('min') || (val !== null && (act.name || '').toLowerCase().includes('interval') && targetType !== 'reps' && targetType !== 'distance')) {
+        let timeStr = '';
+        if (val !== null) {
+            if (val > 60 && !targetUnit.includes('min')) {
+                const m = Math.floor(val / 60);
+                const s = Math.round(val % 60);
+                timeStr = `${m}:${s < 10 ? '0' + s : s} min`;
+            } else {
+                const totalSec = Math.round(val * 60);
+                const m = Math.floor(totalSec / 60);
+                const s = totalSec % 60;
+                if (s > 0) {
+                    timeStr = `${m}:${s < 10 ? '0' + s : s} min`;
+                } else {
+                    timeStr = `${m} min`;
+                }
+            }
+        } else if (act.repsDistanceTime) {
+            timeStr = formatDecimalMinutesString(act.repsDistanceTime);
+        }
+
+        const paceStr = act.targetPace ? ` @ ~${typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(act.targetPace) : act.targetPace} Pace` : '';
+        return `${short ? setsStr : setsPrefix}${timeStr}${paceStr}`;
+    }
+
+    // 3. DISTANCE-BASED INTERVAL / RUN (e.g. 400m, 1.5 mi)
+    if (targetType === 'distance' || ['m', 'km', 'mi', 'k'].includes(targetUnit) || (act.repsDistanceTime && /(\d+)\s*(?:m|km|mi)/i.test(act.repsDistanceTime))) {
+        const unit = targetUnit || (val && val > 50 ? 'm' : 'mi');
+        const distStr = val !== null ? `${val}${unit}` : (act.repsDistanceTime || '');
+        const paceStr = act.targetPace ? ` @ ~${typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(act.targetPace) : act.targetPace}` : '';
+        return `${short ? setsStr : setsPrefix}${distStr}${paceStr}`;
+    }
+
+    // 4. FAILURE
+    if (targetType === 'failure') {
+        const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
+        return `${short ? setsStr : setsPrefix}to failure${sideStr}`;
+    }
+
+    // 5. STANDARD REPS
+    if (targetType === 'reps' || (val !== null && !targetType && Number.isInteger(val))) {
+        const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
+        return `${short ? setsStr : setsPrefix}${val} reps${sideStr}`;
+    }
+
+    // 6. Decimal number detection fallback
+    if (val !== null) {
+        if (val % 1 !== 0) {
+            const totalSec = Math.round(val * 60);
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            return `${short ? setsStr : setsPrefix}${m}:${s < 10 ? '0' + s : s} min`;
+        }
+        return `${short ? setsStr : setsPrefix}${val} reps`;
+    }
+
+    // 7. Fallback to repsDistanceTime
+    if (act.repsDistanceTime) {
+        return formatDecimalMinutesString(act.repsDistanceTime);
+    }
+
+    return `${short ? setsStr : setsPrefix}1 set`;
+}
+
+/**
+ * Calculates above, center, and below numbers for the 3D roller wheel HUD.
+ */
+function getWheelDrumNumbers(currentVal, min, max, step, pad) {
+    const formatNum = (v) => {
+        let clamped = Math.max(min, Math.min(max, v));
+        if (step >= 1) clamped = Math.round(clamped);
+        else clamped = parseFloat(clamped.toFixed(2));
+        return (pad && clamped < 10 && clamped >= 0) ? `0${clamped}` : String(clamped);
+    };
+
+    const cur = parseFloat(currentVal) || 0;
+    const aboveVal = (cur + step <= max) ? formatNum(cur + step) : '';
+    const centerVal = formatNum(cur);
+    const belowVal = (cur - step >= min) ? formatNum(cur - step) : '';
+
+    return { aboveVal, centerVal, belowVal };
+}
+
+/**
+ * Creates or retrieves the floating roller wheel HUD bubble for touch/drag scrub entry.
+ */
+function getOrCreateScrubHud() {
+    let hud = document.getElementById('touch-scrub-hud');
+    if (!hud) {
+        hud = document.createElement('div');
+        hud.id = 'touch-scrub-hud';
+        hud.className = 'fixed z-[99999] pointer-events-none hidden flex-col items-center justify-center bg-slate-950/95 text-white border border-indigo-500/50 shadow-2xl shadow-indigo-500/40 rounded-2xl py-1.5 px-3 backdrop-blur-md transition-opacity duration-100 select-none min-w-[58px] text-center';
+        hud.innerHTML = `
+            <span id="scrub-hud-above" class="text-[11px] font-bold text-slate-500 opacity-40 font-mono select-none tracking-tight h-3.5 flex items-center justify-center leading-none"></span>
+            <div class="flex items-center justify-center my-0.5 border-y border-indigo-500/30 px-2.5 py-0.5 rounded bg-indigo-950/40 w-full">
+                <span id="scrub-hud-val" class="text-2xl font-black text-amber-400 font-mono tracking-tight select-none leading-none"></span>
+            </div>
+            <span id="scrub-hud-below" class="text-[11px] font-bold text-slate-500 opacity-40 font-mono select-none tracking-tight h-3.5 flex items-center justify-center leading-none"></span>
+        `;
+        document.body.appendChild(hud);
+    }
+    return hud;
+}
+
+/**
+ * Attaches a touch-wheel / scrub-wheel interaction with a floating roller wheel HUD.
+ * Shows faint number above and below to give a true mechanical number wheel feel.
+ * Solves screen shake by locking document scroll momentum during active touch.
+ */
+function initTouchWheelInputs(container = document) {
+    if (!container) return;
+    const inputs = container.querySelectorAll('input[type="number"], .scrub-wheel-input');
+    inputs.forEach(input => {
+        if (input.dataset.wheelInitialized) return;
+        input.dataset.wheelInitialized = 'true';
+
+        let startY = 0;
+        let startVal = 0;
+        let isDragging = false;
+        let hud = null;
+
+        const getMin = () => input.min !== "" ? parseFloat(input.min) : 0;
+        const getMax = () => input.max !== "" ? parseFloat(input.max) : 999;
+        const getStep = () => input.step !== "" && !isNaN(parseFloat(input.step)) ? parseFloat(input.step) : 1;
+        const shouldPad = () => input.dataset.pad === "2" || (input.placeholder && input.placeholder.toLowerCase() === 'sec') || (input.id && input.id.includes('sec'));
+
+        const updateHud = (valStr) => {
+            const { aboveVal, centerVal, belowVal } = getWheelDrumNumbers(valStr, getMin(), getMax(), getStep(), shouldPad());
+            const aboveEl = document.getElementById('scrub-hud-above');
+            const valEl = document.getElementById('scrub-hud-val');
+            const belowEl = document.getElementById('scrub-hud-below');
+
+            if (aboveEl) aboveEl.innerText = aboveVal;
+            if (valEl) valEl.innerText = centerVal;
+            if (belowEl) belowEl.innerText = belowVal;
+        };
+
+        const showHud = (valStr) => {
+            hud = getOrCreateScrubHud();
+            updateHud(valStr);
+
+            const rect = input.getBoundingClientRect();
+            const centerX = rect.left + (rect.width / 2);
+            const topY = Math.max(70, rect.top - 15);
+
+            hud.style.left = `${centerX}px`;
+            hud.style.top = `${topY}px`;
+            hud.style.transform = 'translate(-50%, -100%)';
+            hud.classList.remove('hidden');
+            hud.classList.add('flex');
+        };
+
+        const hideHud = () => {
+            if (hud) {
+                hud.classList.add('hidden');
+                hud.classList.remove('flex');
+            }
+        };
+
+        const applyValue = (newVal) => {
+            const min = getMin();
+            const max = getMax();
+            const step = getStep();
+            
+            let clamped = Math.max(min, Math.min(max, newVal));
+            if (step >= 1) clamped = Math.round(clamped);
+            else clamped = parseFloat(clamped.toFixed(2));
+
+            const formatted = (shouldPad() && clamped < 10) ? `0${clamped}` : String(clamped);
+            if (input.value !== formatted) {
+                input.value = formatted;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(6); } catch (e) {}
+                }
+            }
+            updateHud(formatted);
+        };
+
+        // Touch Drag Scrubbing (Mobile)
+        input.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1) return;
+            startY = e.touches[0].clientY;
+            startVal = parseFloat(input.value) || 0;
+            isDragging = false;
+
+            // Freeze document scrolling to prevent screen shake completely
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none';
+        }, { passive: true });
+
+        input.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            const currentY = e.touches[0].clientY;
+            const deltaY = startY - currentY; // Upward swipe = positive = increment
+
+            if (Math.abs(deltaY) > 5) {
+                if (!isDragging) {
+                    isDragging = true;
+                    showHud(input.value);
+                }
+                if (e.cancelable) e.preventDefault(); // Prevent whole-page bounce
+
+                const step = getStep();
+                const pixelsPerStep = step < 1 ? 14 : 10;
+                const stepsMoved = Math.trunc(deltaY / pixelsPerStep);
+                applyValue(startVal + (stepsMoved * step));
+
+                input.classList.add('ring-2', 'ring-indigo-400', 'bg-indigo-950/90', 'scale-105');
+            }
+        }, { passive: false });
+
+        const endTouch = () => {
+            input.classList.remove('ring-2', 'ring-indigo-400', 'bg-indigo-950/90', 'scale-105');
+            hideHud();
+
+            // Restore document scrolling
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            document.body.style.touchAction = '';
+
+            if (isDragging) {
+                input.blur(); // Dismiss keyboard
+            }
+            isDragging = false;
+        };
+
+        input.addEventListener('touchend', endTouch);
+        input.addEventListener('touchcancel', endTouch);
+
+        // Desktop Mouse Drag Scrubbing
+        input.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Only left click
+            startY = e.clientY;
+            startVal = parseFloat(input.value) || 0;
+            isDragging = false;
+
+            const onMouseMove = (moveEvent) => {
+                const deltaY = startY - moveEvent.clientY;
+                if (Math.abs(deltaY) > 4) {
+                    if (!isDragging) {
+                        isDragging = true;
+                        showHud(input.value);
+                    }
+                    const step = getStep();
+                    const pixelsPerStep = step < 1 ? 14 : 10;
+                    const stepsMoved = Math.trunc(deltaY / pixelsPerStep);
+                    applyValue(startVal + (stepsMoved * step));
+                    input.classList.add('ring-2', 'ring-indigo-400', 'bg-indigo-950/90', 'scale-105');
+                }
+            };
+
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                input.classList.remove('ring-2', 'ring-indigo-400', 'bg-indigo-950/90', 'scale-105');
+                hideHud();
+                if (isDragging) {
+                    input.blur();
+                }
+                isDragging = false;
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        // Desktop Mouse Wheel
+        input.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const step = getStep();
+            const currentVal = parseFloat(input.value) || 0;
+            const dir = e.deltaY < 0 ? 1 : -1;
+            applyValue(currentVal + (dir * step));
+        }, { passive: false });
+
+        input.classList.add('cursor-ns-resize', 'select-none', 'touch-none');
+    });
+}

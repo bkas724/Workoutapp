@@ -528,165 +528,153 @@ function renderNextActivityCard() {
                             <div id="card-body-${nextStep.id}" class="p-4 md:p-5 hidden">
                                 <div id="activity-details-${nextStep.id}" class="hidden"></div>
                                 <div id="gatekeeper-form-container-${nextStep.id}" class="flex flex-col w-full hidden">
-                                        <div id="gatekeeper-form-${nextStep.id}" class="flex flex-col gap-3 relative w-full">
-                                            <div class="flex items-center justify-between border-b border-slate-800/60 pb-2 mb-1">
-                                                <span class="block text-xs font-black text-indigo-300 uppercase tracking-wider m-0">
-                                                    Log Workout Metrics
-                                                </span>
-                                                <div class="flex items-center gap-2">
-                                                    ${nextStep.type !== 'rest' ? `
-                                                    <button onclick="openAlternativeModal('${nextStep.id}')" class="bg-slate-800/40 hover:bg-slate-700/60 text-slate-500 hover:text-slate-400 border border-slate-800/50 hover:border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
-                                                        <i class="fa-solid fa-shuffle text-[9px]"></i> Alternative
-                                                    </button>
-                                                    ` : ''}
-                                                </div>
-                                            </div>
-                                            <div>
+                                    <div id="gatekeeper-form-${nextStep.id}" class="flex flex-col gap-3 relative w-full">
+                                        <div class="flex items-center justify-between border-b border-slate-800/60 pb-2 mb-1">
+                                            <span class="block text-xs font-black text-indigo-300 uppercase tracking-wider m-0">
+                                                Log Workout Metrics
+                                            </span>
+                                            <div class="flex items-center gap-2">
                                                 ${nextStep.type !== 'rest' ? `
-                                                <div class="flex flex-wrap items-center gap-3">
-                                                    ${(nextStep.targetDistance || ['run', 'walk', 'bike', 'swim', 'easy', 'fast', 'long', 'tempo', 'interval', 'recovery', 'base', 'aerobic'].includes(nextStep.type?.toLowerCase())) ? `
-                                                    ${(() => {
-                        const intervalMeta = getIntervalMetadata(nextStep);
-                        if (intervalMeta) {
-                            return `
-                                                             <!-- Simplified Interval Entry Deck (Clean & Un-nested) -->
-                                                                 <div class="flex flex-col gap-2 w-full">
-                                                                     <div class="w-full flex items-stretch justify-center gap-4 py-1 max-w-md mx-auto">
-                                                                     <!-- Left Column: Reps & Distance + Total Work underneath (Centered) -->
-                                                                     <div class="flex-1 flex flex-col gap-2 items-center justify-center text-center">
-                                                                         <div class="flex items-center justify-center gap-2">
-                                                                             <!-- Reps (EDITABLE INPUT) -->
-                                                                             <div class="flex flex-col items-center gap-1">
-                                                                                 <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider select-none">Reps</span>
-                                                                                 <input id="interval-reps-input-${nextStep.id}" type="number" min="1" max="50" value="${intervalMeta.repCount}" oninput="recalculateIntervalPace('${nextStep.id}')" class="w-12 bg-indigo-950/40 text-center font-bold text-amber-400 focus:outline-none focus:border-indigo-400 focus:bg-indigo-950/80 text-xs rounded-lg border border-indigo-500/30 py-1.5 font-mono shadow-inner transition-all" title="Editable Rep Count">
-                                                                             </div>
+                                                <button onclick="openAlternativeModal('${nextStep.id}')" class="bg-slate-800/40 hover:bg-slate-700/60 text-slate-500 hover:text-slate-400 border border-slate-800/50 hover:border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
+                                                    <i class="fa-solid fa-shuffle text-[9px]"></i> Alternative
+                                                </button>
+                                                ` : ''}
+                                            </div>
+                                        </div>
 
-                                                                             <span class="text-slate-600 font-bold text-xs mt-3 select-none">×</span>
+                                        ${nextStep.type !== 'rest' ? `
+                                        <div class="flex flex-col gap-3">
+                                            ${(nextStep.targetDistance || ['run', 'walk', 'bike', 'swim', 'easy', 'fast', 'long', 'tempo', 'interval', 'recovery', 'base', 'aerobic'].includes(nextStep.type?.toLowerCase())) ? `
+                                                ${(() => {
+                                                    const intervalMeta = getIntervalMetadata(nextStep);
+                                                    if (intervalMeta) {
+                                                        const repParts = (typeof parseRepValueAndUnit === 'function')
+                                                            ? parseRepValueAndUnit(intervalMeta.repDistance, intervalMeta.intervalType)
+                                                            : { val: intervalMeta.repDistance, unit: '' };
 
-                                                                             <!-- Distance (READ-ONLY TARGET BADGE) -->
-                                                                             <div class="flex flex-col items-center gap-1">
-                                                                                 <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider select-none">Distance</span>
-                                                                                 <span class="text-xs font-bold text-slate-300 font-mono bg-slate-800/50 px-2.5 py-1.5 rounded-lg select-none leading-normal" title="Fixed Target Distance">${intervalMeta.repDistance}</span>
-                                                                             </div>
-                                                                         </div>
-
-                                                                         <!-- Total Distance Readout (BORDERLESS CALCULATED & CENTERED) -->
-                                                                         <div class="text-[10px] text-slate-400 font-medium select-none pt-0.5">
-                                                                             Total: <span id="calculated-dist-display-${nextStep.id}" class="font-bold text-slate-200 font-mono">-- mi</span>
-                                                                         </div>
-                                                                     </div>
-
-                                                                     <!-- Vertical Divider -->
-                                                                     <div class="w-px bg-slate-800/60 my-1 self-center h-10"></div>
-
-                                                                     <!-- Right Column: Avg Time + Mile Pace underneath (Centered) -->
-                                                                     <div class="flex-1 flex flex-col gap-2 items-center justify-center text-center">
-                                                                         <!-- Avg Rep Time (EDITABLE INPUTS OR CALCULATED BADGE) -->
-                                                                         <div class="flex flex-col items-center gap-1">
-                                                                             <div class="flex items-center justify-center gap-1">
-                                                                                 <span class="text-[9px] text-indigo-300 font-bold uppercase tracking-wider select-none">Avg Time</span>
-                                                                                 <span class="inline-flex items-center justify-center w-3 h-3 rounded-full bg-slate-800 text-slate-400 text-[8px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Average duration per interval rep. Per-mile pace is calculated automatically.">?</span>
-                                                                             </div>
-                                                                             <div id="interval-avg-inputs-container-${nextStep.id}" class="flex items-center justify-center gap-1">
-                                                                                 <input id="interval-avg-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" oninput="recalculateIntervalPace('${nextStep.id}')" class="w-11 bg-indigo-950/40 text-center font-bold text-white focus:outline-none focus:border-indigo-400 focus:bg-indigo-950/80 text-xs rounded-lg border border-indigo-500/30 py-1.5 font-mono shadow-inner transition-all" title="Editable Rep Minutes">
-                                                                                 <span class="text-slate-500 font-bold text-xs">:</span>
-                                                                                 <input id="interval-avg-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" oninput="recalculateIntervalPace('${nextStep.id}')" class="w-11 bg-indigo-950/40 text-center font-bold text-white focus:outline-none focus:border-indigo-400 focus:bg-indigo-950/80 text-xs rounded-lg border border-indigo-500/30 py-1.5 font-mono shadow-inner transition-all" title="Editable Rep Seconds">
-                                                                             </div>
-                                                                             <div id="interval-avg-badge-container-${nextStep.id}" class="hidden py-0.5">
-                                                                                 <span id="interval-avg-badge-display-${nextStep.id}" class="text-xs font-bold text-slate-300 font-mono bg-slate-800/50 px-2.5 py-1.5 rounded-lg select-none leading-normal" title="Calculated Average Rep Time">--:--</span>
-                                                                             </div>
-                                                                         </div>
-
-                                                                         <!-- Pace Readout (BORDERLESS CALCULATED & CENTERED) -->
-                                                                         <div class="text-[10px] text-emerald-400 font-bold font-mono select-none pt-0.5">
-                                                                             <span id="calculated-pace-display-${nextStep.id}">--:-- /mi</span>
-                                                                         </div>
-                                                                     </div>
-                                                                 </div>
-
-                                                                 <!-- Hidden Standard Log Inputs (populated dynamically) -->
-                                                                 <input id="logged-distance-${nextStep.id}" type="hidden" value="${defaultDistance}">
-                                                                 <input id="logged-min-${nextStep.id}" type="hidden" value="${defaultMin}">
-                                                                 <input id="logged-sec-${nextStep.id}" type="hidden" value="${defaultSec}">
-                                                             </div>
-                                                             `;
-                        } else {
-                            return `
-                                                            <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
-                                                                <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
-                                                                <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
-                                                                
-                                                                <div class="w-px h-4 bg-slate-700 mx-1"></div>
-                                                                
-                                                                <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs ml-3">
-                                                                <span class="text-slate-650 font-bold text-xs">:</span>
-                                                                <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
-                                                                <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                                        return `
+                                                        <div class="flex flex-col gap-1 w-full m-0 p-0">
+                                                            <!-- Table Header -->
+                                                            <div class="grid grid-cols-[48px_1fr_1fr] items-center gap-2 w-full px-2 text-[9px] font-bold uppercase tracking-wider mb-1 select-none">
+                                                                <span class="text-left text-amber-400/90 pl-1">Reps</span>
+                                                                <span class="text-center text-slate-400">Interval</span>
+                                                                <span class="text-center text-indigo-300/90">${intervalMeta.intervalType === 'time' ? 'Avg. Pace' : 'Avg. Time'}</span>
                                                             </div>
-                                                            `;
-                        }
-                    })()}
-                                                </div>
-                                                        <!-- Interval Rep Splits Container (Collapsible Accordion, Collapsed by Default) -->
-                                                        <div id="interval-splits-container-${nextStep.id}" class="hidden flex flex-col gap-2 border-t border-slate-800/40 pt-2 mt-1">
-                                                            <button type="button" onclick="toggleAdvancedRepSplits('${nextStep.id}')" class="w-full flex items-center justify-between text-[11px] font-medium text-slate-500 hover:text-slate-400 transition-colors px-1 py-0.5 cursor-pointer select-none">
-                                                                <span class="text-[11px] font-medium text-slate-500 hover:text-slate-400 transition-colors" id="interval-splits-title-${nextStep.id}">
-                                                                    Advanced Rep splits
-                                                                </span>
-                                                                <span class="text-[10px] text-slate-500 flex items-center gap-1">
-                                                                    <span id="rep-split-count-badge-${nextStep.id}" class="hidden"></span>
-                                                                    <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-200" id="rep-split-chevron-${nextStep.id}"></i>
-                                                                </span>
-                                                            </button>
-                                                            
-                                                            <div id="advanced-rep-body-${nextStep.id}" class="hidden flex flex-col gap-2 p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 mt-1">
-                                                                <div class="flex items-center justify-end w-full">
-                                                                    <div class="flex items-center gap-1.5">
-                                                                        <button type="button" onclick="autoFillIntervalTargetPace('${nextStep.id}')" class="px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 text-[10px] font-bold border border-indigo-500/30 transition-all active:scale-95 cursor-pointer" title="Pre-fill all reps with target split">
-                                                                            Auto-Fill Target
-                                                                        </button>
-                                                                        <button type="button" onclick="adjustRepCount('${nextStep.id}', -1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Remove last rep">-</button>
-                                                                        <button type="button" onclick="adjustRepCount('${nextStep.id}', 1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 cursor-pointer" title="Add extra rep">+</button>
+
+                                                            <!-- Master Summary Row -->
+                                                            <div class="grid grid-cols-[48px_1fr_1fr] items-center gap-2 w-full px-2 py-0.5">
+                                                                <!-- 1. Reps Column -->
+                                                                <div class="flex items-center justify-start">
+                                                                    <input id="interval-reps-input-${nextStep.id}" type="number" min="1" max="50" value="${intervalMeta.repCount}" oninput="recalculateIntervalPace('${nextStep.id}', true)" class="w-10 bg-amber-500/10 border border-amber-500/20 rounded-lg text-center font-bold text-amber-400 focus:outline-none focus:border-amber-400 text-xs sm:text-sm font-mono py-1" title="Editable Rep Count">
+                                                                </div>
+
+                                                                <!-- 2. Interval Column -->
+                                                                <div class="flex items-center justify-center">
+                                                                    <div class="flex items-center justify-center gap-0.5 bg-slate-900/60 border border-slate-800/80 rounded-lg px-2 py-1" title="Target Interval ${intervalMeta.intervalType === 'time' ? 'Duration' : 'Distance'}">
+                                                                        ${intervalMeta.intervalType === 'time' ? `
+                                                                            <input id="interval-dur-min-${nextStep.id}" type="number" min="0" max="120" value="${intervalMeta.defaultDurMin !== undefined ? intervalMeta.defaultDurMin : 5}" oninput="recalculateIntervalPace('${nextStep.id}', true)" class="w-7 sm:w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs sm:text-sm font-mono" title="Interval Duration Minutes">
+                                                                            <span class="text-slate-500 font-bold text-xs">:</span>
+                                                                            <input id="interval-dur-sec-${nextStep.id}" type="number" min="0" max="59" value="${intervalMeta.defaultDurSec !== undefined ? intervalMeta.defaultDurSec : '15'}" oninput="recalculateIntervalPace('${nextStep.id}', true)" class="w-7 sm:w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs sm:text-sm font-mono" title="Interval Duration Seconds">
+                                                                            <span class="text-[9px] text-slate-400 font-bold uppercase ml-0.5 select-none">min</span>
+                                                                        ` : `
+                                                                            <input id="interval-dist-val-${nextStep.id}" type="number" min="0" step="any" value="${repParts.val}" oninput="recalculateIntervalPace('${nextStep.id}', true)" class="w-10 sm:w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs sm:text-sm font-mono" title="Interval Distance">
+                                                                            <span class="text-[9px] text-slate-400 font-bold uppercase ml-0.5 select-none">${repParts.unit || 'm'}</span>
+                                                                        `}
                                                                     </div>
                                                                 </div>
-                                                                <div id="rep-rows-grid-${nextStep.id}" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1"></div>
+
+                                                                <!-- 3. Avg. Pace Column -->
+                                                                <div class="flex items-center justify-center">
+                                                                    <div id="interval-avg-inputs-container-${nextStep.id}" class="flex items-center justify-center gap-0.5 bg-indigo-950/30 border border-indigo-500/20 rounded-lg px-2 py-1">
+                                                                        <input id="interval-avg-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${intervalMeta.defaultPaceMin !== undefined ? intervalMeta.defaultPaceMin : 7}" oninput="recalculateIntervalPace('${nextStep.id}', true)" class="w-7 sm:w-8 bg-transparent text-center font-bold text-indigo-100 focus:outline-none text-xs sm:text-sm font-mono" title="Pace Minutes">
+                                                                        <span class="text-indigo-400/60 font-bold text-xs">:</span>
+                                                                        <input id="interval-avg-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${intervalMeta.defaultPaceSec !== undefined ? intervalMeta.defaultPaceSec : '15'}" oninput="recalculateIntervalPace('${nextStep.id}', true)" class="w-7 sm:w-8 bg-transparent text-center font-bold text-indigo-100 focus:outline-none text-xs sm:text-sm font-mono" title="Pace Seconds">
+                                                                        <span class="text-[9px] text-indigo-400/80 font-bold uppercase ml-0.5 select-none">${intervalMeta.intervalType === 'time' ? '/mi' : ''}</span>
+                                                                    </div>
+                                                                    <div id="interval-avg-badge-container-${nextStep.id}" class="hidden">
+                                                                        <div class="flex items-center justify-center gap-0.5 px-2 py-1">
+                                                                            <span id="interval-avg-badge-display-${nextStep.id}" class="font-bold text-indigo-200 font-mono text-xs sm:text-sm">--:--</span>
+                                                                            <span class="text-[9px] text-indigo-400/80 font-bold uppercase ml-0.5 select-none">${intervalMeta.intervalType === 'time' ? '/mi' : ''}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Hidden Standard Log Inputs (populated dynamically) -->
+                                                            <input id="logged-distance-${nextStep.id}" type="hidden" value="${defaultDistance}">
+                                                            <input id="logged-min-${nextStep.id}" type="hidden" value="${defaultMin}">
+                                                            <input id="logged-sec-${nextStep.id}" type="hidden" value="${defaultSec}">
+
+                                                            <div id="interval-splits-container-${nextStep.id}" class="hidden flex flex-col gap-1 w-full border-t border-slate-800/40 pt-1 mt-1">
+                                                                <button type="button" onclick="toggleAdvancedRepSplits('${nextStep.id}')" class="w-full flex items-center justify-between text-[11px] font-medium text-slate-500 hover:text-slate-400 transition-colors px-2 py-0.5 cursor-pointer select-none">
+                                                                    <span class="text-[11px] font-medium text-slate-500 hover:text-slate-400 transition-colors" id="interval-splits-title-${nextStep.id}">
+                                                                        Advanced Rep splits
+                                                                    </span>
+                                                                    <span class="text-[10px] text-slate-500 flex items-center gap-1">
+                                                                        <span id="rep-split-count-badge-${nextStep.id}" class="hidden"></span>
+                                                                        <i class="fa-solid fa-chevron-down text-[8px] transition-transform duration-200" id="rep-split-chevron-${nextStep.id}"></i>
+                                                                    </span>
+                                                                </button>
+                                                                
+                                                                <div id="advanced-rep-body-${nextStep.id}" class="hidden flex flex-col gap-1 mt-1 w-full m-0 p-0">
+                                                                    <div id="rep-rows-grid-${nextStep.id}" class="flex flex-col gap-1 w-full m-0 p-0"></div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                        `;
+                                                    } else {
+                                                        return `
+                                                        <div class="flex items-center bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
+                                                            <input id="logged-distance-${nextStep.id}" type="number" step="0.01" min="0" placeholder="Dist" value="${defaultDistance}" class="w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-3">mi</span>
+                                                            
+                                                            <div class="w-px h-4 bg-slate-700 mx-1"></div>
+                                                            
+                                                            <input id="logged-min-${nextStep.id}" type="number" min="0" max="60" placeholder="Min" value="${defaultMin}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs ml-3">
+                                                            <span class="text-slate-650 font-bold text-xs">:</span>
+                                                            <input id="logged-sec-${nextStep.id}" type="number" min="0" max="59" placeholder="Sec" value="${defaultSec}" class="w-10 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
+                                                            <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">/ mi</span>
+                                                        </div>
+                                                        `;
+                                                    }
+                                                })()}
                                             ` : `
-                                            <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800">
+                                            <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
                                                 <input id="logged-duration-${nextStep.id}" type="number" min="0" placeholder="Time" class="w-16 bg-transparent text-center font-bold text-white focus:outline-none text-xs">
                                                 <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider ml-1 mr-1">mins</span>
                                             </div>
                                             `}
-                                            <div class="flex flex-wrap items-center gap-2 mt-1">
-                                                 <div class="flex-1 min-w-[120px] flex items-center gap-1">
-                                                     ${(() => {
-                    const selRpe = nextStep.rpeScore || nextStep.targetRPE || 2;
-                    const defaultHr = typeof calculateHrForZone === 'function' ? calculateHrForZone(selRpe) : '';
-                    return `
-                                                         <select id="logged-rpe-${nextStep.id}" class="flex-1 bg-slate-900 border border-slate-800/80 text-slate-200 text-xs font-bold py-2 px-2.5 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer" onchange="if(typeof calculateHrForZone === 'function') document.getElementById('logged-hr-${nextStep.id}').value = calculateHrForZone(this.value)">
-                                                             <option value="" disabled ${!selRpe ? 'selected' : ''}>Select Zone</option>
-                                                             <option value="1" ${selRpe == '1' ? 'selected' : ''}>Zone - 1 (Recovery / Very Light)</option>
-                                                             <option value="2" ${selRpe == '2' ? 'selected' : ''}>Zone - 2 (Easy / Conversational)</option>
-                                                             <option value="3" ${selRpe == '3' ? 'selected' : ''}>Zone - 3 (Moderate / Steady)</option>
-                                                             <option value="4" ${selRpe == '4' ? 'selected' : ''}>Zone - 4 (Hard / Threshold)</option>
-                                                             <option value="5" ${selRpe == '5' ? 'selected' : ''}>Zone - 5 (Max Effort / Failure)</option>
-                                                         </select>
-                                                         <div class="bg-slate-900 border border-slate-800/80 px-2 py-1.5 rounded-xl flex items-center gap-1 w-[70px] shrink-0" title="Average Heart Rate for this Effort Zone">
-                                                             <input type="number" id="logged-hr-${nextStep.id}" value="${defaultHr}" class="w-full bg-transparent text-slate-200 text-xs font-bold text-center focus:outline-none placeholder-slate-600" placeholder="HR">
-                                                             <span class="text-[9px] text-slate-500 font-bold">BPM</span>
-                                                         </div>
-                                                         `;
-                })()}
-                                                 </div>
-                                                 <div class="flex-1 min-w-[130px] max-w-full bg-slate-900 py-1.5 px-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
-                                                     <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="w-full bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
-                                                 </div>
-                                                 <div class="w-full mt-1">
-                                                     <textarea id="logged-notes-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:border-indigo-500 placeholder-slate-600 resize-none h-16" placeholder="Add workout notes or splits...">${nextStep.actualLoggedNotes || ''}</textarea>
-                                                 </div>
-                                             </div>
+                                            <div class="flex items-center gap-1.5 mt-1 w-full">
+                                                ${(() => {
+                                                    const selRpe = nextStep.rpeScore || nextStep.targetRPE || 2;
+                                                    const defaultHr = typeof calculateHrForZone === 'function' ? calculateHrForZone(selRpe) : '';
+                                                    return `
+                                                    <!-- Effort Zone Selection (Compact & Truncated on Mobile, Expands on Tap) -->
+                                                    <div class="flex-1 min-w-0">
+                                                        <select id="logged-rpe-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800/80 text-slate-200 text-xs font-bold py-2 px-2 rounded-xl focus:outline-none focus:border-indigo-500 cursor-pointer truncate" onchange="if(typeof calculateHrForZone === 'function') document.getElementById('logged-hr-${nextStep.id}').value = calculateHrForZone(this.value)" title="Effort Zone">
+                                                            <option value="" disabled ${!selRpe ? 'selected' : ''}>Select Zone</option>
+                                                            <option value="1" ${selRpe == '1' ? 'selected' : ''}>Zone - 1 (Recovery / Very Light)</option>
+                                                            <option value="2" ${selRpe == '2' ? 'selected' : ''}>Zone - 2 (Easy / Conversational)</option>
+                                                            <option value="3" ${selRpe == '3' ? 'selected' : ''}>Zone - 3 (Moderate / Steady)</option>
+                                                            <option value="4" ${selRpe == '4' ? 'selected' : ''}>Zone - 4 (Hard / Threshold)</option>
+                                                            <option value="5" ${selRpe == '5' ? 'selected' : ''}>Zone - 5 (Max Effort / Failure)</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- Heart Rate (BPM) Badge -->
+                                                    <div class="bg-slate-900 border border-slate-800/80 px-2 py-1.5 rounded-xl flex items-center justify-center gap-1 w-[72px] shrink-0" title="Average Heart Rate for this Effort Zone">
+                                                        <input type="number" id="logged-hr-${nextStep.id}" value="${defaultHr}" class="w-9 bg-transparent text-slate-200 text-xs font-bold text-center focus:outline-none placeholder-slate-600 font-mono" placeholder="HR">
+                                                        <span class="text-[9px] text-slate-500 font-bold uppercase select-none">BPM</span>
+                                                    </div>
+                                                    <!-- Date Picker -->
+                                                    <div class="bg-slate-900 py-1.5 px-2 rounded-xl border border-slate-800/80 flex items-center justify-between w-[115px] sm:w-[130px] shrink-0">
+                                                        <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="w-full bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
+                                                    </div>
+                                                    `;
+                                                })()}
+                                            </div>
+                                            <div class="w-full mt-1">
+                                                <textarea id="logged-notes-${nextStep.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:border-indigo-500 placeholder-slate-600 resize-none h-16" placeholder="Add workout notes or splits...">${nextStep.actualLoggedNotes || ''}</textarea>
+                                            </div>
                                             ${isSpeed ? `
                                             <div class="flex items-center gap-1.5 w-full mt-1">
                                                 <input type="file" id="workout-file-upload-${nextStep.id}" accept=".gpx,.tcx,.json,.txt" class="hidden" onchange="handleWorkoutFileUpload(this, '${nextStep.id}')">
@@ -695,23 +683,23 @@ function renderNextActivityCard() {
                                                 </button>
                                             </div>
                                             ` : ''}
-                                            </div>
-                                            ` : `
-                                            <!-- Rest Day Context -->
-                                            <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
-                                                <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
-                                            </div>
-                                            `}
-                                            <p id="workout-file-status-${nextStep.id}" class="text-[10px] text-slate-500 font-semibold italic ml-1 mt-2 hidden"></p>
-                                            <p id="gatekeeper-warn-${nextStep.id}" class="text-[11px] text-rose-450 mt-2 font-medium hidden">⚠️ Please ensure all fields are valid before submitting.</p>
                                         </div>
+                                        ` : `
+                                        <!-- Rest Day Context -->
+                                        <div class="flex items-center gap-1.5 bg-slate-900 p-2 rounded-xl border border-slate-800 w-max">
+                                            <input id="logged-date-${nextStep.id}" type="date" value="${todayLocalStr}" class="bg-transparent font-bold text-white focus:outline-none text-xs cursor-pointer select-none">
+                                        </div>
+                                        `}
+                                        <p id="workout-file-status-${nextStep.id}" class="text-[10px] text-slate-500 font-semibold italic ml-1 mt-2 hidden"></p>
+                                        <p id="gatekeeper-warn-${nextStep.id}" class="text-[11px] text-rose-450 mt-2 font-medium hidden">⚠️ Please ensure all fields are valid before submitting.</p>
                                     </div>
                                 </div>
                             </div>
-                            `}
                         </div>
+                        `}
                     </div>
-                `;
+                </div>
+            `;
 
 
         // ========================================================
@@ -856,20 +844,13 @@ function renderNextActivityCard() {
 
         function formatActivityReps(actItem, isCirc) {
             if (!actItem) return '';
-            if (typeof actItem.targetValue === 'number' && actItem.targetValue > 0) {
-                const val = actItem.targetValue;
-                const type = actItem.targetType === 'seconds' ? 'sec' : (actItem.targetType === 'failure' ? 'to failure' : 'reps');
-                const sideStr = actItem.isPerSide ? '/side' : '';
+            if (typeof formatTargetDisplay === 'function') {
                 const restStr = actItem.restSeconds ? ` • ${actItem.restSeconds}s rest` : '';
                 const eqStr = (actItem.equipmentRequired && actItem.equipmentRequired !== 'Bodyweight' && actItem.equipmentRequired !== 'None') 
                     ? ` • ${actItem.equipmentRequired}` : '';
-
-                if (isCirc) {
-                    return `${val} ${type}${sideStr} per round${restStr}${eqStr}`;
-                } else {
-                    const sets = actItem.sets && actItem.sets > 1 ? `${actItem.sets} sets × ` : '';
-                    return `${sets}${val} ${type}${sideStr}${restStr}${eqStr}`;
-                }
+                const baseStr = formatTargetDisplay(actItem, { includeSets: !isCirc, isCircuit: isCirc, short: false });
+                const suffix = isCirc ? ' per round' : '';
+                return `${baseStr}${suffix}${restStr}${eqStr}`;
             }
             let text = (actItem.repsDistanceTime || '').trim();
             if (!text && !actItem.sets) return '';
@@ -1075,6 +1056,11 @@ function renderNextActivityCard() {
 
         const loggedDate = document.getElementById(`logged-date-${nextStep.id}`);
         if (loggedDate) loggedDate.value = todayLocalStr;
+    }
+
+    if (typeof initTouchWheelInputs === 'function') {
+        initTouchWheelInputs(container);
+        if (modalsRoot) initTouchWheelInputs(modalsRoot);
     }
 
     calculateTargetPaces();

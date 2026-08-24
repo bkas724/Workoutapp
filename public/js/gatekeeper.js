@@ -96,6 +96,10 @@ function toggleGatekeeper(id, forceShow) {
                     }
                 }
 
+                if (typeof initTouchWheelInputs === 'function' && cardBody) {
+                    initTouchWheelInputs(cardBody);
+                }
+
                 if (logBtn) {
                     logBtn.innerHTML = '<span class="hidden md:inline-block"><i class="fa-solid fa-check text-xs mr-1"></i></span><span>Submit</span>';
                     logBtn.className = "w-12 h-8 md:w-auto md:px-4 md:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1 active:scale-95";

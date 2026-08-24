@@ -194,8 +194,11 @@ function getIntervalMetadata(workout) {
                 const rawUnit = (workout.intervalWorkUnit || '').toLowerCase();
                 const intervalType = workout.intervalType ? workout.intervalType.toLowerCase() : (rawUnit.includes('min') || rawUnit.includes('sec') ? 'time' : 'distance');
                 const restSec = typeof workout.intervalRestSeconds === 'number' ? workout.intervalRestSeconds : 60;
-                const targetPaceStr = (typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(workout.intervalTargetPace || workout.targetPaceZone || "7:08") : (workout.intervalTargetPace || "7:08"));
-                const targetPaceSec = typeof paceStringToSeconds === 'function' ? paceStringToSeconds(targetPaceStr) : 428;
+                const targetPaceStr = (typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(workout.intervalTargetPace || workout.targetPaceZone || "7:15") : (workout.intervalTargetPace || "7:15"));
+                const targetPaceSec = typeof paceStringToSeconds === 'function' ? paceStringToSeconds(targetPaceStr) : 435;
+                const targetPaceMin = Math.floor(targetPaceSec / 60);
+                const targetPaceSeconds = targetPaceSec % 60;
+                const targetPaceSecStr = targetPaceSeconds < 10 ? '0' + targetPaceSeconds : String(targetPaceSeconds);
 
                 let repDistanceMiles = 0.24855; // 400m default
                 let repDurationSeconds = 120;
@@ -206,33 +209,67 @@ function getIntervalMetadata(workout) {
                     const repMins = repDurationSeconds / 60;
                     const paceMins = targetPaceSec / 60;
                     repDistanceMiles = paceMins > 0 ? (repMins / paceMins) : 0.70;
-                    repLabel = `${workVal} min`;
+                    const repM = Math.floor(repDurationSeconds / 60);
+                    const repS = repDurationSeconds % 60;
+                    repLabel = repS > 0 ? `${repM}:${repS < 10 ? '0' + repS : repS} min` : `${repM} min`;
+
+                    const repDurMin = Math.floor(repDurationSeconds / 60);
+                    const repDurSec = repDurationSeconds % 60;
+                    const repDurSecStr = repDurSec < 10 ? '0' + repDurSec : String(repDurSec);
+
+                    return {
+                        isInterval: true,
+                        repCount: repCount,
+                        intervalType: 'time',
+                        workValue: workVal,
+                        workUnit: rawUnit || 'mins',
+                        restSeconds: restSec,
+                        repDistance: repLabel,
+                        repDistanceMiles: repDistanceMiles,
+                        repDurationSeconds: repDurationSeconds,
+                        targetPace: targetPaceStr,
+                        targetPaceSec: targetPaceSec,
+                        defaultPaceMin: targetPaceMin,
+                        defaultPaceSec: targetPaceSecStr,
+                        defaultSplitMin: targetPaceMin,
+                        defaultSplitSec: targetPaceSecStr,
+                        defaultDurMin: repDurMin,
+                        defaultDurSec: repDurSecStr,
+                        defaultDistVal: workVal,
+                        defaultDistUnit: 'min'
+                    };
                 } else {
                     if (rawUnit.includes('k')) repDistanceMiles = workVal * 0.621371;
                     else if (rawUnit.includes('mi')) repDistanceMiles = workVal;
                     else if (rawUnit.includes('m') || workVal > 50) repDistanceMiles = workVal * 0.000621371;
                     repDurationSeconds = Math.round(repDistanceMiles * targetPaceSec);
                     repLabel = `${workVal}${rawUnit || 'm'}`;
+
+                    const defaultMin = Math.floor(repDurationSeconds / 60);
+                    const defaultSec = repDurationSeconds % 60;
+
+                    return {
+                        isInterval: true,
+                        repCount: repCount,
+                        intervalType: 'distance',
+                        workValue: workVal,
+                        workUnit: rawUnit || 'm',
+                        restSeconds: restSec,
+                        repDistance: repLabel,
+                        repDistanceMiles: repDistanceMiles,
+                        repDurationSeconds: repDurationSeconds,
+                        targetPace: targetPaceStr,
+                        targetPaceSec: targetPaceSec,
+                        defaultPaceMin: targetPaceMin,
+                        defaultPaceSec: targetPaceSecStr,
+                        defaultSplitMin: defaultMin,
+                        defaultSplitSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec),
+                        defaultDurMin: defaultMin,
+                        defaultDurSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec),
+                        defaultDistVal: workVal,
+                        defaultDistUnit: rawUnit || 'm'
+                    };
                 }
-
-                const defaultMin = Math.floor(repDurationSeconds / 60);
-                const defaultSec = repDurationSeconds % 60;
-
-                return {
-                    isInterval: true,
-                    repCount: repCount,
-                    intervalType: intervalType,
-                    workValue: workVal,
-                    workUnit: rawUnit || (intervalType === 'time' ? 'mins' : 'm'),
-                    restSeconds: restSec,
-                    repDistance: repLabel,
-                    repDistanceMiles: repDistanceMiles,
-                    repDurationSeconds: repDurationSeconds,
-                    targetPace: targetPaceStr,
-                    targetPaceSec: targetPaceSec,
-                    defaultSplitMin: defaultMin,
-                    defaultSplitSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec)
-                };
             }
 
             // 2. Check activities array
@@ -240,8 +277,11 @@ function getIntervalMetadata(workout) {
                 const workAct = workout.activities.find(a => a.type === 'work' || (!a.type && !/warm|prep|cool|stretch/i.test(a.name)));
                 if (workAct && (workAct.sets > 1 || (workAct.targetValue && workAct.sets > 1) || (workAct.repsDistanceTime && workAct.sets > 1))) {
                     const repCount = parseInt(workAct.sets) || 1;
-                    const targetPaceStr = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(workAct.targetPace || workout.targetPaceZone || "7:08") : "7:08";
-                    const targetPaceSec = typeof paceStringToSeconds === 'function' ? paceStringToSeconds(targetPaceStr) : 428;
+                    const targetPaceStr = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(workAct.targetPace || workout.targetPaceZone || "7:15") : "7:15";
+                    const targetPaceSec = typeof paceStringToSeconds === 'function' ? paceStringToSeconds(targetPaceStr) : 435;
+                    const targetPaceMin = Math.floor(targetPaceSec / 60);
+                    const targetPaceSeconds = targetPaceSec % 60;
+                    const targetPaceSecStr = targetPaceSeconds < 10 ? '0' + targetPaceSeconds : String(targetPaceSeconds);
                     const restSec = typeof workAct.restSeconds === 'number' ? workAct.restSeconds : (typeof workout.intervalRestSeconds === 'number' ? workout.intervalRestSeconds : 60);
 
                     const timeMatch = (workAct.repsDistanceTime || '').match(/(\d+(?:\.\d+)?)\s*(?:mins?|minutes?|min)/i);
@@ -252,8 +292,10 @@ function getIntervalMetadata(workout) {
                         const repDurationSeconds = Math.round(workVal * 60);
                         const paceMins = targetPaceSec / 60;
                         const repDistanceMiles = paceMins > 0 ? (workVal / paceMins) : 0.70;
-                        const defaultMin = Math.floor(repDurationSeconds / 60);
-                        const defaultSec = repDurationSeconds % 60;
+                        const repM = Math.floor(repDurationSeconds / 60);
+                        const repS = repDurationSeconds % 60;
+                        const repLabel = repS > 0 ? `${repM}:${repS < 10 ? '0' + repS : repS} min` : `${repM} min`;
+                        const repDurSecStr = repS < 10 ? '0' + repS : String(repS);
 
                         return {
                             isInterval: true,
@@ -262,13 +304,19 @@ function getIntervalMetadata(workout) {
                             workValue: workVal,
                             workUnit: 'mins',
                             restSeconds: restSec,
-                            repDistance: `${workVal} min`,
+                            repDistance: repLabel,
                             repDistanceMiles: repDistanceMiles,
                             repDurationSeconds: repDurationSeconds,
                             targetPace: targetPaceStr,
                             targetPaceSec: targetPaceSec,
-                            defaultSplitMin: defaultMin,
-                            defaultSplitSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec)
+                            defaultPaceMin: targetPaceMin,
+                            defaultPaceSec: targetPaceSecStr,
+                            defaultSplitMin: targetPaceMin,
+                            defaultSplitSec: targetPaceSecStr,
+                            defaultDurMin: repM,
+                            defaultDurSec: repDurSecStr,
+                            defaultDistVal: workVal,
+                            defaultDistUnit: 'min'
                         };
                     } else if (workAct.targetType === 'distance' || distMatch) {
                         const workVal = workAct.targetValue || (distMatch ? parseFloat(distMatch[1]) : 400);
@@ -290,8 +338,14 @@ function getIntervalMetadata(workout) {
                             repDurationSeconds: repDurationSeconds,
                             targetPace: targetPaceStr,
                             targetPaceSec: targetPaceSec,
+                            defaultPaceMin: targetPaceMin,
+                            defaultPaceSec: targetPaceSecStr,
                             defaultSplitMin: defaultMin,
-                            defaultSplitSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec)
+                            defaultSplitSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec),
+                            defaultDurMin: defaultMin,
+                            defaultDurSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec),
+                            defaultDistVal: workVal,
+                            defaultDistUnit: rawUnit || 'm'
                         };
                     }
                 }
@@ -306,21 +360,30 @@ function getIntervalMetadata(workout) {
                 if (count && count > 1) {
                     const isTime = /min|minute/i.test(rawDistOrTime);
                     const num = parseFloat(rawDistOrTime) || (isTime ? 5 : 400);
-                    const targetPaceStr = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(workout.targetPaceZone || "7:08") : "7:08";
-                    const targetPaceSec = typeof paceStringToSeconds === 'function' ? paceStringToSeconds(targetPaceStr) : 428;
+                    const targetPaceStr = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(workout.targetPaceZone || "7:15") : "7:15";
+                    const targetPaceSec = typeof paceStringToSeconds === 'function' ? paceStringToSeconds(targetPaceStr) : 435;
+                    const targetPaceMin = Math.floor(targetPaceSec / 60);
+                    const targetPaceSeconds = targetPaceSec % 60;
+                    const targetPaceSecStr = targetPaceSeconds < 10 ? '0' + targetPaceSeconds : String(targetPaceSeconds);
 
                     let repDistMiles = 0.24855;
                     let repDurSec = 120;
+                    let repLabel = "";
+                    let repM = 5, repS = 0;
                     if (isTime) {
                         repDurSec = Math.round(num * 60);
                         repDistMiles = (num) / (targetPaceSec / 60);
+                        repM = Math.floor(repDurSec / 60);
+                        repS = repDurSec % 60;
+                        repLabel = repS > 0 ? `${repM}:${repS < 10 ? '0' + repS : repS} min` : `${repM} min`;
                     } else {
                         repDistMiles = parseRepDistanceInMiles(rawDistOrTime);
                         repDurSec = Math.round(repDistMiles * targetPaceSec);
+                        repLabel = rawDistOrTime;
                     }
 
-                    const defaultMin = Math.floor(repDurSec / 60);
-                    const defaultSec = repDurSec % 60;
+                    const defaultMin = isTime ? targetPaceMin : Math.floor(repDurSec / 60);
+                    const defaultSec = isTime ? targetPaceSecStr : (repDurSec % 60 < 10 ? '0' + (repDurSec % 60) : String(repDurSec % 60));
 
                     return {
                         isInterval: true,
@@ -329,23 +392,33 @@ function getIntervalMetadata(workout) {
                         workValue: num,
                         workUnit: isTime ? 'mins' : 'm',
                         restSeconds: 60,
-                        repDistance: isTime ? `${num} min` : rawDistOrTime,
+                        repDistance: repLabel,
                         repDistanceMiles: repDistMiles,
                         repDurationSeconds: repDurSec,
                         targetPace: targetPaceStr,
                         targetPaceSec: targetPaceSec,
+                        defaultPaceMin: targetPaceMin,
+                        defaultPaceSec: targetPaceSecStr,
                         defaultSplitMin: defaultMin,
-                        defaultSplitSec: defaultSec < 10 ? '0' + defaultSec : String(defaultSec)
+                        defaultSplitSec: defaultSec,
+                        defaultDurMin: isTime ? repM : defaultMin,
+                        defaultDurSec: isTime ? (repS < 10 ? '0' + repS : String(repS)) : defaultSec,
+                        defaultDistVal: num,
+                        defaultDistUnit: isTime ? 'min' : 'm'
                     };
                 }
             }
             return null;
         }
 
-function recalculateIntervalPace(id) {
+function recalculateIntervalPace(id, syncToGrid = false) {
             const repsInput = document.getElementById(`interval-reps-input-${id}`);
             const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
             const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
+            const durMinInput = document.getElementById(`interval-dur-min-${id}`);
+            const durSecInput = document.getElementById(`interval-dur-sec-${id}`);
+            const distValInput = document.getElementById(`interval-dist-val-${id}`);
+            
             const calculatedPaceDisplay = document.getElementById(`calculated-pace-display-${id}`);
             const calculatedDistDisplay = document.getElementById(`calculated-dist-display-${id}`);
 
@@ -359,30 +432,42 @@ function recalculateIntervalPace(id) {
             const reps = repsInput ? parseInt(repsInput.value) || 1 : (intervalMeta ? intervalMeta.repCount : 1);
             const avgMin = avgMinInput ? parseInt(avgMinInput.value) || 0 : 0;
             const avgSec = avgSecInput ? parseInt(avgSecInput.value) || 0 : 0;
-            const totalRepTimeSec = (avgMin * 60) + avgSec;
+            const totalPaceSec = (avgMin * 60) + avgSec;
 
             let totalDistMiles = 0;
-            let paceMin = 7, paceSec = 8;
+            let paceMin = 7, paceSec = 15;
             let paceStr = "--:--";
 
             if (intervalMeta && intervalMeta.intervalType === 'time') {
-                // Time-based interval (e.g. 5 min reps at target pace)
-                const targetPaceSec = intervalMeta.targetPaceSec || 428;
-                const repMins = totalRepTimeSec > 0 ? (totalRepTimeSec / 60) : (intervalMeta.workValue || 5);
-                const paceMins = targetPaceSec / 60;
-                const milesPerRep = paceMins > 0 ? (repMins / paceMins) : 0.70;
-                totalDistMiles = reps * milesPerRep;
-
-                paceMin = Math.floor(targetPaceSec / 60);
-                paceSec = targetPaceSec % 60;
+                // Time-based interval: avgMin and avgSec are the RUNNER'S PACE (min/mile)
+                const enteredPaceSec = totalPaceSec > 0 ? totalPaceSec : (intervalMeta.targetPaceSec || 435);
+                paceMin = Math.floor(enteredPaceSec / 60);
+                paceSec = enteredPaceSec % 60;
                 paceStr = `${paceMin}:${paceSec < 10 ? '0' + paceSec : paceSec}`;
+
+                const paceMins = enteredPaceSec / 60;
+                
+                let repDurationSeconds = intervalMeta.repDurationSeconds || 300;
+                if (durMinInput && durSecInput) {
+                    const enteredDurSec = (parseInt(durMinInput.value) || 0) * 60 + (parseInt(durSecInput.value) || 0);
+                    if (enteredDurSec > 0) repDurationSeconds = enteredDurSec;
+                }
+                const repDurationMins = repDurationSeconds / 60;
+                const milesPerRep = paceMins > 0 ? (repDurationMins / paceMins) : 0.70;
+                totalDistMiles = reps * milesPerRep;
             } else {
-                // Distance-based interval (e.g. 400m reps)
-                const repDistMiles = intervalMeta ? intervalMeta.repDistanceMiles : parseRepDistanceInMiles("400m");
+                // Distance-based interval: avgMin and avgSec are the AVG REP TIME (e.g. 1:30 for 400m)
+                let repDistMiles = intervalMeta ? intervalMeta.repDistanceMiles : parseRepDistanceInMiles("400m");
+                if (distValInput && distValInput.value) {
+                    const rawVal = parseFloat(distValInput.value);
+                    if (!isNaN(rawVal) && rawVal > 0) {
+                        repDistMiles = parseRepDistanceInMiles(`${rawVal}${intervalMeta?.workUnit || 'm'}`);
+                    }
+                }
                 totalDistMiles = reps * repDistMiles;
 
-                if (totalRepTimeSec > 0 && repDistMiles > 0) {
-                    const paceSecPerMile = Math.round(totalRepTimeSec / repDistMiles);
+                if (totalPaceSec > 0 && repDistMiles > 0) {
+                    const paceSecPerMile = Math.round(totalPaceSec / repDistMiles);
                     paceMin = Math.floor(paceSecPerMile / 60);
                     paceSec = paceSecPerMile % 60;
                     paceStr = `${paceMin}:${paceSec < 10 ? '0' + paceSec : paceSec}`;
@@ -400,24 +485,85 @@ function recalculateIntervalPace(id) {
                 if (calculatedPaceDisplay) calculatedPaceDisplay.innerText = `--:-- /mi`;
                 if (calculatedDistDisplay) calculatedDistDisplay.innerText = `-- mi`;
             }
+
+            // Sync down to advanced rep rows if requested or if rep count changed
+            const grid = document.getElementById(`rep-rows-grid-${id}`);
+            if (grid) {
+                const currentRows = grid.querySelectorAll('.rep-split-row').length;
+                if (currentRows !== reps) {
+                    renderRepRows(id, reps);
+                } else if (syncToGrid) {
+                    if (durMinInput && durSecInput) {
+                        grid.querySelectorAll('.rep-dur-min-input').forEach(i => i.value = durMinInput.value);
+                        grid.querySelectorAll('.rep-dur-sec-input').forEach(i => i.value = durSecInput.value);
+                    }
+                    if (distValInput) {
+                        grid.querySelectorAll('.rep-dist-val-input').forEach(i => i.value = distValInput.value);
+                    }
+                    if (avgMinInput && avgSecInput) {
+                        grid.querySelectorAll('.rep-pace-min-input, .rep-min-input').forEach(i => i.value = avgMinInput.value);
+                        grid.querySelectorAll('.rep-pace-sec-input, .rep-sec-input').forEach(i => i.value = avgSecInput.value);
+                    }
+                }
+            }
         }
 
-function renderRepRows(id, repCount, defaultMin, defaultSec) {
+function renderRepRows(id, repCount, defaultPaceMin, defaultPaceSec, defaultDurMin, defaultDurSec, defaultDistVal, defaultDistUnit) {
             const grid = document.getElementById(`rep-rows-grid-${id}`);
             if (!grid) return;
+
+            const workout = activePhaseWorkouts ? activePhaseWorkouts.find(w => w.id === id) : null;
+            const intervalMeta = getIntervalMetadata(workout);
+            const isTimeInterval = intervalMeta ? intervalMeta.intervalType === 'time' : true;
+
+            const pMin = defaultPaceMin !== undefined && defaultPaceMin !== null ? defaultPaceMin : (document.getElementById(`interval-avg-min-${id}`)?.value || intervalMeta?.defaultPaceMin || 7);
+            const pSec = defaultPaceSec !== undefined && defaultPaceSec !== null ? defaultPaceSec : (document.getElementById(`interval-avg-sec-${id}`)?.value || intervalMeta?.defaultPaceSec || "15");
+
+            const dMin = defaultDurMin !== undefined && defaultDurMin !== null ? defaultDurMin : (document.getElementById(`interval-dur-min-${id}`)?.value || intervalMeta?.defaultDurMin || 5);
+            const dSec = defaultDurSec !== undefined && defaultDurSec !== null ? defaultDurSec : (document.getElementById(`interval-dur-sec-${id}`)?.value || intervalMeta?.defaultDurSec || "15");
+
+            const dVal = defaultDistVal !== undefined && defaultDistVal !== null ? defaultDistVal : (document.getElementById(`interval-dist-val-${id}`)?.value || intervalMeta?.defaultDistVal || 400);
+            const dUnit = defaultDistUnit || intervalMeta?.defaultDistUnit || (isTimeInterval ? 'min' : 'm');
+
             let html = '';
             for (let i = 1; i <= repCount; i++) {
                 html += `
-                <div class="rep-split-row flex items-center justify-between bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800/80">
-                    <span class="text-[10px] font-bold text-slate-400 font-mono">R${i}</span>
-                    <div class="flex items-center gap-0.5">
-                        <input type="number" min="0" max="60" placeholder="0" value="${defaultMin !== undefined && defaultMin !== null ? defaultMin : ''}" oninput="recalculateFromRepGrid('${id}')" class="rep-min-input w-7 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
-                        <span class="text-slate-500 font-bold text-xs">:</span>
-                        <input type="number" min="0" max="59" placeholder="00" value="${defaultSec !== undefined && defaultSec !== null ? defaultSec : ''}" oninput="recalculateFromRepGrid('${id}')" class="rep-sec-input w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono">
+                <div class="rep-split-row grid grid-cols-[48px_1fr_1fr] items-center gap-2 w-full px-2 py-0.5">
+                    <!-- Col 1: Rep Number Label (Read-only) -->
+                    <div class="flex items-center justify-start">
+                        <span class="font-bold text-amber-400 font-mono text-xs pl-1 select-none">R${i}</span>
+                    </div>
+                    
+                    <!-- Col 2: Rep Duration / Distance -->
+                    <div class="flex items-center justify-center">
+                        <div class="flex items-center justify-center gap-0.5 bg-slate-900/60 border border-slate-800/80 rounded-lg px-2 py-0.5">
+                            ${isTimeInterval ? `
+                                <input type="number" min="0" max="120" value="${dMin}" oninput="recalculateFromRepGrid('${id}')" class="rep-dur-min-input w-7 sm:w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono" title="R${i} Duration Minutes">
+                                <span class="text-slate-500 font-bold text-xs">:</span>
+                                <input type="number" min="0" max="59" value="${dSec}" oninput="recalculateFromRepGrid('${id}')" class="rep-dur-sec-input w-7 sm:w-8 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono" title="R${i} Duration Seconds">
+                                <span class="text-[9px] text-slate-400 font-bold uppercase ml-0.5 select-none">min</span>
+                            ` : `
+                                <input type="number" min="0" step="any" value="${dVal}" oninput="recalculateFromRepGrid('${id}')" class="rep-dist-val-input w-10 sm:w-12 bg-transparent text-center font-bold text-white focus:outline-none text-xs font-mono" title="R${i} Distance">
+                                <span class="text-[9px] text-slate-400 font-bold uppercase ml-0.5 select-none">${dUnit}</span>
+                            `}
+                        </div>
+                    </div>
+
+                    <!-- Col 3: Rep Pace / Time -->
+                    <div class="flex items-center justify-center">
+                        <div class="flex items-center justify-center gap-0.5 bg-indigo-950/30 border border-indigo-500/20 rounded-lg px-2 py-0.5">
+                            <input type="number" min="0" max="60" value="${pMin}" oninput="recalculateFromRepGrid('${id}')" class="rep-pace-min-input rep-min-input w-7 sm:w-8 bg-transparent text-center font-bold text-indigo-100 focus:outline-none text-xs font-mono" title="R${i} Pace Minutes">
+                            <span class="text-indigo-400/60 font-bold text-xs">:</span>
+                            <input type="number" min="0" max="59" value="${pSec}" oninput="recalculateFromRepGrid('${id}')" class="rep-pace-sec-input rep-sec-input w-7 sm:w-8 bg-transparent text-center font-bold text-indigo-100 focus:outline-none text-xs font-mono" title="R${i} Pace Seconds">
+                            <span class="text-[9px] text-indigo-400/80 font-bold uppercase ml-0.5 select-none">${isTimeInterval ? '/mi' : 'time'}</span>
+                        </div>
                     </div>
                 </div>`;
             }
             grid.innerHTML = html;
+            if (typeof initTouchWheelInputs === 'function') {
+                initTouchWheelInputs(grid);
+            }
         }
 
 function openAlternativeModal(activityId) {
@@ -548,16 +694,24 @@ function flashPaceChart() {
 function autoFillIntervalTargetPace(id) {
             const avgMinInput = document.getElementById(`interval-avg-min-${id}`) || document.getElementById(`logged-min-${id}`);
             const avgSecInput = document.getElementById(`interval-avg-sec-${id}`) || document.getElementById(`logged-sec-${id}`);
-            const targetMin = avgMinInput ? avgMinInput.value : "1";
-            const targetSec = avgSecInput ? avgSecInput.value : "30";
+            const durMinInput = document.getElementById(`interval-dur-min-${id}`);
+            const durSecInput = document.getElementById(`interval-dur-sec-${id}`);
+            const distValInput = document.getElementById(`interval-dist-val-${id}`);
+
+            const targetPaceMin = avgMinInput ? avgMinInput.value : "7";
+            const targetPaceSec = avgSecInput ? avgSecInput.value : "15";
+            const targetDurMin = durMinInput ? durMinInput.value : "5";
+            const targetDurSec = durSecInput ? durSecInput.value : "15";
+            const targetDistVal = distValInput ? distValInput.value : "400";
 
             const grid = document.getElementById(`rep-rows-grid-${id}`);
             if (!grid) return;
 
-            const minInputs = grid.querySelectorAll('.rep-min-input');
-            const secInputs = grid.querySelectorAll('.rep-sec-input');
-            minInputs.forEach(i => i.value = targetMin);
-            secInputs.forEach(i => i.value = targetSec);
+            grid.querySelectorAll('.rep-pace-min-input, .rep-min-input').forEach(i => i.value = targetPaceMin);
+            grid.querySelectorAll('.rep-pace-sec-input, .rep-sec-input').forEach(i => i.value = targetPaceSec);
+            grid.querySelectorAll('.rep-dur-min-input').forEach(i => i.value = targetDurMin);
+            grid.querySelectorAll('.rep-dur-sec-input').forEach(i => i.value = targetDurSec);
+            grid.querySelectorAll('.rep-dist-val-input').forEach(i => i.value = targetDistVal);
 
             recalculateFromRepGrid(id);
         }
@@ -567,11 +721,7 @@ function adjustRepCount(id, delta) {
             if (!grid) return;
             const currentRows = grid.querySelectorAll('.rep-split-row').length;
             const newCount = Math.max(1, currentRows + delta);
-            const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
-            const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
-            const defaultMin = avgMinInput ? avgMinInput.value : "";
-            const defaultSec = avgSecInput ? avgSecInput.value : "";
-            renderRepRows(id, newCount, defaultMin, defaultSec);
+            renderRepRows(id, newCount);
 
             const repsInput = document.getElementById(`interval-reps-input-${id}`);
             if (repsInput) repsInput.value = newCount;
@@ -626,34 +776,81 @@ function toggleAdvancedRepSplits(id) {
 function recalculateFromRepGrid(id) {
             const grid = document.getElementById(`rep-rows-grid-${id}`);
             if (!grid) return;
+
+            const workout = activePhaseWorkouts ? activePhaseWorkouts.find(w => w.id === id) : null;
+            const intervalMeta = getIntervalMetadata(workout);
+            const isTimeInterval = intervalMeta ? intervalMeta.intervalType === 'time' : true;
+
             const rows = grid.querySelectorAll('.rep-split-row');
-            let totalSec = 0;
+            let totalPaceSec = 0;
+            let totalDurSec = 0;
+            let totalDistSum = 0;
             let validCount = 0;
 
             rows.forEach(row => {
-                const m = parseInt(row.querySelector('.rep-min-input')?.value || 0);
-                const s = parseInt(row.querySelector('.rep-sec-input')?.value || 0);
-                if (m > 0 || s > 0) {
-                    totalSec += (m * 60) + s;
-                    validCount++;
+                const pMin = parseInt(row.querySelector('.rep-pace-min-input, .rep-min-input')?.value || 0);
+                const pSec = parseInt(row.querySelector('.rep-pace-sec-input, .rep-sec-input')?.value || 0);
+                const repPaceSec = (pMin * 60) + pSec;
+
+                if (isTimeInterval) {
+                    const dMin = parseInt(row.querySelector('.rep-dur-min-input')?.value || 0);
+                    const dSec = parseInt(row.querySelector('.rep-dur-sec-input')?.value || 0);
+                    const repDurSec = (dMin * 60) + dSec;
+
+                    if (repPaceSec > 0 && repDurSec > 0) {
+                        totalPaceSec += repPaceSec;
+                        totalDurSec += repDurSec;
+                        const repDistMiles = (repDurSec / 60) / (repPaceSec / 60);
+                        totalDistSum += repDistMiles;
+                        validCount++;
+                    }
+                } else {
+                    const distVal = parseFloat(row.querySelector('.rep-dist-val-input')?.value || 0);
+                    if (distVal > 0) {
+                        const repDistMiles = parseRepDistanceInMiles(`${distVal}${intervalMeta?.workUnit || 'm'}`);
+                        totalDistSum += repDistMiles;
+                        if (repPaceSec > 0) {
+                            totalPaceSec += repPaceSec;
+                            validCount++;
+                        }
+                    }
                 }
             });
 
             if (validCount > 0) {
-                const avgSecTotal = Math.round(totalSec / validCount);
-                const avgMin = Math.floor(avgSecTotal / 60);
-                const avgSec = avgSecTotal % 60;
+                const avgPaceSecTotal = Math.round(totalPaceSec / validCount);
+                const avgPaceMin = Math.floor(avgPaceSecTotal / 60);
+                const avgPaceSec = avgPaceSecTotal % 60;
+                const formattedPaceSec = avgPaceSec < 10 ? '0' + avgPaceSec : String(avgPaceSec);
 
                 const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
                 const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
-                const formattedSec = avgSec < 10 ? '0' + avgSec : avgSec;
-                if (avgMinInput) avgMinInput.value = avgMin;
-                if (avgSecInput) avgSecInput.value = formattedSec;
+                if (avgMinInput) avgMinInput.value = avgPaceMin;
+                if (avgSecInput) avgSecInput.value = formattedPaceSec;
 
                 const badgeDisplay = document.getElementById(`interval-avg-badge-display-${id}`);
-                if (badgeDisplay) badgeDisplay.innerText = `${avgMin}:${formattedSec}`;
+                if (badgeDisplay) badgeDisplay.innerText = `${avgPaceMin}:${formattedPaceSec}`;
 
-                recalculateIntervalPace(id);
+                if (isTimeInterval) {
+                    const avgDurSecTotal = Math.round(totalDurSec / validCount);
+                    const avgDurMin = Math.floor(avgDurSecTotal / 60);
+                    const avgDurSec = avgDurSecTotal % 60;
+                    const formattedDurSec = avgDurSec < 10 ? '0' + avgDurSec : String(avgDurSec);
+
+                    const durMinInput = document.getElementById(`interval-dur-min-${id}`);
+                    const durSecInput = document.getElementById(`interval-dur-sec-${id}`);
+                    if (durMinInput) durMinInput.value = avgDurMin;
+                    if (durSecInput) durSecInput.value = formattedDurSec;
+                }
+
+                // Update hidden submission inputs
+                const loggedDistInput = document.getElementById(`logged-distance-${id}`);
+                const loggedMinInput = document.getElementById(`logged-min-${id}`);
+                const loggedSecInput = document.getElementById(`logged-sec-${id}`);
+
+                if (loggedDistInput) loggedDistInput.value = totalDistSum.toFixed(2);
+                if (loggedMinInput) loggedMinInput.value = avgPaceMin;
+                if (loggedSecInput) loggedSecInput.value = formattedPaceSec;
             }
         }
 

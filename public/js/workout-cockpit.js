@@ -369,15 +369,9 @@ function renderCockpitHeroStage(stepId) {
     if (!act) return;
 
     // Target metric formatting
-    let targetDisplay = '';
-    if (typeof act.targetValue === 'number' && act.targetValue > 0) {
-        const type = act.targetType === 'seconds' ? 'sec hold' : (act.targetType === 'failure' ? 'to failure' : 'reps');
-        const sideStr = act.isPerSide ? '/side' : '';
-        const setsStr = act.sets && act.sets > 1 && !state.isCircuit ? `${act.sets} sets × ` : '';
-        targetDisplay = `${setsStr}${act.targetValue} ${type}${sideStr}`;
-    } else {
-        targetDisplay = act.repsDistanceTime || (act.sets && !state.isCircuit ? `${act.sets} sets` : '1 set');
-    }
+    const targetDisplay = (typeof formatTargetDisplay === 'function')
+        ? formatTargetDisplay(act, { includeSets: !state.isCircuit, isCircuit: state.isCircuit, short: false })
+        : (act.repsDistanceTime || '1 set');
 
     const eqStr = (act.equipmentRequired && act.equipmentRequired !== 'Bodyweight' && act.equipmentRequired !== 'None')
         ? ` • <span class="text-slate-200 font-semibold">${act.equipmentRequired}</span>` : '';
@@ -584,16 +578,9 @@ function startCockpitTransitionTimer(stepId, durationSec, nextName, nextIdx, bad
     state.isTransitioning = true;
     const nextAct = state.activities[nextIdx];
     
-    let nextTargetDisplay = '';
-    if (nextAct) {
-        if (typeof nextAct.targetValue === 'number' && nextAct.targetValue > 0) {
-            const type = nextAct.targetType === 'seconds' ? 's hold' : (nextAct.targetType === 'failure' ? 'to failure' : 'reps');
-            const sideStr = nextAct.isPerSide ? '/side' : '';
-            nextTargetDisplay = `${nextAct.targetValue} ${type}${sideStr}`;
-        } else if (nextAct.repsDistanceTime) {
-            nextTargetDisplay = nextAct.repsDistanceTime;
-        }
-    }
+    const nextTargetDisplay = (nextAct && typeof formatTargetDisplay === 'function')
+        ? formatTargetDisplay(nextAct, { includeSets: !state.isCircuit, isCircuit: state.isCircuit, short: false })
+        : (nextAct?.repsDistanceTime || '');
 
     const nextEq = nextAct && nextAct.equipmentRequired && nextAct.equipmentRequired !== 'Bodyweight' && nextAct.equipmentRequired !== 'None'
         ? ` • ${nextAct.equipmentRequired}` : '';
@@ -684,16 +671,9 @@ function renderCockpitRoundRecovery(stepId) {
     const firstWorkAct = workIndices.length > 0 ? state.activities[workIndices[0]] : null;
     const nextActName = firstWorkAct ? firstWorkAct.name : 'Circuit';
     
-    let nextTargetDisplay = '';
-    if (firstWorkAct) {
-        if (typeof firstWorkAct.targetValue === 'number' && firstWorkAct.targetValue > 0) {
-            const type = firstWorkAct.targetType === 'seconds' ? 's hold' : (firstWorkAct.targetType === 'failure' ? 'to failure' : 'reps');
-            const sideStr = firstWorkAct.isPerSide ? '/side' : '';
-            nextTargetDisplay = `${firstWorkAct.targetValue} ${type}${sideStr}`;
-        } else if (firstWorkAct.repsDistanceTime) {
-            nextTargetDisplay = firstWorkAct.repsDistanceTime;
-        }
-    }
+    const nextTargetDisplay = (firstWorkAct && typeof formatTargetDisplay === 'function')
+        ? formatTargetDisplay(firstWorkAct, { includeSets: !state.isCircuit, isCircuit: state.isCircuit, short: false })
+        : (firstWorkAct?.repsDistanceTime || '');
 
     const nextEq = firstWorkAct && firstWorkAct.equipmentRequired && firstWorkAct.equipmentRequired !== 'Bodyweight' && firstWorkAct.equipmentRequired !== 'None'
         ? ` • ${firstWorkAct.equipmentRequired}` : '';
@@ -1030,15 +1010,9 @@ function renderCockpitPlaylist(stepId) {
         }
 
         // Subtitle
-        let targetText = '';
-        if (typeof act.targetValue === 'number' && act.targetValue > 0) {
-            const type = act.targetType === 'seconds' ? 's hold' : (act.targetType === 'failure' ? ' to fail' : ' reps');
-            const sideStr = act.isPerSide ? '/side' : '';
-            const setsStr = act.sets && act.sets > 1 && !state.isCircuit ? `${act.sets}×` : '';
-            targetText = `${setsStr}${act.targetValue}${type}${sideStr}`;
-        } else {
-            targetText = act.repsDistanceTime || '';
-        }
+        const targetText = (typeof formatTargetDisplay === 'function')
+            ? formatTargetDisplay(act, { includeSets: !state.isCircuit, isCircuit: state.isCircuit, short: true })
+            : (act.repsDistanceTime || '');
 
         return `
             <div id="cockpit-item-${stepId}-${idx}" onclick="jumpToCockpitExercise('${stepId}', ${idx})" class="flex items-center justify-between p-3 sm:p-4 rounded-2xl border ${rowStyle} transition-all cursor-pointer hover:border-slate-700 active:scale-98">
