@@ -457,15 +457,21 @@ function updateTimelinePaceLabels(easyMin, easyMax, longMin, longMax, tempoMin, 
             allPaceLabels.forEach(label => {
                 const type = label.dataset.type;
                 if (type === 'easy') {
-                    label.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;
+                    const mid = Math.round((easyMin + easyMax) / 2);
+                    label.innerText = `~${formatPace(mid)} /mi`;
                 } else if (type === 'long') {
-                    label.innerText = `${formatPace(longMin)} - ${formatPace(longMax)} /mi`;
+                    const mid = Math.round((longMin + longMax) / 2);
+                    label.innerText = `~${formatPace(mid)} /mi`;
                 } else if (type === 'tempo') {
-                    label.innerText = `${formatPace(tempoMin)} - ${formatPace(tempoMax)} /mi`;
+                    const mid = Math.round((tempoMin + tempoMax) / 2);
+                    label.innerText = `~${formatPace(mid)} /mi`;
                 } else if (type === 'goal') {
-                    label.innerText = `${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                    label.innerText = `~${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
                 } else if (type === 'race') {
                     label.innerText = `LFG: Target Sub-20 (6:25/mi or faster)`;
+                } else if (type && (type.includes(':') || type.includes('-'))) {
+                    const midStr = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(type) : type;
+                    label.innerText = `~${midStr} /mi`;
                 }
             });
         }
@@ -474,6 +480,14 @@ function paceStringToSeconds(paceInput) {
             if (!paceInput && paceInput !== 0) return 490; // Default 8:10 (490s)
             if (typeof paceInput === 'number') return paceInput;
             const str = String(paceInput).trim().replace(/\/mi|min\/mi|mi/gi, '').trim();
+            if (str.includes('-') || str.includes('–')) {
+                const parts = str.split(/[-–]/);
+                if (parts.length === 2) {
+                    const s1 = paceStringToSeconds(parts[0].trim());
+                    const s2 = paceStringToSeconds(parts[1].trim());
+                    return Math.round((s1 + s2) / 2);
+                }
+            }
             if (!str.includes(':')) {
                 const num = parseFloat(str);
                 return !isNaN(num) ? num : 490;
@@ -484,6 +498,31 @@ function paceStringToSeconds(paceInput) {
             const s = parseInt(parts[1], 10);
             if (isNaN(m) || isNaN(s)) return 490;
             return m * 60 + s;
+        }
+
+function parsePaceToMidpoint(paceStr) {
+            if (!paceStr) return null;
+            const str = String(paceStr).trim().replace(/\/mi|min\/mi|mi/gi, '').trim();
+            if (str.includes('-') || str.includes('–')) {
+                const parts = str.split(/[-–]/);
+                if (parts.length === 2) {
+                    const sec1 = paceStringToSeconds(parts[0].trim());
+                    const sec2 = paceStringToSeconds(parts[1].trim());
+                    const midSec = Math.round((sec1 + sec2) / 2);
+                    const m = Math.floor(midSec / 60);
+                    const s = midSec % 60;
+                    return `${m}:${s < 10 ? '0' + s : s}`;
+                }
+            }
+            if (str.includes(':')) {
+                const parts = str.split(':');
+                const m = parseInt(parts[0], 10);
+                const s = parseInt(parts[1], 10);
+                if (!isNaN(m) && !isNaN(s)) {
+                    return `${m}:${s < 10 ? '0' + s : s}`;
+                }
+            }
+            return str;
         }
 
 function extractWorkoutMileage(workout) {
@@ -502,7 +541,30 @@ function extractWorkoutMileage(workout) {
                 return workout.uploadedWorkoutFile.totalDistanceMeters / 1609.344;
             }
 
-            // 3. Explicit target distance field if present
+            // 3. Structured Interval Workout fallback (calculate total work volume)
+            if (workout.intervalRepCount && workout.intervalWorkValue) {
+                const reps = parseInt(workout.intervalRepCount) || 1;
+                const val = parseFloat(workout.intervalWorkValue) || 1;
+                const unit = (workout.intervalWorkUnit || '').toLowerCase();
+                const type = (workout.intervalType || '').toLowerCase();
+
+                if (type === 'time' || unit.includes('min') || unit.includes('sec')) {
+                    const totalWorkMins = unit.includes('sec') ? (reps * val) / 60 : (reps * val);
+                    const paceSec = workout.actualLoggedPace ? paceStringToSeconds(workout.actualLoggedPace) : (workout.intervalTargetPace ? paceStringToSeconds(workout.intervalTargetPace) : 480);
+                    const paceMins = paceSec / 60;
+                    if (paceMins > 0) {
+                        return parseFloat((totalWorkMins / paceMins).toFixed(2));
+                    }
+                } else if (type === 'distance' || unit.includes('m') || unit.includes('k') || unit.includes('mi')) {
+                    let milesPerRep = 0.24855; // 400m default
+                    if (unit.includes('k')) milesPerRep = val * 0.621371;
+                    else if (unit.includes('mi')) milesPerRep = val;
+                    else if (unit.includes('m') || val > 50) milesPerRep = val * 0.000621371;
+                    return parseFloat((reps * milesPerRep).toFixed(2));
+                }
+            }
+
+            // 4. Explicit target distance field if present
             if (workout.targetDistance !== null && workout.targetDistance !== undefined && workout.targetDistance !== "") {
                 const targetDistNum = parseFloat(workout.targetDistance);
                 if (!isNaN(targetDistNum) && targetDistNum > 0) {
@@ -548,7 +610,7 @@ function extractWorkoutMileage(workout) {
                 const minsMatch = str.match(/(\d+)\s*min/);
                 if (minsMatch) {
                     const mins = parseInt(minsMatch[1]);
-                    if (type === 'fast' || type === 'easy' || type === 'long' || workout.isSpeedWorkout) {
+                    if (type === 'fast' || type === 'easy' || type === 'long' || type === 'tempo' || type === 'interval' || workout.isSpeedWorkout) {
                         const paceSec = workout.actualLoggedPace ? paceStringToSeconds(workout.actualLoggedPace) : 480; // 8:00 pace default
                         const paceMins = paceSec / 60;
                         return parseFloat((mins / paceMins).toFixed(1));

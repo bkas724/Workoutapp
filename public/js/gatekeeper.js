@@ -82,26 +82,16 @@ function toggleGatekeeper(id, forceShow) {
                             badgeCount.classList.add('hidden');
                         }
 
-                        // Compute default raw rep time from target pace (e.g. 6:00 /mi -> 1:29 for 400m)
-                        const minInput = document.getElementById(`logged-min-${id}`);
-                        const secInput = document.getElementById(`logged-sec-${id}`);
-                        let targetPaceSecPerMile = 360;
-                        if (minInput && minInput.value !== "") {
-                            const m = parseInt(minInput.value) || 6;
-                            const s = parseInt(secInput ? secInput.value : 0) || 0;
-                            targetPaceSecPerMile = (m * 60) + s;
-                        }
-                        const repDistMiles = parseRepDistanceInMiles(intervalMeta.repDistance);
-                        const rawRepSecTotal = Math.round(targetPaceSecPerMile * repDistMiles);
-                        const defaultRepMin = Math.floor(rawRepSecTotal / 60);
-                        const defaultRepSec = rawRepSecTotal % 60;
+                        // Pre-populate target split times from interval metadata
+                        const defaultRepMin = intervalMeta.defaultSplitMin !== undefined ? intervalMeta.defaultSplitMin : 5;
+                        const defaultRepSec = intervalMeta.defaultSplitSec !== undefined ? intervalMeta.defaultSplitSec : "00";
 
                         const avgMinInput = document.getElementById(`interval-avg-min-${id}`);
                         const avgSecInput = document.getElementById(`interval-avg-sec-${id}`);
                         if (avgMinInput && !avgMinInput.value) avgMinInput.value = defaultRepMin;
-                        if (avgSecInput && !avgSecInput.value) avgSecInput.value = defaultRepSec < 10 ? '0' + defaultRepSec : defaultRepSec;
+                        if (avgSecInput && !avgSecInput.value) avgSecInput.value = defaultRepSec;
 
-                        renderRepRows(id, intervalMeta.repCount, defaultRepMin, defaultRepSec < 10 ? '0' + defaultRepSec : defaultRepSec);
+                        renderRepRows(id, intervalMeta.repCount, defaultRepMin, defaultRepSec);
                         recalculateIntervalPace(id);
                     }
                 }

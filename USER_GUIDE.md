@@ -171,11 +171,15 @@ When tapping the Up-Next Card for any scheduled session containing movements or 
    - **Bottom 50% (Scrollable Gym Playlist)**: Displays the full session list, auto-scrolling to keep your active movement in view, and allowing 1-tap jumping to any machine if equipment is occupied.
    - **Zero-Drift Background Timing & WakeLock**: Timers persist accurately across tab switches via epoch timestamps (`Date.now()`), synthesize 3-2-1 audio beeps and completion chimes, and maintain screen wake-lock throughout execution.
 
-### Recording Advanced Rep Splits
-For workouts designated with interval repetitions (e.g., *6x400m*):
-1. In the Gatekeeper modal, click **Advanced Rep Splits**.
-2. Input target or actual times for individual reps.
-3. The system computes average rep duration and pace consistency metrics automatically.
+### Recording Advanced Rep Splits & Structured Intervals
+For workouts designated with interval repetitions (e.g., *3 x 5 mins* tempo or *8 x 400m* track repeats):
+1. **Single Midpoint Target Pace**: To defeat pacing indecision, intervals display a single midpoint target pace (e.g., `~7:08 /mi`) alongside a helpful tooltip indicating the allowable `±15s` training window.
+2. **Simplified Interval Entry Deck**: The Up-Next card and Gatekeeper modal pre-populate prescribed intervals directly (e.g., `3 Reps × 5 min` at `~7:08 /mi`), showing total work mileage (e.g., `2.10 mi`) and average pace automatically.
+3. **Advanced Rep Splits Accordion**:
+   - Expand the **Advanced Rep Splits** drawer to record precise split times for individual reps (`R1`, `R2`, `R3`...).
+   - Use **Auto-Fill Target** to instantly populate all reps with prescribed splits, then tweak individual outliers.
+   - Adding or removing reps (`+` / `-`) updates total work mileage and overall session pacing in real time.
+4. **Automated Mileage Engine**: When submitted, your interval mileage (e.g. `2.10 mi`) is calculated mathematically and committed to your profile, ensuring dashboard volume bars and macrocycle totals reflect your exact interval mileage without manual math.
 
 ### Benchmark Runs & 70/30 EMA Pace Recalibration
 1. Workouts marked with `isBenchmark: true` act as physiological test events.

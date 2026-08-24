@@ -119,12 +119,15 @@ function buildActivePhaseHTML() {
                     plannedDist = step.distanceDuration;
                 }
 
-                if (step.targetPaceZone) {
-                    if (step.targetPaceZone === 'easy') plannedPace = "Easy Pace";
-                    else if (step.targetPaceZone === 'long') plannedPace = "Long Pace";
-                    else if (step.targetPaceZone === 'tempo') plannedPace = "Tempo Pace";
-                    else if (step.targetPaceZone === 'goal') plannedPace = `Goal: ${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
-                    else plannedPace = step.targetPaceZone;
+                if (step.intervalTargetPace || step.targetPaceZone) {
+                    const rawPace = step.intervalTargetPace || step.targetPaceZone;
+                    const midPace = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(rawPace) : rawPace;
+                    if (midPace === 'easy') plannedPace = "Easy Pace";
+                    else if (midPace === 'long') plannedPace = "Long Pace";
+                    else if (midPace === 'tempo') plannedPace = "Tempo Pace";
+                    else if (midPace === 'goal') plannedPace = `Goal: ~${userProfileData ? userProfileData.activeAdjustedGoal : "6:26"} /mi`;
+                    else if (midPace && midPace.includes(':')) plannedPace = `~${midPace} /mi`;
+                    else plannedPace = midPace;
                 }
 
                 if (step.targetDuration) {
@@ -336,13 +339,26 @@ function renderNextActivityCard() {
         if (nextStep.targetPaceZone === 'easy') targetMidDecimal = decimalPace + (80 / 60);
         else if (nextStep.targetPaceZone === 'long') targetMidDecimal = decimalPace + (55 / 60);
         else if (nextStep.targetPaceZone === 'tempo') targetMidDecimal = decimalPace - (57.5 / 60);
-        else if (nextStep.targetPaceZone === 'goal') {
+        if (nextStep.intervalTargetPace) {
+            const midPace = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(nextStep.intervalTargetPace) : nextStep.intervalTargetPace;
+            const p = (midPace || '').split(':');
+            if (p.length === 2) {
+                targetMidDecimal = parseInt(p[0]) + (parseInt(p[1] || 0) / 60);
+            }
+        } else if (nextStep.targetPaceZone === 'goal') {
             const goalPaceStr = userProfileData ? userProfileData.activeAdjustedGoal : "6:26";
             if (goalPaceStr) {
                 const p = goalPaceStr.split(':');
                 targetMidDecimal = parseInt(p[0]) + (parseInt(p[1] || 0) / 60);
             }
         } else if (nextStep.targetPaceZone === 'race') targetMidDecimal = 6 + (25 / 60);
+        else if (nextStep.targetPaceZone && nextStep.targetPaceZone.includes(':')) {
+            const midPace = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(nextStep.targetPaceZone) : nextStep.targetPaceZone;
+            const p = (midPace || '').split(':');
+            if (p.length === 2) {
+                targetMidDecimal = parseInt(p[0]) + (parseInt(p[1] || 0) / 60);
+            }
+        }
 
         let defaultMin = "", defaultSec = "";
         if (nextStep.actualLoggedPace) {
@@ -356,7 +372,7 @@ function renderNextActivityCard() {
         }
 
         let paceHtml = "";
-        if (nextStep.targetPaceZone || getDisplayDuration(nextStep) || nextStep.type !== 'rest') {
+        if (nextStep.intervalTargetPace || nextStep.targetPaceZone || getDisplayDuration(nextStep) || nextStep.type !== 'rest') {
             paceHtml = `<div class="mt-4 flex gap-8 flex-wrap">`;
 
             if (getDisplayDuration(nextStep)) {
@@ -367,11 +383,16 @@ function renderNextActivityCard() {
                         </div>`;
             }
 
-            if (nextStep.targetPaceZone) {
-                let pType = nextStep.targetPaceZone;
+            if (nextStep.intervalTargetPace || nextStep.targetPaceZone) {
+                let pType = nextStep.intervalTargetPace || nextStep.targetPaceZone;
+                const midPace = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(pType) : pType;
+                const isNumericPace = midPace && midPace.includes(':');
                 paceHtml += `<div>
-                            <span class="block text-[10px] text-indigo-300 uppercase tracking-wider mb-1 font-bold">Target Pace</span>
-                            <span class="font-mono text-xl md:text-2xl font-black text-white dynamic-pace-hint" data-type="${pType}">Computing...</span>
+                            <div class="flex items-center gap-1 mb-1">
+                                <span class="block text-[10px] text-indigo-300 uppercase tracking-wider font-bold">Target Pace</span>
+                                <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-800 text-slate-400 text-[9px] cursor-pointer hover:bg-slate-700 hover:text-indigo-300 transition-colors" title="Target Pace window: ±15s from prescribed target">?</span>
+                            </div>
+                            <span class="font-mono text-xl md:text-2xl font-black text-white ${isNumericPace ? '' : 'dynamic-pace-hint'}" data-type="${pType}">${isNumericPace ? `~${midPace} /mi` : 'Computing...'}</span>
                         </div>`;
             }
 
@@ -789,6 +810,7 @@ function renderNextActivityCard() {
                             displayActivities.push({
                                 ...act,
                                 name: ex.name,
+                                type: 'work',
                                 exerciseKey: ex.exerciseKey,
                                 targetType: ex.targetType || 'reps',
                                 targetValue: ex.targetValue || null,
@@ -810,8 +832,10 @@ function renderNextActivityCard() {
                 }
 
                 // Standard / Cardio / Regular Activity (Preserve intact)
+                const inferredType = act.type || (/warm|prep/i.test(act.name) ? 'prep' : (/cool|stretch|walk/i.test(act.name) && !/run/i.test(act.name) ? 'cool' : 'work'));
                 displayActivities.push({
                     ...act,
+                    type: inferredType,
                     sets: typeof act.sets === 'number' ? act.sets : 1,
                     targetValue: typeof act.targetValue === 'number' ? act.targetValue : null,
                     targetType: act.targetType || 'reps',

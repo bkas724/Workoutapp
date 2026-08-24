@@ -6,6 +6,86 @@
 window.workoutCockpitState = window.workoutCockpitState || {};
 
 /**
+ * Activity category helpers
+ */
+function getPrepActivityIndices(state) {
+    if (!state || !state.activities) return [];
+    return state.activities
+        .map((act, idx) => ({ act, idx }))
+        .filter(({ act }) => act.type === 'prep' || (!act.type && /warm|prep|dynamic/i.test(act.name)))
+        .map(({ idx }) => idx);
+}
+
+function getWorkActivityIndices(state) {
+    if (!state || !state.activities) return [];
+    return state.activities
+        .map((act, idx) => ({ act, idx }))
+        .filter(({ act }) => act.type === 'work' || (!act.type && !/warm|prep|dynamic|cool|stretch|flush/i.test(act.name)))
+        .map(({ idx }) => idx);
+}
+
+function getCoolActivityIndices(state) {
+    if (!state || !state.activities) return [];
+    return state.activities
+        .map((act, idx) => ({ act, idx }))
+        .filter(({ act }) => act.type === 'cool' || (!act.type && /cool|stretch|flush/i.test(act.name)))
+        .map(({ idx }) => idx);
+}
+
+/**
+ * Deterministically calculates rest duration based on sport science rules
+ */
+function getDeterministicRestSeconds(workoutState, activity) {
+    if (activity && typeof activity.restSeconds === 'number' && activity.restSeconds > 0) {
+        return Math.max(5, Math.round(activity.restSeconds / 5) * 5);
+    }
+
+    const profile = typeof userProfileData !== 'undefined' ? userProfileData : null;
+    const fitnessLevel = (profile && profile.fitnessLevel) ? profile.fitnessLevel.toLowerCase() : 'intermediate';
+    const isCircuit = !!(workoutState && workoutState.isCircuit);
+    const rpe = (workoutState && workoutState.targetRPE) ? workoutState.targetRPE : 3;
+
+    // 1. CIRCUIT STRENGTH TRANSITION
+    if (isCircuit) {
+        if (fitnessLevel === 'beginner') return 25;
+        if (fitnessLevel === 'advanced') return 10;
+        return 15; // Intermediate default
+    }
+
+    // 2. RUNNING / SPEED / INTERVAL REST
+    const title = (workoutState && workoutState.workoutTitle ? workoutState.workoutTitle : '').toLowerCase();
+    const actName = (activity && activity.name ? activity.name : '').toLowerCase();
+    if (/interval|tempo|speed|track|hill|stride|repeat/i.test(title) || /interval|speed|repeat|surge/i.test(actName)) {
+        if (rpe >= 4 || /sprint|hill|400m|800m/i.test(actName)) return 120; // 2:00 for hard speed repeats
+        return 60; // 1:00 for tempo float
+    }
+
+    // 3. STRAIGHT-SET STRENGTH
+    if (activity && activity.sets && activity.sets > 1) {
+        return rpe >= 4 ? 45 : 30;
+    }
+
+    return 15; // Standard transition default
+}
+
+/**
+ * Deterministically calculates circuit round recovery duration
+ */
+function getDeterministicRoundRestSeconds(workoutState) {
+    if (workoutState && typeof workoutState.circuitRestSeconds === 'number' && workoutState.circuitRestSeconds > 0) {
+        return Math.max(15, Math.round(workoutState.circuitRestSeconds / 5) * 5);
+    }
+    const profile = typeof userProfileData !== 'undefined' ? userProfileData : null;
+    const fitnessLevel = (profile && profile.fitnessLevel) ? profile.fitnessLevel.toLowerCase() : 'intermediate';
+    const rpe = (workoutState && workoutState.targetRPE) ? workoutState.targetRPE : 3;
+
+    if (fitnessLevel === 'beginner' || rpe >= 4) return 45;
+    if (fitnessLevel === 'advanced' && rpe <= 3) return 25;
+    return 30; // Intermediate default
+}
+
+
+/**
  * Initialize or retrieve the cockpit session state for a given workout
  */
 function getOrCreateCockpitState(stepId, workoutTitle, activities, isCircuit, circuitRounds) {
@@ -20,7 +100,8 @@ function getOrCreateCockpitState(stepId, workoutTitle, activities, isCircuit, ci
             isCircuit: !!isCircuit,
             circuitRounds: typeof circuitRounds === 'number' && circuitRounds > 0 ? circuitRounds : (isCircuit ? 3 : 1),
             currentCircuitRound: 1,
-            sideState: {} // { [actIdx]: 1 | 2 } for per-side exercises
+            sideState: {}, // { [actIdx]: 1 | 2 } for per-side exercises
+            isTransitioning: false
         };
     } else {
         const s = window.workoutCockpitState[stepId];
@@ -51,6 +132,7 @@ function startWorkoutCockpit(stepId, startIdx = 0) {
 
     // 2. Set active index
     state.activeIdx = Math.max(0, Math.min(startIdx, state.activities.length - 1));
+    state.isTransitioning = false;
 
     // 3. Switch View
     const listView = document.getElementById(`workout-list-view-${stepId}`);
@@ -87,49 +169,47 @@ function exitWorkoutCockpit(stepId) {
 }
 
 /**
- * Toggle the coaching tip pill
- */
-function toggleCockpitTip(stepId) {
-    const tipEl = document.getElementById(`cockpit-tip-${stepId}`);
-    const chevron = document.getElementById(`cockpit-tip-chevron-${stepId}`);
-    if (tipEl) tipEl.classList.toggle('hidden');
-    if (chevron) chevron.classList.toggle('rotate-180');
-}
-
-/**
  * Render the Visual Progress Dots & 2px Emerald Volume Line in Header
  */
 function updateCockpitProgressBar(stepId) {
     const state = window.workoutCockpitState[stepId];
-    if (!state) return;
+    if (!state || !state.activities) return;
 
-    // 1. Top 2px Emerald Progress Line
-    const total = state.activities.length;
-    let totalExpectedVolume = total;
+    const prepIndices = getPrepActivityIndices(state);
+    const workIndices = getWorkActivityIndices(state);
+    const coolIndices = getCoolActivityIndices(state);
+
+    // Calculate dynamic total expected volume
+    let totalExpectedVolume = state.activities.length;
     let completedVolume = state.completedActivities.size;
 
     if (state.isCircuit && state.circuitRounds > 1) {
-        totalExpectedVolume = total * state.circuitRounds;
-        completedVolume = ((state.currentCircuitRound - 1) * total) + state.completedActivities.size;
+        const completedPrepCount = prepIndices.filter(i => state.completedActivities.has(i)).length;
+        const completedWorkThisRound = workIndices.filter(i => state.completedActivities.has(i)).length;
+        const completedCoolCount = coolIndices.filter(i => state.completedActivities.has(i)).length;
+
+        totalExpectedVolume = prepIndices.length + (workIndices.length * state.circuitRounds) + coolIndices.length;
+        completedVolume = completedPrepCount + ((state.currentCircuitRound - 1) * workIndices.length) + completedWorkThisRound + completedCoolCount;
     }
 
     const pct = totalExpectedVolume > 0 ? (completedVolume / totalExpectedVolume) * 100 : 0;
     const bar = document.getElementById(`cockpit-progress-bar-${stepId}`);
     if (bar) bar.style.width = `${pct}%`;
 
-    // 2. Visual Dot Groupings in Header
+    // Visual Dot Groupings in Header
     const dotsContainer = document.getElementById(`cockpit-progress-dots-${stepId}`);
-    if (!dotsContainer || total === 0) return;
+    if (!dotsContainer || state.activities.length === 0) return;
 
     if (state.isCircuit && state.circuitRounds > 1) {
-        // CIRCUIT ACCORDION: Expanded active round dots + compact past/future badges
+        // CIRCUIT ACCORDION: Focus dots on the work activities for each round
         let html = '';
-        const isAllWorkoutDone = state.completedActivities.size >= state.activities.length && state.currentCircuitRound >= state.circuitRounds;
+        const isAllWorkDone = workIndices.every(idx => state.completedActivities.has(idx));
+        const isAllWorkoutDone = isAllWorkDone && state.currentCircuitRound >= state.circuitRounds && coolIndices.every(idx => state.completedActivities.has(idx));
 
         for (let r = 1; r <= state.circuitRounds; r++) {
             const isPastRound = r < state.currentCircuitRound;
             const isCurrentRound = r === state.currentCircuitRound;
-            const isCurrentRoundCompleted = isCurrentRound && state.completedActivities.size >= state.activities.length;
+            const isCurrentRoundCompleted = isCurrentRound && isAllWorkDone;
 
             if (isPastRound || (isCurrentRoundCompleted && isAllWorkoutDone)) {
                 // COMPACT COMPLETED ROUND BADGE (Green Checkmark)
@@ -139,12 +219,14 @@ function updateCockpitProgressBar(stepId) {
                     </div>
                 `;
             } else if (isCurrentRound && !isAllWorkoutDone) {
-                // EXPANDED ACTIVE ROUND CAPSULE (R[X] + Live Dot Matrix)
-                const dotsHtml = state.activities.map((_, idx) => {
+                // EXPANDED ACTIVE ROUND CAPSULE (Dots for work activities in this round)
+                const targetActs = workIndices.length > 0 ? workIndices.map(i => state.activities[i]) : state.activities;
+                const dotsHtml = targetActs.map((_, dotIdx) => {
+                    const actualActIdx = workIndices.length > 0 ? workIndices[dotIdx] : dotIdx;
                     let dotClass = 'bg-slate-700';
-                    if (state.completedActivities.has(idx)) {
+                    if (state.completedActivities.has(actualActIdx)) {
                         dotClass = 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]';
-                    } else if (idx === state.activeIdx) {
+                    } else if (actualActIdx === state.activeIdx) {
                         dotClass = 'bg-amber-400 scale-125 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.9)]';
                     }
                     return `<span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${dotClass}"></span>`;
@@ -192,14 +274,15 @@ function jumpToCockpitExercise(stepId, targetIdx) {
     const state = window.workoutCockpitState[stepId];
     if (!state || targetIdx < 0 || targetIdx >= state.activities.length) return;
 
-    // Safely stop any running timer
     if (window.workoutTimer) {
         window.workoutTimer.stop();
     }
 
+    state.isTransitioning = false;
     state.activeIdx = targetIdx;
     renderCockpitHeroStage(stepId);
     renderCockpitPlaylist(stepId);
+    updateCockpitProgressBar(stepId);
 }
 
 /**
@@ -213,7 +296,7 @@ function resetActiveCockpitTimer(stepId) {
         window.workoutTimer.stop();
     }
 
-    // Reset side state if applicable
+    state.isTransitioning = false;
     if (state.sideState[state.activeIdx]) {
         state.sideState[state.activeIdx] = 1;
     }
@@ -222,76 +305,29 @@ function resetActiveCockpitTimer(stepId) {
 }
 
 /**
- * Render the Hero Stage with Fluid Mathematical Scaling
+ * Render the Hero Stage
  */
 function renderCockpitHeroStage(stepId) {
     const state = window.workoutCockpitState[stepId];
     const stage = document.getElementById(`cockpit-hero-stage-${stepId}`);
     if (!state || !stage) return;
 
-    // Check if current round or entire workout is completed
-    const isRoundDone = state.completedActivities.size >= state.activities.length;
-    
-    if (isRoundDone) {
-        if (state.isCircuit && state.circuitRounds > 1 && state.currentCircuitRound < state.circuitRounds) {
-            // CIRCUIT ROUND RECOVERY STAGE
-            stage.innerHTML = `
-                <div class="flex flex-col items-center justify-center text-center p-6 animate-fade-in w-full h-full my-auto gap-3">
-                    <span class="text-xs sm:text-sm font-extrabold text-amber-400 uppercase tracking-widest bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-xl shadow-sm">
-                        Round ${state.currentCircuitRound} of ${state.circuitRounds} Finished
-                    </span>
-                    <h3 style="font-size: clamp(1.75rem, min(4.5vw, 4.5vh), 3.25rem); line-height: 1.15;" class="font-black text-white tracking-tight">
-                        🎉 Great Round! Take a Breather
-                    </h3>
-                    
-                    <!-- 60s Circuit Rest Timer -->
-                    <div style="width: clamp(130px, min(28vw, 24vh), 200px); height: clamp(130px, min(28vw, 24vh), 200px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group my-1" onclick="event.stopPropagation(); if(window.workoutTimer){ if(window.workoutTimer.isPaused) window.workoutTimer.resume(); else window.workoutTimer.pause(); }">
-                        <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_20px_rgba(245,158,11,0.35)]" viewBox="0 0 36 36">
-                            <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
-                            <path id="cockpit-circuit-ring-${stepId}" class="text-amber-400 transition-all duration-200" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
-                        </svg>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span id="cockpit-circuit-text-${stepId}" style="font-size: clamp(2.5rem, min(7vw, 6.5vh), 4.5rem);" class="font-black text-white font-mono tracking-tight leading-none">60</span>
-                            <span style="font-size: clamp(0.7rem, min(1.5vw, 1.6vh), 0.95rem);" class="font-black text-amber-300 uppercase tracking-widest mt-1">Round Rest</span>
-                        </div>
-                    </div>
+    // If currently showing transition timer, do not override
+    if (state.isTransitioning) return;
 
-                    <div class="flex items-center justify-center gap-3">
-                        <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" style="font-size: clamp(0.85rem, min(1.8vw, 2vh), 1.15rem); padding: clamp(0.5rem, 1.2vh, 0.75rem) clamp(1rem, 2vw, 1.75rem);" class="bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-extrabold transition-all shadow-md active:scale-95 cursor-pointer">
-                            +15s
-                        </button>
-                        <button onclick="advanceCircuitRound('${stepId}')" style="font-size: clamp(1rem, min(2.2vw, 2.4vh), 1.35rem); padding: clamp(0.75rem, 1.6vh, 1.15rem) clamp(1.75rem, 3vw, 2.5rem);" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all flex items-center gap-2 cursor-pointer active:scale-95">
-                            <i class="fa-solid fa-play text-sm"></i> Start Round ${state.currentCircuitRound + 1}
-                        </button>
-                    </div>
+    const prepIndices = getPrepActivityIndices(state);
+    const workIndices = getWorkActivityIndices(state);
+    const coolIndices = getCoolActivityIndices(state);
 
-                    <span style="font-size: clamp(0.85rem, min(1.7vw, 1.9vh), 1.15rem);" class="font-bold text-slate-400 mt-1">
-                        Next: Round ${state.currentCircuitRound + 1} • ${state.activities[0].name}
-                    </span>
-                </div>
-            `;
+    const isAllPrepDone = prepIndices.every(idx => state.completedActivities.has(idx));
+    const isAllWorkDone = workIndices.every(idx => state.completedActivities.has(idx));
+    const isAllCoolDone = coolIndices.every(idx => state.completedActivities.has(idx));
 
-            if (window.workoutTimer) {
-                window.workoutTimer.start(60,
-                    (remainingSec, fraction) => {
-                        const textEl = document.getElementById(`cockpit-circuit-text-${stepId}`);
-                        const ringEl = document.getElementById(`cockpit-circuit-ring-${stepId}`);
-                        if (textEl) {
-                            const m = Math.floor(remainingSec / 60);
-                            const s = remainingSec % 60;
-                            textEl.innerText = m > 0 ? `${m}:${s < 10 ? '0' + s : s}` : s;
-                        }
-                        if (ringEl) {
-                            ringEl.setAttribute('stroke-dasharray', `${fraction * 100}, 100`);
-                        }
-                    },
-                    () => {
-                        advanceCircuitRound(stepId);
-                    }
-                );
-            }
-            return;
-        }
+    // Check for full workout completion
+    const isEntireWorkoutComplete = isAllPrepDone && isAllWorkDone && isAllCoolDone && (!state.isCircuit || state.currentCircuitRound >= state.circuitRounds);
+
+    if (isEntireWorkoutComplete) {
+        updateCockpitProgressBar(stepId);
 
         const funnyQuotes = [
             "See? That wasn't so bad, was it?",
@@ -337,10 +373,10 @@ function renderCockpitHeroStage(stepId) {
     if (typeof act.targetValue === 'number' && act.targetValue > 0) {
         const type = act.targetType === 'seconds' ? 'sec hold' : (act.targetType === 'failure' ? 'to failure' : 'reps');
         const sideStr = act.isPerSide ? '/side' : '';
-        const setsStr = act.sets && act.sets > 1 ? `${act.sets} sets × ` : '';
+        const setsStr = act.sets && act.sets > 1 && !state.isCircuit ? `${act.sets} sets × ` : '';
         targetDisplay = `${setsStr}${act.targetValue} ${type}${sideStr}`;
     } else {
-        targetDisplay = act.repsDistanceTime || (act.sets ? `${act.sets} sets` : '1 set');
+        targetDisplay = act.repsDistanceTime || (act.sets && !state.isCircuit ? `${act.sets} sets` : '1 set');
     }
 
     const eqStr = (act.equipmentRequired && act.equipmentRequired !== 'Bodyweight' && act.equipmentRequired !== 'None')
@@ -348,7 +384,7 @@ function renderCockpitHeroStage(stepId) {
 
     const cueText = act.coachingCue || act.description || '';
 
-    // Build Interaction Area HTML with Fluid Dimensions
+    // Build Interaction Area HTML
     let interactionHtml = '';
 
     if (act.targetType === 'seconds' && act.targetValue) {
@@ -376,8 +412,8 @@ function renderCockpitHeroStage(stepId) {
                 </div>
             `;
         }
-    } else if (act.sets && act.sets > 1) {
-        // MULTI-SET STRENGTH MOVEMENT (Set Bubbles)
+    } else if (act.sets && act.sets > 1 && !state.isCircuit) {
+        // MULTI-SET STRENGTH MOVEMENT (Straight Sets Only)
         if (!state.completedSets[state.activeIdx]) {
             state.completedSets[state.activeIdx] = new Set();
         }
@@ -385,7 +421,6 @@ function renderCockpitHeroStage(stepId) {
 
         interactionHtml = `
             <div class="flex flex-col items-center gap-3 sm:gap-4 my-2 w-full max-w-xl">
-                <!-- Large Fluid Set Bubbles Row -->
                 <div class="flex items-center justify-center gap-3 sm:gap-4 md:gap-5 py-2">
                     ${Array.from({ length: act.sets }).map((_, s) => {
                         const isDone = doneSets.has(s);
@@ -400,13 +435,11 @@ function renderCockpitHeroStage(stepId) {
                         `;
                     }).join('')}
                 </div>
-
-                <!-- Inter-Set Rest Container (Hidden until a set is checked) -->
                 <div id="cockpit-rest-box-${stepId}" class="hidden flex-col items-center gap-3 w-full animate-fade-in"></div>
             </div>
         `;
     } else {
-        // SINGLE-SET REPS MOVEMENT
+        // SINGLE-SET REPS / CIRCUIT MOVEMENT
         const isDone = state.completedActivities.has(state.activeIdx);
         interactionHtml = `
             <div class="flex items-center justify-center my-2 w-full">
@@ -419,7 +452,7 @@ function renderCockpitHeroStage(stepId) {
 
     stage.innerHTML = `
         <div class="flex flex-col items-center justify-center text-center max-w-2xl w-full h-full my-auto animate-fade-in py-2 gap-2">
-            <!-- Exercise Name (Massive, Fluidly Scaled) -->
+            <!-- Exercise Name -->
             <h2 style="font-size: clamp(1.65rem, min(4.8vw, 5vh), 3.75rem); line-height: 1.1;" class="font-black text-white tracking-tight">
                 ${act.name}
             </h2>
@@ -430,7 +463,7 @@ function renderCockpitHeroStage(stepId) {
                 ${eqStr}
             </div>
 
-            <!-- Open Form Tip / Coaching Cue -->
+            <!-- Open Form Tip -->
             ${cueText ? `
             <div class="my-1 px-3.5 py-1.5 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs sm:text-sm text-slate-300 flex items-center justify-center gap-2 shadow-inner max-w-md">
                 <i class="fa-regular fa-lightbulb text-amber-400 text-xs shrink-0"></i>
@@ -438,14 +471,299 @@ function renderCockpitHeroStage(stepId) {
             </div>
             ` : ''}
 
-            <!-- Primary Interactive Stage (Bubbles / Timers) -->
+            <!-- Primary Interactive Stage -->
             ${interactionHtml}
         </div>
     `;
 }
 
 /**
- * Handle Multi-Set Bubble Click
+ * Activity completion hub: routes to transition timers, round rest, or complete
+ */
+function handleCockpitActivityFinished(stepId, actIdx) {
+    const state = window.workoutCockpitState[stepId];
+    if (!state) return;
+
+    state.completedActivities.add(actIdx);
+    if (window.workoutTimer) window.workoutTimer.stop();
+
+    const act = state.activities[actIdx];
+    const prepIndices = getPrepActivityIndices(state);
+    const workIndices = getWorkActivityIndices(state);
+    const coolIndices = getCoolActivityIndices(state);
+
+    if (!state.isCircuit || state.circuitRounds <= 1) {
+        // LINEAR WORKOUT: Simple linear progression
+        let nextUncompleted = -1;
+        for (let i = 0; i < state.activities.length; i++) {
+            if (!state.completedActivities.has(i)) {
+                nextUncompleted = i;
+                break;
+            }
+        }
+        if (nextUncompleted !== -1) {
+            state.activeIdx = nextUncompleted;
+        }
+        renderCockpitHeroStage(stepId);
+        renderCockpitPlaylist(stepId);
+        updateCockpitProgressBar(stepId);
+        return;
+    }
+
+    // ==========================================
+    // CIRCUIT WORKOUT LIFECYCLE
+    // ==========================================
+    const isPrep = prepIndices.includes(actIdx);
+    const isWork = workIndices.includes(actIdx);
+    const isCool = coolIndices.includes(actIdx);
+
+    if (isPrep) {
+        // 1. WARMUP PHASE (Outside circuit loop)
+        const uncompletedPrep = prepIndices.find(idx => !state.completedActivities.has(idx));
+        if (uncompletedPrep !== undefined) {
+            state.activeIdx = uncompletedPrep;
+            renderCockpitHeroStage(stepId);
+        } else {
+            // Warmup finished -> Transition into Circuit Round 1!
+            const firstWorkIdx = workIndices[0] !== undefined ? workIndices[0] : 0;
+            const nextAct = state.activities[firstWorkIdx];
+            startCockpitTransitionTimer(stepId, 15, nextAct ? nextAct.name : 'Round 1', firstWorkIdx, 'Warm-up Complete • Starting Round 1');
+        }
+    } else if (isWork) {
+        // 2. CIRCUIT ROUND WORK PHASE
+        const uncompletedWork = workIndices.find(idx => !state.completedActivities.has(idx));
+
+        if (uncompletedWork !== undefined) {
+            // Deterministic inter-activity rest
+            const restSec = getDeterministicRestSeconds(state, act);
+            const nextAct = state.activities[uncompletedWork];
+            const workCompletedCount = workIndices.filter(idx => state.completedActivities.has(idx)).length;
+            startCockpitTransitionTimer(stepId, restSec, nextAct ? nextAct.name : 'Next Exercise', uncompletedWork, `Exercise ${workCompletedCount} of ${workIndices.length} Done`);
+        } else {
+            // All work activities completed for THIS round!
+            if (state.currentCircuitRound < state.circuitRounds) {
+                // Post-Round Recovery (60s Rest)
+                renderCockpitRoundRecovery(stepId);
+            } else {
+                // Final round finished! Check if there are cool-down activities
+                const uncompletedCool = coolIndices.find(idx => !state.completedActivities.has(idx));
+                if (uncompletedCool !== undefined) {
+                    const nextAct = state.activities[uncompletedCool];
+                    startCockpitTransitionTimer(stepId, 15, nextAct ? nextAct.name : 'Cool-down', uncompletedCool, 'All Rounds Done • Heading to Cool-down');
+                } else {
+                    // Entire workout complete!
+                    renderCockpitHeroStage(stepId);
+                }
+            }
+        }
+    } else if (isCool) {
+        // 3. COOLDOWN PHASE (Outside circuit loop)
+        const uncompletedCool = coolIndices.find(idx => !state.completedActivities.has(idx));
+        if (uncompletedCool !== undefined) {
+            state.activeIdx = uncompletedCool;
+            renderCockpitHeroStage(stepId);
+        } else {
+            // Entire workout complete!
+            renderCockpitHeroStage(stepId);
+        }
+    }
+
+    renderCockpitPlaylist(stepId);
+    updateCockpitProgressBar(stepId);
+}
+
+/**
+ * Start Inter-Activity Transition Rest Timer (15s Default)
+ * Eye-Level "UP NEXT" Preview Card on Top, Timer in Center, Thumb Controls on Bottom
+ */
+function startCockpitTransitionTimer(stepId, durationSec, nextName, nextIdx, badgeText) {
+    const state = window.workoutCockpitState[stepId];
+    const stage = document.getElementById(`cockpit-hero-stage-${stepId}`);
+    if (!state || !stage || !window.workoutTimer) return;
+
+    state.isTransitioning = true;
+    const nextAct = state.activities[nextIdx];
+    
+    let nextTargetDisplay = '';
+    if (nextAct) {
+        if (typeof nextAct.targetValue === 'number' && nextAct.targetValue > 0) {
+            const type = nextAct.targetType === 'seconds' ? 's hold' : (nextAct.targetType === 'failure' ? 'to failure' : 'reps');
+            const sideStr = nextAct.isPerSide ? '/side' : '';
+            nextTargetDisplay = `${nextAct.targetValue} ${type}${sideStr}`;
+        } else if (nextAct.repsDistanceTime) {
+            nextTargetDisplay = nextAct.repsDistanceTime;
+        }
+    }
+
+    const nextEq = nextAct && nextAct.equipmentRequired && nextAct.equipmentRequired !== 'Bodyweight' && nextAct.equipmentRequired !== 'None'
+        ? ` • ${nextAct.equipmentRequired}` : '';
+
+    const badgeLabel = badgeText || 'Quick Rest & Transition';
+
+    stage.innerHTML = `
+        <div class="flex flex-col items-center justify-center text-center p-3 sm:p-5 animate-fade-in w-full h-full my-auto gap-2 sm:gap-2.5 max-w-md mx-auto">
+            <!-- Prominent UP NEXT Preview Card (Top Eye-Scan Zone) -->
+            <div class="w-full bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-3 sm:p-3.5 shadow-lg flex flex-col items-center gap-0.5">
+                <span class="text-[10px] sm:text-xs font-bold text-indigo-400 uppercase tracking-wider">Up Next</span>
+                <h3 style="font-size: clamp(1.25rem, min(3.8vw, 3.5vh), 2rem);" class="font-black text-white tracking-tight leading-tight">
+                    ${nextAct ? nextAct.name : nextName}
+                </h3>
+                <span class="text-xs sm:text-sm text-slate-300 font-semibold mt-0.5">
+                    ${nextTargetDisplay}${nextEq}
+                </span>
+            </div>
+
+            <!-- 3. Central 15s Countdown Ring (Tap to Play/Pause) -->
+            <div style="width: clamp(95px, min(22vw, 16vh), 135px); height: clamp(95px, min(22vw, 16vh), 135px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group my-0.5" onclick="event.stopPropagation(); toggleCockpitTimer('${stepId}', 'cockpit-trans-icon-${stepId}');">
+                <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_20px_rgba(99,102,241,0.4)]" viewBox="0 0 36 36">
+                    <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
+                    <path id="cockpit-trans-ring-${stepId}" class="text-indigo-400 transition-all duration-200" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span id="cockpit-trans-text-${stepId}" style="font-size: clamp(2rem, min(6vw, 4.5vh), 3.25rem);" class="font-black text-white font-mono tracking-tight leading-none">${durationSec}</span>
+                    <i id="cockpit-trans-icon-${stepId}" class="fa-solid fa-pause text-[11px] text-indigo-400 opacity-80 mt-0.5"></i>
+                </div>
+            </div>
+
+            <!-- 4. Action Controls (Natural Thumb Zone) -->
+            <div class="flex items-center justify-center gap-3 w-full mt-0.5">
+                <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" style="font-size: clamp(0.85rem, min(1.8vw, 2vh), 1.15rem); padding: clamp(0.5rem, 1.2vh, 0.75rem) clamp(1rem, 2vw, 1.75rem);" class="bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-extrabold transition-all shadow-md active:scale-95 cursor-pointer">
+                    +15s
+                </button>
+                <button onclick="skipCockpitTransition('${stepId}', ${nextIdx})" style="font-size: clamp(0.95rem, min(2vw, 2.2vh), 1.25rem); padding: clamp(0.65rem, 1.4vh, 0.95rem) clamp(1.5rem, 2.8vw, 2.25rem);" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.45)] transition-all flex items-center gap-2 cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-play text-xs"></i> Start ${nextAct ? nextAct.name : 'Next'}
+                </button>
+            </div>
+        </div>
+    `;
+
+    window.workoutTimer.start(durationSec,
+        (remainingSec, fraction) => {
+            const textEl = document.getElementById(`cockpit-trans-text-${stepId}`);
+            const ringEl = document.getElementById(`cockpit-trans-ring-${stepId}`);
+            if (textEl) {
+                const m = Math.floor(remainingSec / 60);
+                const s = remainingSec % 60;
+                textEl.innerText = m > 0 ? `${m}:${s < 10 ? '0' + s : s}` : s;
+            }
+            if (ringEl) {
+                ringEl.setAttribute('stroke-dasharray', `${fraction * 100}, 100`);
+            }
+        },
+        () => {
+            skipCockpitTransition(stepId, nextIdx);
+        }
+    );
+}
+
+/**
+ * Skip transition timer and load next activity
+ */
+function skipCockpitTransition(stepId, nextIdx) {
+    const state = window.workoutCockpitState[stepId];
+    if (!state) return;
+    if (window.workoutTimer) window.workoutTimer.stop();
+    state.isTransitioning = false;
+    state.activeIdx = nextIdx;
+    renderCockpitHeroStage(stepId);
+    renderCockpitPlaylist(stepId);
+    updateCockpitProgressBar(stepId);
+}
+
+/**
+ * Render Post-Round Recovery Stage (60s Rest between rounds)
+ * Eye-Level "UP NEXT" Preview Card on Top, Timer in Center, Thumb Controls on Bottom
+ */
+function renderCockpitRoundRecovery(stepId) {
+    const state = window.workoutCockpitState[stepId];
+    const stage = document.getElementById(`cockpit-hero-stage-${stepId}`);
+    if (!state || !stage || !window.workoutTimer) return;
+
+    state.isTransitioning = true;
+    const workIndices = getWorkActivityIndices(state);
+    const firstWorkAct = workIndices.length > 0 ? state.activities[workIndices[0]] : null;
+    const nextActName = firstWorkAct ? firstWorkAct.name : 'Circuit';
+    
+    let nextTargetDisplay = '';
+    if (firstWorkAct) {
+        if (typeof firstWorkAct.targetValue === 'number' && firstWorkAct.targetValue > 0) {
+            const type = firstWorkAct.targetType === 'seconds' ? 's hold' : (firstWorkAct.targetType === 'failure' ? 'to failure' : 'reps');
+            const sideStr = firstWorkAct.isPerSide ? '/side' : '';
+            nextTargetDisplay = `${firstWorkAct.targetValue} ${type}${sideStr}`;
+        } else if (firstWorkAct.repsDistanceTime) {
+            nextTargetDisplay = firstWorkAct.repsDistanceTime;
+        }
+    }
+
+    const nextEq = firstWorkAct && firstWorkAct.equipmentRequired && firstWorkAct.equipmentRequired !== 'Bodyweight' && firstWorkAct.equipmentRequired !== 'None'
+        ? ` • ${firstWorkAct.equipmentRequired}` : '';
+
+    // Deterministic round recovery break
+    const roundRestDuration = getDeterministicRoundRestSeconds(state);
+
+    stage.innerHTML = `
+        <div class="flex flex-col items-center justify-center text-center p-3 sm:p-5 animate-fade-in w-full h-full my-auto gap-2 sm:gap-2.5 max-w-md mx-auto">
+            <!-- Round Complete Badge -->
+            <span class="text-[11px] sm:text-xs font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 border border-amber-500/30 px-3.5 py-1 rounded-xl shadow-sm">
+                Round ${state.currentCircuitRound} Complete
+            </span>
+
+            <!-- 2. Prominent UP NEXT Preview Card (Top Eye-Scan Zone) -->
+            <div class="w-full bg-slate-950/80 border border-amber-500/30 rounded-2xl p-3 sm:p-3.5 shadow-lg flex flex-col items-center gap-0.5">
+                <span class="text-[10px] sm:text-xs font-bold text-amber-400 uppercase tracking-wider">Up Next</span>
+                <h3 style="font-size: clamp(1.25rem, min(3.8vw, 3.5vh), 2rem);" class="font-black text-white tracking-tight leading-tight">
+                    Round ${state.currentCircuitRound + 1}: ${nextActName}
+                </h3>
+                <span class="text-xs sm:text-sm text-slate-300 font-semibold mt-0.5">
+                    ${nextTargetDisplay}${nextEq}
+                </span>
+            </div>
+
+            <!-- 3. Central 60s Countdown Ring (Tap to Play/Pause) -->
+            <div style="width: clamp(100px, min(24vw, 17vh), 140px); height: clamp(100px, min(24vw, 17vh), 140px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group my-0.5" onclick="event.stopPropagation(); toggleCockpitTimer('${stepId}', 'cockpit-circuit-icon-${stepId}');">
+                <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_20px_rgba(245,158,11,0.35)]" viewBox="0 0 36 36">
+                    <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
+                    <path id="cockpit-circuit-ring-${stepId}" class="text-amber-400 transition-all duration-200" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span id="cockpit-circuit-text-${stepId}" style="font-size: clamp(2rem, min(6vw, 4.5vh), 3.5rem);" class="font-black text-white font-mono tracking-tight leading-none">${roundRestDuration}</span>
+                    <i id="cockpit-circuit-icon-${stepId}" class="fa-solid fa-pause text-[11px] text-amber-400 opacity-80 mt-0.5"></i>
+                </div>
+            </div>
+
+            <!-- 4. Controls (Natural Thumb Zone) -->
+            <div class="flex items-center justify-center gap-3 w-full mt-0.5">
+                <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" style="font-size: clamp(0.85rem, min(1.8vw, 2vh), 1.15rem); padding: clamp(0.5rem, 1.2vh, 0.75rem) clamp(1rem, 2vw, 1.75rem);" class="bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-extrabold transition-all shadow-md active:scale-95 cursor-pointer">
+                    +15s
+                </button>
+                <button onclick="advanceCircuitRound('${stepId}')" style="font-size: clamp(0.95rem, min(2vw, 2.2vh), 1.25rem); padding: clamp(0.65rem, 1.4vh, 0.95rem) clamp(1.5rem, 2.8vw, 2.25rem);" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-[0_0_25px_rgba(99,102,241,0.5)] transition-all flex items-center gap-2 cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-play text-sm"></i> Start Round ${state.currentCircuitRound + 1}
+                </button>
+            </div>
+        </div>
+    `;
+
+    window.workoutTimer.start(roundRestDuration,
+        (remainingSec, fraction) => {
+            const textEl = document.getElementById(`cockpit-circuit-text-${stepId}`);
+            const ringEl = document.getElementById(`cockpit-circuit-ring-${stepId}`);
+            if (textEl) {
+                const m = Math.floor(remainingSec / 60);
+                const s = remainingSec % 60;
+                textEl.innerText = m > 0 ? `${m}:${s < 10 ? '0' + s : s}` : s;
+            }
+            if (ringEl) {
+                ringEl.setAttribute('stroke-dasharray', `${fraction * 100}, 100`);
+            }
+        },
+        () => {
+            advanceCircuitRound(stepId);
+        }
+    );
+}
+
+/**
+ * Handle Multi-Set Bubble Click (Straight sets)
  */
 function handleCockpitSetClick(stepId, actIdx, setIdx) {
     const state = window.workoutCockpitState[stepId];
@@ -458,7 +776,7 @@ function handleCockpitSetClick(stepId, actIdx, setIdx) {
     const act = state.activities[actIdx];
 
     if (doneSets.has(setIdx)) {
-        // UNCHECK SET: Cancel any timer, uncheck, and reset focus
+        // UNCHECK SET
         doneSets.delete(setIdx);
         state.completedActivities.delete(actIdx);
         if (window.workoutTimer) window.workoutTimer.stop();
@@ -470,34 +788,12 @@ function handleCockpitSetClick(stepId, actIdx, setIdx) {
 
     // CHECK SET
     doneSets.add(setIdx);
-
-    // Is this the final set of this movement?
     const isFinalSet = doneSets.size >= act.sets;
 
     if (isFinalSet) {
-        // Movement Finished: Skip set rest timer and patient-advance!
-        state.completedActivities.add(actIdx);
-        if (window.workoutTimer) window.workoutTimer.stop();
-
-        // Advance to next uncompleted exercise
-        let nextUncompleted = -1;
-        for (let i = 0; i < state.activities.length; i++) {
-            if (!state.completedActivities.has(i)) {
-                nextUncompleted = i;
-                break;
-            }
-        }
-
-        if (nextUncompleted !== -1) {
-            state.activeIdx = nextUncompleted;
-        }
-
-        renderCockpitHeroStage(stepId);
-        renderCockpitPlaylist(stepId);
-        updateCockpitProgressBar(stepId);
+        handleCockpitActivityFinished(stepId, actIdx);
     } else {
-        // Inter-set rest: Start 30s rest countdown with runway
-        const restSec = typeof act.restSeconds === 'number' && act.restSeconds > 0 ? act.restSeconds : 30;
+        const restSec = getDeterministicRestSeconds(state, act);
         startCockpitRestTimer(stepId, actIdx, setIdx, restSec);
         renderCockpitHeroStage(stepId);
         renderCockpitPlaylist(stepId);
@@ -506,7 +802,7 @@ function handleCockpitSetClick(stepId, actIdx, setIdx) {
 }
 
 /**
- * Start Inter-Set Rest Countdown with Large Fluid Timer Ring
+ * Start Inter-Set Rest Countdown with Large Fluid Timer Ring (3-Column layout)
  */
 function startCockpitRestTimer(stepId, actIdx, currentSetIdx, durationSec) {
     const state = window.workoutCockpitState[stepId];
@@ -522,10 +818,14 @@ function startCockpitRestTimer(stepId, actIdx, currentSetIdx, durationSec) {
             ? ` • ${act.equipmentRequired}` : '';
 
         restBox.innerHTML = `
-            <div class="flex flex-col items-center gap-2 p-3 sm:p-4 bg-slate-950/90 rounded-3xl border border-slate-800/80 shadow-2xl w-full max-w-sm sm:max-w-md">
+            <div class="flex flex-col items-center gap-2.5 p-3 sm:p-4 bg-slate-950/90 rounded-3xl border border-slate-800/80 shadow-2xl w-full max-w-sm sm:max-w-md">
+                <!-- Top Runway Badge (Eye-Level) -->
+                <div style="font-size: clamp(0.8rem, min(1.8vw, 2vh), 1rem);" class="font-bold text-indigo-200 text-center tracking-tight bg-indigo-950/60 border border-indigo-500/40 px-3.5 py-1.5 rounded-xl w-full shadow-sm">
+                    Next: Set ${nextSetNum}${eqLabel}
+                </div>
+
                 <!-- 3-Column Balanced Layout: [Left Stack: +15s & Reset] [Center: Timer Ring] [Right: Check Done] -->
                 <div class="flex items-center justify-between w-full px-2">
-                    <!-- Left Column: Utility Stack (+15s & Reset) -->
                     <div class="flex flex-col items-center gap-2 shrink-0">
                         <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" class="w-11 h-11 sm:w-12 sm:h-12 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-black text-xs transition-all shadow-md flex items-center justify-center active:scale-95 cursor-pointer" title="Add 15 Seconds">
                             +15s
@@ -535,7 +835,6 @@ function startCockpitRestTimer(stepId, actIdx, currentSetIdx, durationSec) {
                         </button>
                     </div>
 
-                    <!-- Center Column: Fluid Circular Countdown Ring (Tap to Play/Pause) -->
                     <div style="width: clamp(105px, min(26vw, 18vh), 145px); height: clamp(105px, min(26vw, 18vh), 145px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group" onclick="event.stopPropagation(); toggleCockpitTimer('${stepId}', 'cockpit-rest-icon-${stepId}');">
                         <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_15px_rgba(99,102,241,0.4)]" viewBox="0 0 36 36">
                             <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
@@ -547,17 +846,11 @@ function startCockpitRestTimer(stepId, actIdx, currentSetIdx, durationSec) {
                         </div>
                     </div>
 
-                    <!-- Right Column: Glowing Emerald Checkmark Done Button -->
                     <div class="flex items-center justify-center shrink-0">
                         <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.skip();" class="w-12 h-24 sm:w-14 sm:h-26 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center active:scale-95 cursor-pointer" title="Done / Next Set">
                             <i class="fa-solid fa-check text-xl sm:text-2xl"></i>
                         </button>
                     </div>
-                </div>
-
-                <!-- Rest Runway Identifier -->
-                <div style="font-size: clamp(0.75rem, min(1.6vw, 1.8vh), 0.95rem);" class="font-bold text-indigo-200 text-center tracking-tight bg-indigo-950/50 border border-indigo-500/30 px-3 py-1 rounded-xl w-full">
-                    Next: Set ${nextSetNum} of ${act.sets}${eqLabel}
                 </div>
             </div>
         `;
@@ -578,7 +871,6 @@ function startCockpitRestTimer(stepId, actIdx, currentSetIdx, durationSec) {
                 }
             },
             () => {
-                // Rest Finished: Hide rest box and refresh hero stage
                 renderCockpitHeroStage(stepId);
             }
         );
@@ -586,7 +878,7 @@ function startCockpitRestTimer(stepId, actIdx, currentSetIdx, durationSec) {
 }
 
 /**
- * Start Timed Hold Countdown with Large Fluid Timer Ring
+ * Start Timed Hold Countdown (e.g. Plank)
  */
 function startCockpitTimedHold(stepId, actIdx, durationSec, isPerSide, sideNum) {
     const state = window.workoutCockpitState[stepId];
@@ -600,7 +892,6 @@ function startCockpitTimedHold(stepId, actIdx, durationSec, isPerSide, sideNum) 
 
     timerBox.innerHTML = `
         <div class="flex items-center justify-between p-3 sm:p-4 bg-slate-950/90 rounded-3xl border border-slate-800/80 shadow-2xl w-full max-w-sm sm:max-w-md px-3 sm:px-4">
-            <!-- Left Column: Utility Stack (+15s & Reset) -->
             <div class="flex flex-col items-center gap-2 shrink-0">
                 <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.addTime(15);" class="w-11 h-11 sm:w-12 sm:h-12 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-black text-xs transition-all shadow-md flex items-center justify-center active:scale-95 cursor-pointer" title="Add 15 Seconds">
                     +15s
@@ -610,7 +901,6 @@ function startCockpitTimedHold(stepId, actIdx, durationSec, isPerSide, sideNum) 
                 </button>
             </div>
 
-            <!-- Center Column: Fluid Circular Countdown Ring (Tap to Play/Pause) -->
             <div style="width: clamp(105px, min(26vw, 18vh), 145px); height: clamp(105px, min(26vw, 18vh), 145px);" class="relative flex items-center justify-center shrink-0 cursor-pointer group" onclick="event.stopPropagation(); toggleCockpitTimer('${stepId}', 'cockpit-hold-icon-${stepId}');">
                 <svg class="w-full h-full transform -rotate-90 filter drop-shadow-[0_0_20px_rgba(99,102,241,0.45)]" viewBox="0 0 36 36">
                     <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5" />
@@ -622,7 +912,6 @@ function startCockpitTimedHold(stepId, actIdx, durationSec, isPerSide, sideNum) 
                 </div>
             </div>
 
-            <!-- Right Column: Glowing Emerald Checkmark Done Button -->
             <div class="flex items-center justify-center shrink-0">
                 <button onclick="event.stopPropagation(); if(window.workoutTimer) window.workoutTimer.skip();" class="w-12 h-24 sm:w-14 sm:h-26 bg-emerald-600 hover:bg-emerald-500 text-white rounded-3xl font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center active:scale-95 cursor-pointer" title="Complete / Next">
                     <i class="fa-solid fa-check text-xl sm:text-2xl"></i>
@@ -648,25 +937,10 @@ function startCockpitTimedHold(stepId, actIdx, durationSec, isPerSide, sideNum) 
         },
         () => {
             if (isPerSide && sideNum === 1) {
-                // Advance to Side 2
                 state.sideState[actIdx] = 2;
                 renderCockpitHeroStage(stepId);
             } else {
-                // Completed Hold
-                state.completedActivities.add(actIdx);
-                let nextUncompleted = -1;
-                for (let i = 0; i < state.activities.length; i++) {
-                    if (!state.completedActivities.has(i)) {
-                        nextUncompleted = i;
-                        break;
-                    }
-                }
-                if (nextUncompleted !== -1) {
-                    state.activeIdx = nextUncompleted;
-                }
-                renderCockpitHeroStage(stepId);
-                renderCockpitPlaylist(stepId);
-                updateCockpitProgressBar(stepId);
+                handleCockpitActivityFinished(stepId, actIdx);
             }
         }
     );
@@ -680,20 +954,39 @@ function handleCockpitSingleComplete(stepId, actIdx) {
     if (!state) return;
 
     if (state.completedActivities.has(actIdx)) {
+        // Redo / Uncheck
         state.completedActivities.delete(actIdx);
+        renderCockpitHeroStage(stepId);
+        renderCockpitPlaylist(stepId);
+        updateCockpitProgressBar(stepId);
     } else {
-        state.completedActivities.add(actIdx);
-        let nextUncompleted = -1;
-        for (let i = 0; i < state.activities.length; i++) {
-            if (!state.completedActivities.has(i)) {
-                nextUncompleted = i;
-                break;
-            }
-        }
-        if (nextUncompleted !== -1) {
-            state.activeIdx = nextUncompleted;
-        }
+        handleCockpitActivityFinished(stepId, actIdx);
     }
+}
+
+/**
+ * Advance to next Circuit Round
+ */
+function advanceCircuitRound(stepId) {
+    const state = window.workoutCockpitState[stepId];
+    if (!state) return;
+
+    if (window.workoutTimer) {
+        window.workoutTimer.stop();
+    }
+
+    state.currentCircuitRound++;
+    state.isTransitioning = false;
+
+    // Reset completion for WORK activities ONLY (Warmup stays marked as completed!)
+    const workIndices = getWorkActivityIndices(state);
+    workIndices.forEach(idx => {
+        state.completedActivities.delete(idx);
+        delete state.completedSets[idx];
+        delete state.sideState[idx];
+    });
+
+    state.activeIdx = workIndices[0] !== undefined ? workIndices[0] : 0;
 
     renderCockpitHeroStage(stepId);
     renderCockpitPlaylist(stepId);
@@ -701,16 +994,21 @@ function handleCockpitSingleComplete(stepId, actIdx) {
 }
 
 /**
- * Render the Bottom 50% / Right 45% Scrollable Gym Playlist with Fluid Typography
+ * Render the Bottom 50% / Right 45% Scrollable Gym Playlist
  */
 function renderCockpitPlaylist(stepId) {
     const state = window.workoutCockpitState[stepId];
     const container = document.getElementById(`cockpit-playlist-${stepId}`);
     if (!state || !container) return;
 
+    const prepIndices = getPrepActivityIndices(state);
+    const coolIndices = getCoolActivityIndices(state);
+
     container.innerHTML = state.activities.map((act, idx) => {
         const isCompleted = state.completedActivities.has(idx);
         const isActive = idx === state.activeIdx;
+        const isPrep = prepIndices.includes(idx);
+        const isCool = coolIndices.includes(idx);
 
         let rowStyle = 'bg-slate-900/60 border-slate-800 text-slate-300';
         let statusIcon = `<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs sm:text-sm text-slate-400 font-bold font-mono shrink-0">${idx + 1}</span>`;
@@ -723,12 +1021,20 @@ function renderCockpitPlaylist(stepId) {
             statusIcon = `<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-indigo-500 border border-indigo-400 flex items-center justify-center text-[10px] sm:text-xs text-white font-bold animate-pulse shrink-0"><i class="fa-solid fa-play ml-0.5"></i></span>`;
         }
 
+        // Tag label for prep / cool
+        let tagBadge = '';
+        if (isPrep) {
+            tagBadge = `<span class="text-[9px] text-amber-400/90 font-extrabold uppercase bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 mr-1.5 shrink-0">Warm-up</span>`;
+        } else if (isCool) {
+            tagBadge = `<span class="text-[9px] text-teal-400/90 font-extrabold uppercase bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/20 mr-1.5 shrink-0">Cool-down</span>`;
+        }
+
         // Subtitle
         let targetText = '';
         if (typeof act.targetValue === 'number' && act.targetValue > 0) {
             const type = act.targetType === 'seconds' ? 's hold' : (act.targetType === 'failure' ? ' to fail' : ' reps');
             const sideStr = act.isPerSide ? '/side' : '';
-            const setsStr = act.sets && act.sets > 1 ? `${act.sets}×` : '';
+            const setsStr = act.sets && act.sets > 1 && !state.isCircuit ? `${act.sets}×` : '';
             targetText = `${setsStr}${act.targetValue}${type}${sideStr}`;
         } else {
             targetText = act.repsDistanceTime || '';
@@ -739,7 +1045,10 @@ function renderCockpitPlaylist(stepId) {
                 <div class="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
                     ${statusIcon}
                     <div class="flex flex-col min-w-0 flex-1">
-                        <span class="text-xs sm:text-sm md:text-base font-bold truncate ${isActive ? 'text-indigo-200' : ''}">${act.name}</span>
+                        <div class="flex items-center min-w-0">
+                            ${tagBadge}
+                            <span class="text-xs sm:text-sm md:text-base font-bold truncate ${isActive ? 'text-indigo-200' : ''}">${act.name}</span>
+                        </div>
                         <span class="text-[11px] sm:text-xs md:text-sm text-slate-400 font-medium truncate">${targetText} ${act.equipmentRequired && act.equipmentRequired !== 'Bodyweight' && act.equipmentRequired !== 'None' ? '• ' + act.equipmentRequired : ''}</span>
                     </div>
                 </div>
@@ -760,28 +1069,6 @@ function renderCockpitPlaylist(stepId) {
             });
         }
     }, 50);
-}
-
-/**
- * Advance to next Circuit Round
- */
-function advanceCircuitRound(stepId) {
-    const state = window.workoutCockpitState[stepId];
-    if (!state) return;
-
-    if (window.workoutTimer) {
-        window.workoutTimer.stop();
-    }
-
-    state.currentCircuitRound++;
-    state.completedActivities.clear();
-    state.completedSets = {};
-    state.sideState = {};
-    state.activeIdx = 0;
-
-    renderCockpitHeroStage(stepId);
-    renderCockpitPlaylist(stepId);
-    updateCockpitProgressBar(stepId);
 }
 
 /**

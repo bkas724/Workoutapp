@@ -177,8 +177,12 @@ function sanitizeStrengthGuides(guides) {
         exercises: Array.isArray(g.exercises) ? g.exercises.map(ex => {
             const targetVal = typeof ex.targetValue === 'number' && !isNaN(ex.targetValue) ? ex.targetValue : (parseInt(ex.targetValue) || 10);
             const minTarget = typeof ex.minimumViableTarget === 'number' && !isNaN(ex.minimumViableTarget) ? ex.minimumViableTarget : (parseInt(ex.minimumViableTarget) || Math.max(1, Math.floor(targetVal / 2)));
-            const restSec = typeof ex.restSeconds === 'number' && !isNaN(ex.restSeconds) ? ex.restSeconds : (parseInt(ex.restSeconds) || 45);
-            const cRestSec = typeof ex.circuitRestSeconds === 'number' && !isNaN(ex.circuitRestSeconds) ? ex.circuitRestSeconds : (parseInt(ex.circuitRestSeconds) || 90);
+            // Deterministic rest computation (Sports science defaults)
+            const fitness = (profile && profile.fitnessLevel) ? profile.fitnessLevel.toLowerCase() : 'intermediate';
+            const defaultRest = fitness === 'beginner' ? 25 : (fitness === 'advanced' ? 10 : 15);
+            const defaultCRest = fitness === 'beginner' ? 45 : (fitness === 'advanced' ? 25 : 30);
+            const restSec = typeof ex.restSeconds === 'number' && !isNaN(ex.restSeconds) ? Math.max(5, Math.round(ex.restSeconds / 5) * 5) : defaultRest;
+            const cRestSec = typeof ex.circuitRestSeconds === 'number' && !isNaN(ex.circuitRestSeconds) ? Math.max(10, Math.round(ex.circuitRestSeconds / 5) * 5) : defaultCRest;
             const setsNum = typeof ex.sets === 'number' && !isNaN(ex.sets) ? ex.sets : (parseInt(ex.sets) || 1);
             const exKey = (ex.exerciseKey || ex.name || 'exercise').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
             return {
@@ -211,9 +215,35 @@ exports.generateWorkoutBlock = onCall({
     
     let historyContext = "No recent workout history logged yet.";
     if (history && Array.isArray(history) && history.length > 0) {
-        historyContext = history.map(h => 
-            `- ${h.workoutTitle} (${h.distanceDuration}): target=${h.targetPaceZone || 'N/A'}, actual=${h.actualLoggedPace || 'N/A'}, RPE=${h.rpeScore || 'N/A'}${h.userWorkoutNotes ? `, Notes: "${h.userWorkoutNotes}"` : ''}`
-        ).join("\n");
+        historyContext = history.map(h => {
+            const typeLabel = (h.type || h.actualActivityType || 'run').toUpperCase();
+            const catLabel = h.workoutCategory === 'intervals' ? 'INTERVALS' : (h.workoutCategory ? h.workoutCategory.toUpperCase() : 'RUN');
+            let structure = "";
+            if (h.intervalRepCount && h.intervalWorkValue) {
+                structure = `${h.intervalRepCount} x ${h.intervalWorkValue}${h.intervalWorkUnit || 'm'} (Rest: ${h.intervalRestSeconds || 60}s)`;
+            } else if (h.distanceDuration) {
+                structure = h.distanceDuration;
+            } else if (h.actualLoggedDistance) {
+                structure = `${h.actualLoggedDistance} mi`;
+            } else if (h.targetDistance) {
+                structure = `${h.targetDistance} mi`;
+            } else if (h.actualLoggedDuration) {
+                structure = `${h.actualLoggedDuration} mins`;
+            } else if (h.targetDuration) {
+                structure = `${h.targetDuration} mins`;
+            } else {
+                structure = "30 mins";
+            }
+
+            const targetPace = h.intervalTargetPace || h.targetPaceZone || 'N/A';
+            const splits = (h.repSplits && Array.isArray(h.repSplits) && h.repSplits.length > 0) ? ` | Splits=[${h.repSplits.join(', ')}]` : '';
+            const effort = h.effortZone ? `Zone ${h.effortZone}` : (h.rpeScore ? `RPE ${h.rpeScore}/10` : 'N/A');
+            const actualPace = h.actualLoggedPace ? `Actual Pace=${h.actualLoggedPace}` : 'Actual Pace=N/A';
+            const dist = h.actualLoggedDistance ? ` | Total Dist=${h.actualLoggedDistance} mi` : '';
+            const notes = h.userWorkoutNotes ? ` | Notes: "${h.userWorkoutNotes}"` : '';
+
+            return `- [${typeLabel} / ${catLabel}] "${h.workoutTitle}" (${structure}): Target Pace=${targetPace}, ${actualPace}${splits}${dist}, Effort=${effort}${notes}`;
+        }).join("\n");
     }
 
     const equipmentString = simpleMode ? "None / Bodyweight (User requested Simple Mode)" : (profile?.equipmentList && profile.equipmentList.length > 0 ? profile.equipmentList.join(', ') : 'None / Bodyweight');
@@ -274,79 +304,95 @@ ${nutInstructionBlock}
 5. CRITICAL STRENGTH WORKOUT FORMULAS:
    - For Circuit Workouts (isCircuit: true): Each exercise in strengthGuides represents volume PER ROUND. Set 'sets' to 1 on each exercise, specify total circuit rounds in 'circuitRounds' on the workout activity (e.g. 3), and set 'targetValue' to a single discrete integer (e.g. 10 reps or 30 seconds). NEVER output text ranges like '10-12 reps'.
    - For Linear Workouts (isCircuit: false): Set 'sets' on each exercise to the total number of sets (e.g. 3), set 'circuitRounds' to 0 on the workout activity, and specify 'targetValue' as a single discrete integer (e.g. 10).
-6. TIMER & EXECUTION DIRECTIVES:
-   - 'restSeconds' MUST be a single discrete integer (e.g. 45 or 60). DO NOT return text ranges like '30-45s'.
-   - 'circuitRestSeconds' MUST be a single discrete integer (e.g. 90 or 120).
+6. MOVEMENT & COACHING DIRECTIVES:
    - 'exerciseKey' MUST be a standardized lowercase snake_case movement key (e.g. 'goblet_squat', 'push_up', 'plank', 'reverse_lunge', 'dumbbell_row').
    - 'equipmentRequired' MUST be strictly chosen from their Available Equipment list (e.g. 'Dumbbells', 'Bodyweight').
    - 'coachingCue' MUST be 1 short, actionable form tip focusing on bio-mechanics and taking any reported acute injuries into account.
 7. Time Constraints: The user has a daily time limit of ${profile?.desiredWorkoutLength || 'Unlimited'} minutes. Keep total duration within their limit.
 8. CRITICAL 'type' Validation: The 'type' field of a workout MUST be exactly one of these strings: "run", "walk", "bike", "swim", "easy", "fast", "long", "tempo", "interval", "recovery", "base", "aerobic", "strength", "rest". Do not invent new types.
-9. CRITICAL STRIDES & INTERVAL REPS RULE: For any secondary running activity such as Strides, Sprints, Intervals, Hill Repeats, or Short Reps (e.g. 'Strides', 'Hill Sprints'), you MUST explicitly state the REP COUNT at the start of 'repsDistanceTime' (e.g. '4 x 100m at ~80% effort', '6 x 200m'). NEVER return a single distance string without the rep count (e.g. NEVER output '100m at ~80% effort' alone).
-10. BEGINNER & RECOVERY PACING RULE: If the user's primary goal is 'health' or 'recovery', or fitness level is beginner, DO NOT enforce rigid numerical MM:SS paces in targetPaceZone. Always prescribe clear, comfortable targetDistance (in miles) or targetDuration (in minutes), but use qualitative targetPaceZone descriptions such as "Easy Walk", "Brisk Walk", "Conversational Jog", or "Active Flush".
+9. CRITICAL STRUCTURED INTERVAL DIRECTIVE: For any interval, track, tempo interval, or speed session (where workoutCategory is 'intervals' or type is 'interval'/'tempo'/'fast' with reps):
+   - You MUST set 'intervalRepCount' to the integer rep count (e.g. 3, 5, 8).
+   - You MUST set 'intervalType' to 'time' or 'distance'.
+   - You MUST set 'intervalWorkValue' (e.g. 5 for 5 mins, 400 for 400m, 1000 for 1000m, 1.5 for 1.5 miles).
+   - You MUST set 'intervalWorkUnit' ('mins', 'seconds', 'm', 'km', 'mi').
+   - You MUST set 'intervalRestSeconds' (e.g. 120 for 2 min rest, 90 for 90s rest, 60 for 1 min rest).
+   - You MUST set 'intervalTargetPace' to a SINGLE discrete target pace in MM:SS format (e.g. '7:08'). NEVER return a range like '7:00-7:15'. If you calculate a range, return the exact midpoint integer.
+   - In 'repsDistanceTime' on the work activity, state the structure clearly (e.g. '5 mins @ 7:08 (2 min rest)').
+10. SINGLE TARGET PACE DIRECTIVE: Whenever specifying a target pace (in 'targetPaceZone' or 'intervalTargetPace'), you MUST output a SINGLE discrete target pace in MM:SS format (e.g. '7:08', '8:15'). NEVER return a range like '7:00-7:15'. Return the exact midpoint.
+11. BEGINNER & RECOVERY PACING RULE: If the user's primary goal is 'health' or 'recovery', or fitness level is beginner, DO NOT enforce rigid numerical MM:SS paces in targetPaceZone. Always prescribe clear, comfortable targetDistance (in miles) or targetDuration (in minutes), but use qualitative targetPaceZone descriptions such as "Easy Walk", "Brisk Walk", "Conversational Jog", or "Active Flush".
+12. TARGET RPE DIRECTIVE: Assign a 'targetRPE' property to EVERY workout object as a single integer from 1 to 5 (1=Recovery/Restful, 2=Easy/Conversational, 3=Moderate/Steady, 4=Hard/Threshold, 5=Max Effort/Failure).
 
-287: 11. TARGET RPE DIRECTIVE: Assign a 'targetRPE' property to EVERY workout object as a single integer from 1 to 5 (1=Recovery/Restful, 2=Easy/Conversational, 3=Moderate/Steady, 4=Hard/Threshold, 5=Max Effort/Failure).
-288: 
-289: Return ONLY a valid JSON object matching this exact structure:
-290: {
-291:   "workouts": [
-292:     {
-293:       "id": "act-X",
-294:       "phaseNumber": ${phaseIndex || 1},
-295:       "sequenceOrder": 1,
-296:       "workoutTitle": "String",
-297:       "type": "String (MUST be exactly one of the validated types above)",
-298:       "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training')",
-299:       "targetRPE": "Number (Integer 1 to 5)",
-300:       "isSpeedWorkout": Boolean,
-301:       "isBenchmark": Boolean,
-302:       "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
-303:       "targetDuration": "Number (Target duration in minutes, if applicable, e.g., 45 or 60)",
-304:       "targetInstructions": "String (Keep under 100 characters)",
-305:       "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: easy, goal, tempo, long, or null)",
-306:       "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
-307:       "strengthGuideReference": "String (e.g. 'A')",
-308:       "activities": [
-309:         {
-310:           "name": "String (e.g., Warmup, Strength Circuit A)",
-311:           "type": "String (prep, work, cool)",
-312:           "sets": Number,
-313:           "repsDistanceTime": "String",
-314:           "isCircuit": Boolean,
-315:           "circuitRounds": Number
-316:         }
-317:       ]
-318:     }
-319:   ],
-320:   "strengthGuides": [
-321:     {
-322:       "id": "String (e.g., 'A', 'B', 'C')",
-323:       "title": "String (e.g. Hip Stability)",
-324:       "exercises": [
-325:         {
-326:           "name": "String (e.g. Goblet Squats)",
-327:           "exerciseKey": "String (lowercase_snake_case e.g. goblet_squat)",
-328:           "targetType": "String ('reps', 'seconds', 'failure')",
-329:           "targetValue": Number,
-330:           "minimumViableTarget": Number,
-331:           "isPerSide": Boolean,
-332:           "sets": Number,
-333:           "restSeconds": Number,
-334:           "circuitRestSeconds": Number,
-335:           "equipmentRequired": "String (e.g. Dumbbells, Bodyweight)",
-336:           "coachingCue": "String (1 short actionable form tip)",
-337:           "description": "String (1-2 sentence overview)",
-338:           "setsReps": "String (Standardized fallback string e.g. '10 reps')"
-339:         }
-340:       ]
-341:     }
-342:   ],
-343:   "healthInsights": {
-344:     "movementTip": "String",
-345:     "hydrationRecovery": "String",
-346:     ${nutSchemaBlock}
-347:   }
-348: }`;
+Return ONLY a valid JSON object matching this exact structure:
+{
+  "workouts": [
+    {
+      "id": "act-X",
+      "phaseNumber": ${phaseIndex || 1},
+      "sequenceOrder": 1,
+      "workoutTitle": "String",
+      "type": "String (MUST be exactly one of the validated types above)",
+      "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training')",
+      "targetRPE": "Number (Integer 1 to 5)",
+      "isSpeedWorkout": Boolean,
+      "isBenchmark": Boolean,
+      "intervalRepCount": "Number or null (e.g. 3, 5, 8 if interval session, else null)",
+      "intervalType": "String or null ('time' or 'distance' if interval session, else null)",
+      "intervalWorkValue": "Number or null (e.g. 5, 400, 1000, else null)",
+      "intervalWorkUnit": "String or null ('mins', 'seconds', 'm', 'km', 'mi', else null)",
+      "intervalRestSeconds": "Number or null (Rest duration in seconds between reps, e.g. 120, 90, 60, else null)",
+      "intervalTargetPace": "String or null (Single target pace in MM:SS format, e.g. '7:08', else null)",
+      "targetDistance": "Number (Target distance in miles, if applicable, e.g., 3.0 or 4.5)",
+      "targetDuration": "Number (Target duration in minutes, if applicable, e.g., 45 or 60)",
+      "targetInstructions": "String (Keep under 100 characters)",
+      "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: single MM:SS pace like '7:08', or easy, goal, tempo, long, or null)",
+      "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
+      "strengthGuideReference": "String (e.g. 'A')",
+      "activities": [
+        {
+          "name": "String (e.g., Dynamic Warmup, Tempo Intervals, Strength Circuit A)",
+          "type": "String (prep, work, cool)",
+          "sets": Number,
+          "targetType": "String ('time', 'distance', 'reps', 'seconds')",
+          "targetValue": Number,
+          "targetUnit": "String ('mins', 'm', 'km', 'mi', 'seconds', 'reps')",
+          "restSeconds": Number,
+          "targetPace": "String (Single MM:SS e.g. '7:08' or null)",
+          "repsDistanceTime": "String (e.g. '5 mins @ 7:08 (2 min rest)')",
+          "isCircuit": Boolean,
+          "circuitRounds": Number
+        }
+      ]
+    }
+  ],
+  "strengthGuides": [
+    {
+      "id": "String (e.g., 'A', 'B', 'C')",
+      "title": "String (e.g. Hip Stability)",
+      "exercises": [
+        {
+          "name": "String (e.g. Goblet Squats)",
+          "exerciseKey": "String (lowercase_snake_case e.g. goblet_squat)",
+          "targetType": "String ('reps', 'seconds', 'failure')",
+          "targetValue": Number,
+          "minimumViableTarget": Number,
+          "isPerSide": Boolean,
+          "sets": Number,
+          "restSeconds": Number,
+          "circuitRestSeconds": Number,
+          "equipmentRequired": "String (e.g. Dumbbells, Bodyweight)",
+          "coachingCue": "String (1 short actionable form tip)",
+          "description": "String (1-2 sentence overview)",
+          "setsReps": "String (Standardized fallback string e.g. '10 reps')"
+        }
+      ]
+    }
+  ],
+  "healthInsights": {
+    "movementTip": "String",
+    "hydrationRecovery": "String",
+    ${nutSchemaBlock}
+  }
+}`;
 
     try {
         const model = ai.getGenerativeModel({ 
@@ -559,8 +605,6 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
           "minimumViableTarget": Number,
           "isPerSide": Boolean,
           "sets": Number,
-          "restSeconds": Number,
-          "circuitRestSeconds": Number,
           "equipmentRequired": "String (e.g. Dumbbells)",
           "coachingCue": "String (1 short actionable form tip)",
           "description": "String",
@@ -673,6 +717,7 @@ ${profileContext?.currentBlock ? JSON.stringify(profileContext.currentBlock) : "
 
 Please generate a short, complimentary session tailored to this week's active block.
 For example, if the type is "yoga" or "stretching", provide a recovery/mobility flow. If the type is "core", provide a quick core circuit. If the type is "run", provide a very easy recovery or short interval run depending on what they are lacking this week.
+CRITICAL TARGET PACE DIRECTIVE: If specifying a target pace, output a SINGLE discrete target pace in MM:SS format (e.g. '7:08'). NEVER return a range like '7:00-7:15'. Return the exact midpoint.
 
 Return ONLY a valid JSON object exactly in this format without any markdown wrappers or additional text:
 {
@@ -682,18 +727,29 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
     "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training'. NOTE: If a run is mostly a continuous distance run but ends with short strides, categorize it as 'continuous_run')",
     "isSpeedWorkout": false,
     "isBenchmark": false,
+    "intervalRepCount": "Number or null (e.g. 3, 5, 8 if interval session, else null)",
+    "intervalType": "String or null ('time' or 'distance' if interval session, else null)",
+    "intervalWorkValue": "Number or null (e.g. 5, 400, 1000, else null)",
+    "intervalWorkUnit": "String or null ('mins', 'seconds', 'm', 'km', 'mi', else null)",
+    "intervalRestSeconds": "Number or null (e.g. 120, 90, 60, else null)",
+    "intervalTargetPace": "String or null (Single target pace in MM:SS format, e.g. '7:08', else null)",
     "distanceDuration": "String (e.g., 15 mins, or 2.0 mi in 20 mins)",
     "targetDistance": "Number (Optional)",
     "targetDuration": "Number (Optional)",
     "targetInstructions": "String (Keep under 100 characters)",
-    "targetPaceZone": "String (Optional, for running: easy, goal, tempo, long, or null)",
+    "targetPaceZone": "String (Optional, for running: single MM:SS pace like '7:08', or easy, goal, tempo, long, or null)",
     "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
     "activities": [
       {
         "name": "String (e.g., Warmup, Interval, Squats)",
         "type": "String (prep, work, cool)",
         "sets": Number,
-        "repsDistanceTime": "String (e.g., 10 reps, 400m, 5 mins)",
+        "targetType": "String ('time', 'distance', 'reps', 'seconds')",
+        "targetValue": Number,
+        "targetUnit": "String ('mins', 'm', 'km', 'mi', 'seconds', 'reps')",
+        "restSeconds": Number,
+        "targetPace": "String (Single MM:SS e.g. '7:08' or null)",
+        "repsDistanceTime": "String (e.g., 10 reps, 400m @ 1:30, 5 mins @ 7:08)",
         "isCircuit": Boolean,
         "circuitRounds": Number
       }
@@ -822,7 +878,15 @@ Current Workout Being Replaced:
 Athlete's Adjustment Request / Context:
 "${userNotes}"
 
-Generate a single replacement workout object that directly fulfills their request (e.g., if they asked for non-impact cardio, shorter duration, or specific leg soreness adaptation). Keep targetInstructions under 100 characters.
+Generate a single replacement workout object that directly fulfills their request (e.g., if they asked for non-impact cardio, shorter duration, specific leg soreness adaptation, or a structured interval/tempo session). Keep targetInstructions under 100 characters.
+CRITICAL TARGET PACE DIRECTIVE: If specifying a target pace (in 'targetPaceZone' or 'intervalTargetPace'), you MUST output a SINGLE discrete target pace in MM:SS format (e.g. '7:08'). NEVER return a range like '7:00-7:15'. Return the exact midpoint.
+CRITICAL STRUCTURED INTERVAL DIRECTIVE: If generating an interval or tempo workout (workoutCategory: 'intervals'):
+- Set 'intervalRepCount' to the integer rep count (e.g. 3, 5, 8).
+- Set 'intervalType' to 'time' or 'distance'.
+- Set 'intervalWorkValue' (e.g. 5 for 5 mins, 400 for 400m).
+- Set 'intervalWorkUnit' ('mins', 'seconds', 'm', 'km', 'mi').
+- Set 'intervalRestSeconds' (e.g. 120, 90, 60).
+- Set 'intervalTargetPace' (single MM:SS e.g. '7:08').
 
 Return ONLY a valid JSON object matching exactly this structure without any markdown wrappers or text:
 {
@@ -835,18 +899,29 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
     "workoutCategory": "String (MUST be exactly one of: continuous_run, intervals, strength, rest, cross_training)",
     "isSpeedWorkout": Boolean,
     "isBenchmark": Boolean,
+    "intervalRepCount": "Number or null (e.g. 3, 5, 8 if intervals, else null)",
+    "intervalType": "String or null ('time' or 'distance' if intervals, else null)",
+    "intervalWorkValue": "Number or null (e.g. 5, 400, 1000, else null)",
+    "intervalWorkUnit": "String or null ('mins', 'seconds', 'm', 'km', 'mi', else null)",
+    "intervalRestSeconds": "Number or null (e.g. 120, 90, 60, else null)",
+    "intervalTargetPace": "String or null (Single target pace in MM:SS format, e.g. '7:08', else null)",
     "targetDistance": "Number (or null)",
     "targetDuration": "Number (or null)",
     "targetInstructions": "String (under 100 chars)",
-    "targetPaceZone": "String (or null)",
+    "targetPaceZone": "String (Single MM:SS e.g. '7:08', or easy, goal, tempo, long, or null)",
     "jitPreparationTip": "String",
     "strengthGuideReference": null,
     "activities": [
       {
-        "name": "String",
-        "type": "work",
-        "sets": 1,
-        "repsDistanceTime": "String"
+        "name": "String (e.g., Warmup, Tempo Intervals, Cooldown)",
+        "type": "String (prep, work, cool)",
+        "sets": Number,
+        "targetType": "String ('time', 'distance', 'reps', 'seconds')",
+        "targetValue": Number,
+        "targetUnit": "String ('mins', 'm', 'km', 'mi', 'seconds', 'reps')",
+        "restSeconds": Number,
+        "targetPace": "String (Single MM:SS e.g. '7:08' or null)",
+        "repsDistanceTime": "String (e.g., 5 mins @ 7:08 (2 min rest))"
       }
     ]
   }
