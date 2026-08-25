@@ -80,10 +80,10 @@ The application navigation is organized into clean visual views (tabs):
 **Goal**: Serve as your primary daily cockpit—giving you immediate clarity on today's single focus without overanalysis.
 
 * **Mindset Kick (Motivational Popup)**: A floating mindset banner delivering punchy, funny, anti-excuse sayings (e.g., *"You can suck, but you can't skip."*, *"I wonder what would happen if you worked out today."*). Automatically surfaces once per week using a non-repeating shuffle rotation, equipped with a 🎲 roll button to cycle sayings on demand and a 1-tap dismiss.
-* **Up-Next Action Card**: Displays the immediate workout queued by the JIT engine, highlighting target pace, exact duration, workout type, movement prep tips, and pre-run notes.
-* **Big Checkmark Box (Quick Complete)**: A single-click completion button located right on the action card. If you followed the coach's recommendation pretty closely, click this box to log the workout using the coach's target default metrics instantly—requiring zero typing and zero entry friction.
+* **Up-Next Action Card**: Displays the immediate workout queued by the JIT engine, highlighting target pace, exact duration, workout type, movement prep tips, a dynamic **Prescription Subtitle** (e.g. `5x 800m • Target ~7:15/mi`, `4.5 Miles • Target ~8:15/mi`, or `Circuit Routine • 3 Rounds`), and pre-run notes.
+* **Big Checkmark Box (Quick Complete)**: A single-click completion button located right on the action card. Because the card header provides full prescriptive context upfront, clicking this box logs the workout using the coach's target default metrics instantly with **zero typing** and zero friction.
 * **Daily Fuel & Nutrition Strategy Card**: Provides recommended nutrition guidelines (Rest, Light, or Hard day strategy) tuned to your daily workout volume.
-* **Gatekeeper Form Modal**: An interactive logging option for entering precise custom paces, split times, RPE scores, or conversational notes.
+* **Inline Gatekeeper Form & Morphing Station**: An interactive inline logging drawer for entering precise custom paces, split times, RPE scores, heart rate, or notes. When expanded, the top action station cleanly morphs into **Submit** and **Cancel** buttons, eliminating clutter and preserving screen space. An ergonomic full-width **Submit Workout Metrics** action bar is also anchored at the bottom of the drawer for easy one-handed mobile logging.
 * **Sync Badge**: Real-time indicator displaying live connection state with the Firestore database (`Syncing`, `Synced`, `Offline`).
 
 ### 3.2 Training Journey & Timeline (`tab-journey`)

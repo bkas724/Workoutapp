@@ -502,6 +502,42 @@ function renderNextActivityCard() {
 
                                     <!-- Workout Title -->
                                     <h2 class="text-lg md:text-xl font-black text-white tracking-tight leading-snug line-clamp-2" title="${nextStep.workoutTitle}">${nextStep.workoutTitle}</h2>
+                                    ${(() => {
+                                        let prescriptionSubtitle = "";
+                                        if (nextStep.type === 'rest') {
+                                            prescriptionSubtitle = "Rest & Muscle Recovery";
+                                        } else {
+                                            const intervalMeta = (typeof getIntervalMetadata === 'function') ? getIntervalMetadata(nextStep) : null;
+                                            if (intervalMeta && intervalMeta.repCount && intervalMeta.repDistance) {
+                                                const paceStr = intervalMeta.targetPace ? ` • Target ~${intervalMeta.targetPace}/mi` : '';
+                                                prescriptionSubtitle = `${intervalMeta.repCount}x ${intervalMeta.repDistance}${paceStr}`;
+                                            } else if (nextStep.targetDistance) {
+                                                let paceHint = "";
+                                                if (nextStep.targetPaceZone) {
+                                                    const midPace = typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(nextStep.targetPaceZone) : nextStep.targetPaceZone;
+                                                    if (midPace && midPace.includes(':')) {
+                                                        paceHint = ` • Target ~${midPace}/mi`;
+                                                    }
+                                                }
+                                                prescriptionSubtitle = `${nextStep.targetDistance} Miles${paceHint}`;
+                                            } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
+                                                const isCirc = !!(nextStep.isCircuit || (typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 1));
+                                                const rounds = typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 0 ? nextStep.circuitRounds : 3;
+                                                prescriptionSubtitle = isCirc 
+                                                    ? `Circuit Routine • ${rounds} Rounds`
+                                                    : (nextStep.strengthGuideReference ? `Strength Guide ${nextStep.strengthGuideReference}` : "Strength & Core Session");
+                                            } else if (nextStep.targetDuration) {
+                                                prescriptionSubtitle = `${nextStep.targetDuration} mins prescribed`;
+                                            }
+                                        }
+
+                                        return prescriptionSubtitle ? `
+                                        <p class="text-[11px] sm:text-xs text-indigo-300/80 font-medium font-mono mt-0.5 truncate flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0"></span>
+                                            <span>${prescriptionSubtitle}</span>
+                                        </p>
+                                        ` : '';
+                                    })()}
                                 </div>
 
                                 <!-- Right Section: Action Controls Station (Stacked Checkbox + Log Button on Mobile, Horizontal on Desktop) -->
@@ -517,7 +553,7 @@ function renderNextActivityCard() {
                                     <button id="log-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}');" class="w-12 h-8 md:w-auto md:px-3.5 md:py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-95">
                                         <span class="hidden md:inline-block"><i class="fa-solid fa-sliders text-[11px] mr-1"></i></span><span>Log</span>
                                     </button>
-                                    <button id="cancel-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="hidden w-12 h-8 md:w-auto md:px-3 md:py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer active:scale-95" title="Cancel">
+                                    <button id="cancel-btn-${nextStep.id}" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="hidden w-12 h-7 md:w-auto md:px-3 md:py-1.5 bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700/60 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center cursor-pointer active:scale-95" title="Cancel">
                                         <span class="hidden md:inline-block"><i class="fa-solid fa-xmark text-xs mr-1"></i></span><span>Cancel</span>
                                     </button>
                                     `}
@@ -692,6 +728,16 @@ function renderNextActivityCard() {
                                         `}
                                         <p id="workout-file-status-${nextStep.id}" class="text-[10px] text-slate-500 font-semibold italic ml-1 mt-2 hidden"></p>
                                         <p id="gatekeeper-warn-${nextStep.id}" class="text-[11px] text-rose-450 mt-2 font-medium hidden">⚠️ Please ensure all fields are valid before submitting.</p>
+                                        
+                                        <!-- Bottom Ergonomic Form Actions (Submit & Cancel) -->
+                                        <div class="flex items-center gap-2 mt-2 pt-3 border-t border-slate-800/80 w-full">
+                                            <button type="button" onclick="event.stopPropagation(); submitWorkout('${nextStep.id}', ${isBenchmark}, '${nextStep.type}');" class="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-emerald-950/40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
+                                                <i class="fa-solid fa-check text-xs"></i> Submit Workout Metrics
+                                            </button>
+                                            <button type="button" onclick="event.stopPropagation(); toggleGatekeeper('${nextStep.id}', false);" class="py-2.5 px-3.5 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-98">
+                                                Cancel
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -869,25 +915,27 @@ function renderNextActivityCard() {
                     
                     <!-- VIEW 1: WORKOUT LIST (CLEAN BRIEFING OVERVIEW) -->
                     <div id="workout-list-view-${nextStep.id}" class="flex flex-col h-full w-full relative overflow-hidden">
-                        <!-- Sticky Spacious Top Header Bar -->
-                        <div class="sticky top-0 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-4 sm:p-5 flex items-center justify-between z-30 shrink-0">
-                            <div class="flex items-center gap-3 min-w-0 flex-1 mr-3">
-                                <div class="w-8 h-8 shrink-0 text-indigo-400 flex items-center justify-center">${iconSVG}</div>
-                                <div class="flex flex-col min-w-0 flex-1">
-                                    <h2 class="text-base sm:text-lg font-black text-white tracking-tight truncate">${nextStep.workoutTitle}</h2>
-                                    <div class="flex items-center gap-2 text-[11px] font-bold text-slate-400 font-mono">
-                                        <span>${displayActivities.length} Movements</span>
-                                        ${isCircuit ? `<span class="text-amber-400">• ${circuitRounds} Rounds Circuit</span>` : ''}
+                        <!-- Top Header Bar -->
+                        <div class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-4 sm:p-5 z-30 shrink-0">
+                            <div class="max-w-2xl mx-auto w-full flex items-center justify-between">
+                                <div class="flex items-center gap-3 min-w-0 flex-1 mr-3">
+                                    <div class="w-8 h-8 shrink-0 text-indigo-400 flex items-center justify-center">${iconSVG}</div>
+                                    <div class="flex flex-col min-w-0 flex-1">
+                                        <h2 class="text-base sm:text-lg font-black text-white tracking-tight truncate">${nextStep.workoutTitle}</h2>
+                                        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-400 font-mono">
+                                            <span>${displayActivities.length} Movements</span>
+                                            ${isCircuit ? `<span class="text-amber-400">• ${circuitRounds} Rounds Circuit</span>` : ''}
+                                        </div>
                                     </div>
                                 </div>
+                                <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden')" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-slate-800/90 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700 shrink-0 cursor-pointer">
+                                    <i class="fa-solid fa-times text-sm"></i>
+                                </button>
                             </div>
-                            <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden')" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-slate-800/90 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700 shrink-0 cursor-pointer">
-                                <i class="fa-solid fa-times text-sm"></i>
-                            </button>
                         </div>
 
-                        <!-- Scrollable List Body (with pb-28 so content clears bottom action dock) -->
-                        <div class="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto w-full flex-1 overflow-y-auto pb-28">
+                        <!-- Scrollable List Body (Cleanly scrolls above bottom dock) -->
+                        <div class="p-4 sm:p-6 md:p-8 max-w-2xl mx-auto w-full flex-1 overflow-y-auto min-h-0">
                             ${nextStep.targetInstructions ? `
                             <div class="mb-4 bg-slate-900/50 p-3.5 sm:p-4 rounded-2xl border border-slate-800/70 shadow-sm">
                                 <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">${nextStep.targetInstructions}</p>
@@ -918,19 +966,21 @@ function renderNextActivityCard() {
                             </div>
                         </div>
 
-                        <!-- Fixed Ergonomic Bottom Action Dock (Natural Thumb Reach) -->
-                        <div class="absolute bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 p-3.5 sm:p-4 z-40 flex items-center justify-between gap-3 shadow-2xl">
-                            <!-- Left: Log Activity Directly -->
-                            <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden'); toggleGatekeeper('${nextStep.id}', true)" class="flex-1 sm:flex-initial px-4 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-sm">
-                                <i class="fa-solid fa-clipboard-check text-slate-400"></i> Log Activity
-                            </button>
+                        <!-- Docked Ergonomic Bottom Action Bar (Natural Thumb Reach) -->
+                        <div class="bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 p-3.5 sm:p-4 z-30 shrink-0 shadow-2xl">
+                            <div class="max-w-2xl mx-auto w-full flex items-center justify-between gap-3">
+                                <!-- Left: Log Activity Directly -->
+                                <button onclick="document.getElementById('workout-modal-${nextStep.id}').classList.add('hidden'); toggleGatekeeper('${nextStep.id}', true)" class="flex-1 sm:flex-initial px-4 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-sm">
+                                    <i class="fa-solid fa-clipboard-check text-slate-400"></i> Log Activity
+                                </button>
 
-                            <!-- Right: Start Workout Cockpit (Primary) -->
-                            ${hasActivities ? `
-                            <button onclick="startWorkoutCockpit('${nextStep.id}', 0)" class="flex-1 sm:flex-initial min-w-[150px] sm:min-w-[180px] px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm rounded-2xl shadow-[0_0_25px_rgba(99,102,241,0.45)] transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
-                                <i class="fa-solid fa-play text-xs text-indigo-200"></i> Start Workout
-                            </button>
-                            ` : ''}
+                                <!-- Right: Start Workout Cockpit (Primary) -->
+                                ${hasActivities ? `
+                                <button onclick="startWorkoutCockpit('${nextStep.id}', 0)" class="flex-1 sm:flex-initial min-w-[150px] sm:min-w-[180px] px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm rounded-2xl shadow-[0_0_25px_rgba(99,102,241,0.45)] transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+                                    <i class="fa-solid fa-play text-xs text-indigo-200"></i> Start Workout
+                                </button>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
 
@@ -951,7 +1001,7 @@ function renderNextActivityCard() {
                         </div>
 
                         <!-- 50/50 Body: Top Playlist (Eye-Level) & Bottom Hero Stage (Natural Thumb Zone) -->
-                        <div class="flex-1 flex flex-col md:flex-row overflow-hidden w-full">
+                        <div class="flex-1 flex flex-col md:flex-row overflow-hidden w-full min-h-0">
                             
                             <!-- TOP ON MOBILE / RIGHT ON DESKTOP: SCROLLABLE PLAYLIST -->
                             <div class="h-[44%] md:h-full md:w-[45%] md:order-2 bg-slate-950 flex flex-col overflow-hidden border-b md:border-b-0 md:border-l border-slate-800">
@@ -969,7 +1019,7 @@ function renderNextActivityCard() {
                                 <!-- Populated dynamically by renderCockpitHeroStage() -->
                             </div>
 
-                        </div></div>
+                        </div>
                     </div>
                 </div>
                 `;

@@ -67,6 +67,7 @@ function toggleGatekeeper(id, forceShow) {
                 if (rightCol) rightCol.classList.remove('hidden');
                 if (prepTip) prepTip.classList.add('hidden');
                 if (cardBody) cardBody.classList.remove('hidden');
+                if (quickBtn) quickBtn.classList.add('hidden');
                 if (workout) {
                     const intervalMeta = getIntervalMetadata(workout);
                     const intervalContainer = document.getElementById(`interval-splits-container-${id}`);
@@ -102,7 +103,7 @@ function toggleGatekeeper(id, forceShow) {
 
                 if (logBtn) {
                     logBtn.innerHTML = '<span class="hidden md:inline-block"><i class="fa-solid fa-check text-xs mr-1"></i></span><span>Submit</span>';
-                    logBtn.className = "w-12 h-8 md:w-auto md:px-4 md:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1 active:scale-95";
+                    logBtn.className = "w-12 h-10 md:w-auto md:px-4 md:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1 active:scale-95";
                     const isBenchmark = workout ? workout.isBenchmark : false;
                     const type = workout ? workout.type : 'easy';
                     logBtn.onclick = function (e) {
@@ -112,6 +113,8 @@ function toggleGatekeeper(id, forceShow) {
                 }
 
                 if (cancelBtn) {
+                    cancelBtn.innerHTML = '<span class="hidden md:inline-block"><i class="fa-solid fa-xmark text-xs mr-1"></i></span><span>Cancel</span>';
+                    cancelBtn.className = "w-12 h-7 md:w-auto md:px-3 md:py-1.5 bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700/60 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center cursor-pointer active:scale-95";
                     cancelBtn.classList.remove('hidden');
                 }
 
