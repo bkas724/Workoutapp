@@ -205,17 +205,17 @@
                         <i class="fa-solid fa-pen text-[10px]"></i>
                         <span class="hidden sm:inline uppercase text-[10px] tracking-wider">Edit</span>
                     </button>
-                    <button onclick="signOut()"
-                        class="p-1.5 sm:px-2.5 sm:py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
-                        title="Sign Out">
-                        <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
-                        <span class="hidden sm:inline uppercase text-[10px] tracking-wider">Sign Out</span>
-                    </button>
                     <button onclick="startAppTour(true)"
                         class="p-1.5 sm:px-2.5 sm:py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
                         title="Replay App Tour">
                         <i class="fa-solid fa-compass text-[10px]"></i>
                         <span class="hidden sm:inline uppercase text-[10px] tracking-wider">Tour</span>
+                    </button>
+                    <button onclick="signOut()"
+                        class="p-1.5 sm:px-2.5 sm:py-1 rounded bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition-all text-xs font-bold cursor-pointer"
+                        title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket text-[10px]"></i>
+                        <span class="hidden sm:inline uppercase text-[10px] tracking-wider">Sign Out</span>
                     </button>
                 </div>
 
@@ -262,21 +262,27 @@
         <!-- Home Weight Logging Reminder Banner (Shown when > 2 days since last weight log) -->
         <div class="tab-content tab-home block">
             <div id="home-weight-reminder-banner"
-                class="hidden mb-6 bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg transition-all duration-300">
-                <div class="flex items-center gap-3">
-                    <div class="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-                        <i class="fa-solid fa-scale-unbalanced text-lg"></i>
+                class="hidden mb-4 bg-slate-900/90 border border-amber-500/30 rounded-xl px-3.5 py-2.5 flex-row items-center justify-between gap-3 shadow-md transition-all duration-300">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20 shrink-0">
+                        <i class="fa-solid fa-scale-unbalanced text-sm"></i>
                     </div>
-                    <div>
-                        <h4 class="font-bold text-sm text-slate-100">Weight Logging Reminder</h4>
-                        <p class="text-xs text-slate-400">You haven't logged your weight in over 2 days. Keep your trend
-                            engine accurate!</p>
+                    <div class="min-w-0">
+                        <h4 class="font-bold text-xs sm:text-sm text-slate-100 truncate">Weight Check-in</h4>
+                        <p class="text-[11px] text-slate-400 truncate hidden sm:block">Keep your trend engine and VDOT calibration accurate.</p>
                     </div>
                 </div>
-                <button onclick="openLogWeightModal()"
-                    class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-plus"></i> Log Weight
-                </button>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="openLogWeightModal()"
+                        class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-[11px] sm:text-xs px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Log Weight
+                    </button>
+                    <button onclick="dismissHomeWeightReminder(event)"
+                        class="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        title="Dismiss for this session">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
             </div>
         </div>
 

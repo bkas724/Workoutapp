@@ -1,4 +1,8 @@
 window.openLogWeightModal = function () {
+                if (window._weightReminderTimer) {
+                    clearTimeout(window._weightReminderTimer);
+                    window._weightReminderTimer = null;
+                }
                 const modal = document.getElementById('log-weight-modal');
                 if (!modal) return;
                 const todayStr = new Date().toISOString().split('T')[0];
@@ -952,6 +956,18 @@ function checkWeightReminderBanner(data) {
                 if (!banner) return;
                 if (!data) return;
 
+                if (window._weightReminderTimer) {
+                    clearTimeout(window._weightReminderTimer);
+                    window._weightReminderTimer = null;
+                }
+
+                // If user dismissed in this session, keep hidden
+                if (sessionStorage.getItem('weight_reminder_dismissed') === 'true') {
+                    banner.classList.add('hidden');
+                    banner.classList.remove('flex', 'block');
+                    return;
+                }
+
                 // Off by default unless explicitly enabled in profile settings
                 const enabled = !!data.notificationsEnabled;
                 if (!enabled) {
@@ -974,31 +990,69 @@ function checkWeightReminderBanner(data) {
                     if (!isNaN(t) && t > lastLogTime) lastLogTime = t;
                 }
 
+                let shouldShow = false;
                 if (lastLogTime === 0) {
-                    banner.classList.remove('hidden');
-                    banner.classList.add('flex');
-                    return;
+                    shouldShow = true;
+                } else {
+                    // Calculate calendar day difference using local midnight boundaries
+                    const now = new Date();
+                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                    const lastLogDateObj = new Date(lastLogTime);
+                    const lastLogStart = new Date(lastLogDateObj.getFullYear(), lastLogDateObj.getMonth(), lastLogDateObj.getDate()).getTime();
+                    const calendarDaysDiff = Math.floor((todayStart - lastLogStart) / (24 * 60 * 60 * 1000));
+                    shouldShow = calendarDaysDiff > 2;
                 }
 
-                // Calculate calendar day difference using local midnight boundaries
-                const now = new Date();
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
-                const lastLogDateObj = new Date(lastLogTime);
-                const lastLogStart = new Date(lastLogDateObj.getFullYear(), lastLogDateObj.getMonth(), lastLogDateObj.getDate()).getTime();
-
-                const calendarDaysDiff = Math.floor((todayStart - lastLogStart) / (24 * 60 * 60 * 1000));
-                console.log("[Weight Reminder Debug] Evaluated banner. Last log date:", new Date(lastLogTime).toLocaleDateString(), "| Days diff:", calendarDaysDiff, "| Showing:", calendarDaysDiff > 2);
-
-                // Show banner ONLY if it has been MORE than 2 calendar days since the last log
-                if (calendarDaysDiff > 2) {
+                if (shouldShow) {
+                    banner.style.transition = 'opacity 1s ease-out, max-height 0.8s ease-out, margin 0.8s ease-out, padding 0.8s ease-out';
+                    banner.style.opacity = '1';
+                    banner.style.maxHeight = '100px';
                     banner.classList.remove('hidden');
                     banner.classList.add('flex');
+
+                    // Ephemeral 9-second polite window: gracefully dissolves without lingering guilt
+                    window._weightReminderTimer = setTimeout(() => {
+                        const b = document.getElementById('home-weight-reminder-banner');
+                        if (b && !b.classList.contains('hidden')) {
+                            b.style.opacity = '0';
+                            b.style.maxHeight = '0px';
+                            b.style.paddingTop = '0px';
+                            b.style.paddingBottom = '0px';
+                            b.style.marginTop = '0px';
+                            b.style.marginBottom = '0px';
+                            b.style.overflow = 'hidden';
+                            setTimeout(() => {
+                                b.classList.add('hidden');
+                                b.classList.remove('flex', 'block');
+                                b.style.opacity = '';
+                                b.style.maxHeight = '';
+                                b.style.paddingTop = '';
+                                b.style.paddingBottom = '';
+                                b.style.marginTop = '';
+                                b.style.marginBottom = '';
+                                b.style.overflow = '';
+                            }, 1000);
+                        }
+                    }, 9000);
                 } else {
                     banner.classList.add('hidden');
                     banner.classList.remove('flex', 'block');
                 }
             }
+
+window.dismissHomeWeightReminder = function (e) {
+                if (e) e.stopPropagation();
+                try {
+                    sessionStorage.setItem('weight_reminder_dismissed', 'true');
+                } catch (err) {
+                    console.warn("SessionStorage not available:", err);
+                }
+                const banner = document.getElementById('home-weight-reminder-banner');
+                if (banner) {
+                    banner.classList.add('hidden');
+                    banner.classList.remove('flex', 'block');
+                }
+            };
 
 
 
