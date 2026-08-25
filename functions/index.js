@@ -168,6 +168,17 @@ Return ONLY a valid JSON object matching exactly this structure without any mark
     }
 });
 
+function sanitizeStrengthWorkoutTitle(title) {
+    if (!title) return "Full Body";
+    let clean = title
+        .replace(/\b(full body strength|strength workout|strength circuit|strength routine|strength guide|strength|workout|circuit|routine|guide)\b/gi, '')
+        .replace(/\b[A-Za-z]\b/g, '')
+        .replace(/[-–—:]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : "Full Body";
+}
+
 function sanitizeStrengthGuides(guides) {
     if (!Array.isArray(guides)) return [];
     return guides.map(g => ({
@@ -301,9 +312,12 @@ SEQUENCE ORDER RULES: For days 1 through 7, every day must have at least one act
 
 ${nutInstructionBlock}
 4. Evaluate their recent history and determine if they missed days/took extra rest. Use this context to scale intensity or volume for the new block.
-5. CRITICAL STRENGTH WORKOUT FORMULAS:
-   - For Circuit Workouts (isCircuit: true): Each exercise in strengthGuides represents volume PER ROUND. Set 'sets' to 1 on each exercise, specify total circuit rounds in 'circuitRounds' on the workout activity (e.g. 3), and set 'targetValue' to a single discrete integer (e.g. 10 reps or 30 seconds). NEVER output text ranges like '10-12 reps'.
-   - For Linear Workouts (isCircuit: false): Set 'sets' on each exercise to the total number of sets (e.g. 3), set 'circuitRounds' to 0 on the workout activity, and specify 'targetValue' as a single discrete integer (e.g. 10).
+5. CRITICAL STRENGTH WORKOUT FORMULAS & ANATOMICAL NAMING:
+   - For strength workouts, set 'workoutTitle' strictly to the anatomical or functional body focus (e.g. 'Full Body', 'Core & Lower Body', 'Posterior Chain & Glutes', 'Upper Body Push/Pull', 'Hips & Ankle Stability'). NEVER include words like 'Strength', 'Workout', 'Circuit', 'Routine', or letter identifiers like 'Guide A' in 'workoutTitle'.
+   - Set 'isCircuit' to true or false directly on the workout object.
+   - For Circuit Workouts (isCircuit: true): Each exercise in strengthGuides represents volume PER ROUND. Set 'sets' to 1 on each exercise, specify total circuit rounds in 'circuitRounds' (e.g. 3) on the workout object, and set 'targetValue' to a single discrete integer (e.g. 10 reps or 30 seconds). NEVER output text ranges like '10-12 reps'.
+   - For Linear Workouts (isCircuit: false): Set 'sets' on each exercise to total sets (e.g. 3), set 'circuitRounds' to 0 on the workout object, and specify 'targetValue' as a single discrete integer (e.g. 10).
+   - 'strengthGuideReference' on the workout object MUST be the exact matching ID of an entry in 'strengthGuides' (e.g. 'A', 'B', or 'C'). If a workout is cardio or rest, set 'strengthGuideReference' to null.
 6. MOVEMENT & COACHING DIRECTIVES:
    - 'exerciseKey' MUST be a standardized lowercase snake_case movement key (e.g. 'goblet_squat', 'push_up', 'plank', 'reverse_lunge', 'dumbbell_row').
    - 'equipmentRequired' MUST be strictly chosen from their Available Equipment list (e.g. 'Dumbbells', 'Bodyweight').
@@ -329,10 +343,12 @@ Return ONLY a valid JSON object matching this exact structure:
       "id": "act-X",
       "phaseNumber": ${phaseIndex || 1},
       "sequenceOrder": 1,
-      "workoutTitle": "String",
+      "workoutTitle": "String (For strength: anatomical focus only like 'Full Body' or 'Core & Legs')",
       "type": "String (MUST be exactly one of the validated types above)",
       "workoutCategory": "String (MUST be exactly one of: 'continuous_run', 'intervals', 'strength', 'rest', 'cross_training')",
       "targetRPE": "Number (Integer 1 to 5)",
+      "isCircuit": "Boolean (true if circuit, false if linear or cardio/rest)",
+      "circuitRounds": "Number or null (e.g. 3 for circuits, 0 or null for linear/cardio)",
       "isSpeedWorkout": Boolean,
       "isBenchmark": Boolean,
       "intervalRepCount": "Number or null (e.g. 3, 5, 8 if interval session, else null)",
@@ -346,7 +362,7 @@ Return ONLY a valid JSON object matching this exact structure:
       "targetInstructions": "String (Keep under 100 characters)",
       "targetPaceZone": "String (For walking: use Easy Walk, Brisk Walk, Power Walk. For running: single MM:SS pace like '7:08', or easy, goal, tempo, long, or null)",
       "jitPreparationTip": "String (Actionable prep/fueling tip for THIS workout)",
-      "strengthGuideReference": "String (e.g. 'A')",
+      "strengthGuideReference": "String or null (e.g. 'A', 'B', or 'C' for strength, null for cardio/rest)",
       "activities": [
         {
           "name": "String (e.g., Dynamic Warmup, Tempo Intervals, Strength Circuit A)",
@@ -357,9 +373,7 @@ Return ONLY a valid JSON object matching this exact structure:
           "targetUnit": "String ('mins', 'm', 'km', 'mi', 'seconds', 'reps')",
           "restSeconds": Number,
           "targetPace": "String (Single MM:SS e.g. '7:08' or null)",
-          "repsDistanceTime": "String (e.g. '5 mins @ 7:08 (2 min rest)')",
-          "isCircuit": Boolean,
-          "circuitRounds": Number
+          "repsDistanceTime": "String (e.g. '5 mins @ 7:08 (2 min rest)')"
         }
       ]
     }
@@ -445,6 +459,8 @@ Return ONLY a valid JSON object matching this exact structure:
             deduplicatedWorkouts.push(w);
         });
         
+        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || []);
+
         workouts = deduplicatedWorkouts.map((w, index) => {
             let defaultRpe = 2;
             if (w.type === 'fast' || w.isSpeedWorkout || w.isBenchmark) defaultRpe = 4;
@@ -453,9 +469,31 @@ Return ONLY a valid JSON object matching this exact structure:
 
             const targetRPE = typeof w.targetRPE === 'number' && w.targetRPE >= 1 && w.targetRPE <= 5 ? Math.round(w.targetRPE) : defaultRpe;
 
+            let workoutTitle = w.workoutTitle;
+            let isCircuit = Boolean(w.isCircuit);
+            let circuitRounds = typeof w.circuitRounds === 'number' ? w.circuitRounds : null;
+            let strengthGuideRef = w.strengthGuideReference || null;
+
+            if (w.type === 'strength' || w.workoutCategory === 'strength' || strengthGuideRef) {
+                workoutTitle = sanitizeStrengthWorkoutTitle(workoutTitle);
+                let matchedGuide = cleanGuides.find(g => g.id && g.id.toLowerCase() === (strengthGuideRef || '').toLowerCase());
+                if (!matchedGuide && cleanGuides.length > 0) {
+                    matchedGuide = cleanGuides[0];
+                    strengthGuideRef = matchedGuide.id;
+                }
+                if (matchedGuide) {
+                    isCircuit = matchedGuide.isCircuit !== undefined ? !!matchedGuide.isCircuit : (isCircuit || true);
+                    circuitRounds = (typeof matchedGuide.circuitRounds === 'number' && matchedGuide.circuitRounds > 0) ? matchedGuide.circuitRounds : (circuitRounds || 3);
+                }
+            }
+
             return {
                 ...w,
                 id: "ai-act-" + Date.now() + "-" + index,
+                workoutTitle: workoutTitle,
+                isCircuit: isCircuit,
+                circuitRounds: circuitRounds,
+                strengthGuideReference: strengthGuideRef,
                 targetRPE: targetRPE,
                 completed: false,
                 dateExecuted: null,
@@ -463,8 +501,6 @@ Return ONLY a valid JSON object matching this exact structure:
                 rpeScore: null
             };
         });
-        
-        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || []);
         
         return { 
             workouts, 

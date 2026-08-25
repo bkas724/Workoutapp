@@ -883,23 +883,10 @@ function getAccurateStrengthExerciseCount(step) {
             }
 
             if (step.strengthGuideReference && guidesToSearch && guidesToSearch.length > 0) {
-                const ref = step.strengthGuideReference.toLowerCase();
-                const title = (step.workoutTitle || "").toLowerCase();
-                
-                let guide = guidesToSearch.find(g => g.id && g.id.toLowerCase() === ref);
-                if (!guide) {
-                    for (const letter of ['a', 'b', 'c']) {
-                        if (ref.includes(`workout ${letter}`) || title.includes(`workout ${letter}`)) {
-                            guide = guidesToSearch.find(g => (g.id && g.id.toLowerCase().includes(letter)) || (g.title && g.title.toLowerCase().includes(`workout ${letter}`)));
-                            if (guide) break;
-                        }
-                    }
-                }
-                if (!guide) {
-                    guide = guidesToSearch.find(g => g.title && g.title.toLowerCase().includes(ref));
-                }
-                if (!guide) {
-                    guide = guidesToSearch.find(g => g.title && (ref.includes(g.title.toLowerCase()) || title.includes(g.title.toLowerCase())));
+                const ref = step.strengthGuideReference.toString().toLowerCase().trim();
+                let guide = guidesToSearch.find(g => g.id && g.id.toLowerCase().trim() === ref);
+                if (!guide && guidesToSearch.length > 0) {
+                    guide = guidesToSearch[0];
                 }
 
                 if (guide && guide.exercises && guide.exercises.length > 0) {

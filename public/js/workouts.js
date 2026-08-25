@@ -520,12 +520,22 @@ function renderNextActivityCard() {
                                                     }
                                                 }
                                                 prescriptionSubtitle = `${nextStep.targetDistance} Miles${paceHint}`;
-                                            } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference) {
-                                                const isCirc = !!(nextStep.isCircuit || (typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 1));
-                                                const rounds = typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 0 ? nextStep.circuitRounds : 3;
-                                                prescriptionSubtitle = isCirc 
-                                                    ? `Circuit Routine • ${rounds} Rounds`
-                                                    : (nextStep.strengthGuideReference ? `Strength Guide ${nextStep.strengthGuideReference}` : "Strength & Core Session");
+                                            } else if (nextStep.type === 'strength' || nextStep.strengthGuideReference || nextStep.workoutCategory === 'strength') {
+                                                let guide = null;
+                                                let guidesList = (typeof userProfileData !== 'undefined' && userProfileData) ? (userProfileData.currentStrengthGuides || []) : [];
+                                                if (nextStep.strengthGuideReference && guidesList.length > 0) {
+                                                    guide = guidesList.find(g => g.id && g.id.toLowerCase() === nextStep.strengthGuideReference.toString().toLowerCase().trim());
+                                                }
+                                                const isCirc = Boolean(nextStep.isCircuit || (guide && guide.isCircuit) || (typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 1) || (guide && guide.circuitRounds > 1));
+                                                const rounds = (typeof nextStep.circuitRounds === 'number' && nextStep.circuitRounds > 0) ? nextStep.circuitRounds : (guide && typeof guide.circuitRounds === 'number' && guide.circuitRounds > 0 ? guide.circuitRounds : 3);
+                                                
+                                                if (isCirc) {
+                                                    prescriptionSubtitle = `Circuit • ${rounds} Rounds`;
+                                                } else if (nextStep.strengthGuideReference) {
+                                                    prescriptionSubtitle = `Strength Guide ${nextStep.strengthGuideReference}`;
+                                                } else {
+                                                    prescriptionSubtitle = "Strength & Mobility Session";
+                                                }
                                             } else if (nextStep.targetDuration) {
                                                 prescriptionSubtitle = `${nextStep.targetDuration} mins prescribed`;
                                             }
@@ -764,31 +774,20 @@ function renderNextActivityCard() {
         const findStrengthGuide = (guides, step, actRef) => {
             if (!guides || guides.length === 0) return null;
             
-            // 1. Strict ID Match (e.g. actRef === "A" or "guide-a")
+            // 1. Strict ID Match (e.g. actRef === "A")
             if (actRef) {
                 const exactMatch = guides.find(g => g.id && g.id.toLowerCase() === actRef.toString().toLowerCase().trim());
                 if (exactMatch) return exactMatch;
             }
 
-            const refStr = (actRef || "").toString().toLowerCase();
-            const titleStr = (step && step.workoutTitle ? step.workoutTitle : "").toLowerCase();
-
-            // 2. Strict Word-Boundary Letter Match (e.g. "Circuit A", "Workout B", "Guide C")
-            for (const letter of ['a', 'b', 'c']) {
-                const pattern = new RegExp(`\\b(?:circuit|workout|guide|routine)\\s+${letter}\\b`, 'i');
-                if (pattern.test(refStr) || pattern.test(titleStr)) {
-                    const guide = guides.find(g => g.id && g.id.toLowerCase() === letter);
-                    if (guide) return guide;
-                }
+            // 2. Strict ID Match from step.strengthGuideReference
+            if (step && step.strengthGuideReference) {
+                const stepMatch = guides.find(g => g.id && g.id.toLowerCase() === step.strengthGuideReference.toString().toLowerCase().trim());
+                if (stepMatch) return stepMatch;
             }
 
-            // 3. Exact Guide Title Match
-            if (refStr) {
-                const titleMatch = guides.find(g => g.title && g.title.toLowerCase() === refStr);
-                if (titleMatch) return titleMatch;
-            }
-
-            return null;
+            // 3. Fallback to first guide
+            return guides[0] || null;
         };
 
         // Explicit Schema-Driven Circuit Identification
