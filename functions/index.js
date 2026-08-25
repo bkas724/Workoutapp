@@ -283,7 +283,7 @@ User Profile:
 - Emergency Overrides: ${profile?.emergencyOverrideNotes || 'None'}
 - Prescriptive Meals Enabled: ${prescriptiveMealsEnabled ? 'Yes' : 'No'}
 ${prescriptiveMealsEnabled ? `- Dietary Preferences/Allergies: ${dietaryNotes}` : ''}
-${profile?.primaryGoal === 'race' ? `- Goal Pace: ${profile?.activeAdjustedGoal || 'N/A'} min/mi` : ''}
+${profile?.primaryGoal === 'race' ? `- Target Goal Race Pace: ${profile?.activeAdjustedGoal || 'N/A'} min/mi\n` : ''}- Current Estimated Fitness Pace: ${profile?.currentEstimated5k || profile?.baseline5k || 'N/A'} min/mi
 
 Recent Workout History:
 ${historyContext}

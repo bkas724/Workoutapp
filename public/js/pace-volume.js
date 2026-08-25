@@ -180,11 +180,12 @@ window.openPaceBreakdownModal = function() {
             el.innerHTML = `
                 ${badgeHTML}
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-black text-slate-300">${dateStr}</span>
-                        <span class="text-[9px] font-bold font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">${w.actualLoggedDistance || 0} mi</span>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-xs font-black text-slate-300 shrink-0">${dateStr}</span>
+                        <span class="text-[9px] font-bold font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 shrink-0">${w.actualLoggedDistance || 0} mi</span>
+                        ${w.workoutTitle ? `<span class="text-[9px] font-bold text-slate-400 truncate max-w-[90px] sm:max-w-[130px]" title="${w.workoutTitle}">${w.workoutTitle}</span>` : ''}
                     </div>
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-1 shrink-0">
                         <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Logged:</span>
                         <span class="text-xs font-bold font-mono text-slate-300">${item.rawPace || "--:--"}</span>
                     </div>

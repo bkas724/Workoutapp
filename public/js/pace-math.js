@@ -53,108 +53,206 @@ function calculateEst5KRacePace(completedRuns, baseline5kStr) {
         }
 
 function convertRunToEst5KPaceSec(w, debugObj = {}) {
-            const rawPaceStr = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
-            if (!rawPaceStr) return null;
-            const loggedSec = paceStringToSeconds(rawPaceStr);
-            debugObj.rawPace = rawPaceStr;
+    const rawPaceStr = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
+    if (!rawPaceStr) return null;
+    const loggedSec = paceStringToSeconds(rawPaceStr);
+    debugObj.rawPace = rawPaceStr;
 
-            // First, determine user's Age for Max HR calculation
-            let age = 35; // Default age fallback
-            let targetDistance = '5K'; // Default
-            if (typeof userProfileData !== 'undefined' && userProfileData) {
-                if (userProfileData.age) {
-                    age = userProfileData.age;
-                } else if (userProfileData.birthYear) {
-                    age = new Date().getFullYear() - userProfileData.birthYear;
-                }
-                if (userProfileData.dynamicGoalData && userProfileData.dynamicGoalData.targetDistance) {
-                    targetDistance = userProfileData.dynamicGoalData.targetDistance;
-                }
-            }
-            const maxHr = 220 - age;
-
-            let hrInput = (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgHeartRate) || w.actualHeartRate || w.rawHr;
-            if (hrInput) debugObj.mathType = `Actual: ${Math.round(hrInput)} BPM`;
-            
-function calculateHrForZone(zoneValue) {
-    if (!zoneValue) return "";
+    // 1. User Profile Biometrics & Target Distance
     let age = 35; // Default age fallback
+    let targetDistance = '5K'; // Default target
     if (typeof userProfileData !== 'undefined' && userProfileData) {
         if (userProfileData.age) {
             age = userProfileData.age;
         } else if (userProfileData.birthYear) {
             age = new Date().getFullYear() - userProfileData.birthYear;
         }
+        if (userProfileData.dynamicGoalData && userProfileData.dynamicGoalData.targetDistance) {
+            targetDistance = userProfileData.dynamicGoalData.targetDistance;
+        }
     }
     const maxHr = 220 - age;
-    const effortToHrMultiplier = {
-        1: 0.60, // Zone 1: Recovery (~60% max HR)
-        2: 0.70, // Zone 2: Easy Aerobic (~70% max HR)
-        3: 0.80, // Zone 3: Moderate / Tempo (~80% max HR)
-        4: 0.88, // Zone 4: Hard / Threshold (~88% max HR)
-        5: 0.95  // Zone 5: Max Effort (~95% max HR)
-    };
-    const mult = effortToHrMultiplier[Number(zoneValue)];
-    if (!mult) return "";
-    return Math.round(maxHr * mult);
-}
 
-            if (!hrInput) {
-                if (w.effortZone) {
-                    // New System: Map 5-Zone Effort (1-5) to representative HR estimate using percentage of Max HR
-                    hrInput = calculateHrForZone(w.effortZone);
-                    debugObj.mathType = `Zone ${w.effortZone}: ${hrInput} BPM`;
-                } else if (w.rpeScore) {
-                    // Legacy System: Map old 1-10 RPE scores to representative HR estimate using percentage of Max HR
-                    let score = Number(w.rpeScore);
-                    const legacyRpeToHrMultiplier = {
-                        1: 0.50, 2: 0.57, 3: 0.64, 4: 0.70, 5: 0.75,
-                        6: 0.80, 7: 0.85, 8: 0.90, 9: 0.95, 10: 0.98
-                    };
-                    hrInput = Math.round(maxHr * (legacyRpeToHrMultiplier[score] || 0.70));
-                    debugObj.mathType = `RPE ${score}: ${hrInput} BPM`;
-                }
-            }
+    // 2. Volume & Duration Guardrail (Tier 1)
+    const workoutDistance = typeof extractWorkoutMileage === 'function' ? extractWorkoutMileage(w) : (parseFloat(w.actualLoggedDistance) || 0);
+    const totalWorkoutSec = w.actualLoggedDuration ? (parseFloat(w.actualLoggedDuration) * 60) : (workoutDistance * loggedSec);
+    const isVeryShortEffort = (workoutDistance > 0 && workoutDistance < 0.75) && (totalWorkoutSec > 0 && totalWorkoutSec < 360);
 
-            if (hrInput && hrInput > 60) {
-                debugObj.hrUsed = hrInput;
-                // Dynamic race HR multiplier based on target distance
-                let hrMultiplier = 0.92; // default 5K
-                if (targetDistance === '10K') hrMultiplier = 0.90;
-                else if (targetDistance === 'Half Marathon') hrMultiplier = 0.85;
-                else if (targetDistance === 'Marathon') hrMultiplier = 0.80;
-                else if (targetDistance === 'Ultra') hrMultiplier = 0.75;
-                else if (targetDistance === 'Other') hrMultiplier = 0.85;
+    // 3. Interval Work-to-Rest Ratio Density Modeling (Tier 2)
+    // Account for N-1 rest periods between N interval repetitions (if interval details are present)
+    let densityFactor = 1.0;
+    const intervalMeta = typeof getIntervalMetadata === 'function' ? getIntervalMetadata(w) : null;
+    const repCount = w.intervalRepCount ? parseInt(w.intervalRepCount) : (intervalMeta ? intervalMeta.repCount : 1);
+    const isIntervalSession = repCount > 1 || (w.workoutCategory === 'intervals') || ((w.type || '').toLowerCase().includes('interval'));
 
-                const raceHr = Math.round(maxHr * hrMultiplier);
-                debugObj.raceHr = raceHr;
+    if (isIntervalSession && repCount > 1) {
+        const restSecPerRep = typeof w.intervalRestSeconds === 'number' ? w.intervalRestSeconds : (intervalMeta ? intervalMeta.restSeconds : 60);
+        const interRepRestCount = repCount - 1; // Rest occurs only between reps (N-1)
+        const totalRestSec = interRepRestCount * restSecPerRep;
 
-                // Dynamic formula based on User's projected Race HR
-                // Clamp the ratio between 0.65 and 1.15 to prevent extreme mathematical anomalies
-                const ratio = Math.max(0.65, Math.min(1.15, (hrInput - 60) / (raceHr - 60)));
-                const projectedPaceSecPerMile = loggedSec * ratio;
-                return Math.max(270, Math.round(projectedPaceSecPerMile)); // Min clamp 4:30/mi
-            }
-
-            const type = (w.type || '').toLowerCase();
-            const zone = (w.targetPaceZone || '').toLowerCase();
-
-            let offsetSec = 0;
-            if (type.includes('easy') || zone.includes('easy')) {
-                offsetSec = -80; // Easy run pace ~80s slower than 5K pace
-            } else if (type.includes('long') || zone.includes('long')) {
-                offsetSec = -90; // Long run pace ~90s slower than 5K pace
-            } else if (type.includes('tempo') || zone.includes('tempo')) {
-                offsetSec = -25; // Tempo run pace ~25s slower than 5K pace
-            } else if (type.includes('fast') || type.includes('speed') || type.includes('interval') || w.isBenchmark) {
-                offsetSec = 0;   // Direct effort
-            } else {
-                offsetSec = -30;
-            }
-
-            debugObj.mathType = `Offset Fallback: ${offsetSec}s`;
-            return Math.max(270, loggedSec + offsetSec); // Clamp at 4:30 min/mi minimum
+        let totalWorkSec = 0;
+        if (intervalMeta && intervalMeta.intervalType === 'time') {
+            totalWorkSec = repCount * (intervalMeta.repDurationSeconds || 300);
+        } else if (intervalMeta && intervalMeta.intervalType === 'distance') {
+            totalWorkSec = repCount * (intervalMeta.repDistanceMiles * loggedSec);
+        } else if (workoutDistance > 0) {
+            totalWorkSec = workoutDistance * loggedSec;
+        } else {
+            totalWorkSec = repCount * 300; // 5 min fallback per rep
         }
+
+        if (totalRestSec > 0 && totalWorkSec > 0) {
+            const workToRestRatio = totalWorkSec / totalRestSec;
+            if (workToRestRatio >= 2.5) {
+                // High density (Cruise/Threshold intervals with short rest, e.g. 5m work / 1-1.5m rest)
+                densityFactor = Math.min(0.99, 0.97 + ((workToRestRatio - 2.5) * 0.005));
+            } else if (workToRestRatio >= 1.5) {
+                // Moderate density (VO2max intervals with moderate rest)
+                densityFactor = 0.93 + ((workToRestRatio - 1.5) * 0.04);
+            } else {
+                // Low density / Full recovery (Anaerobic speed repeats with generous rest)
+                densityFactor = Math.max(0.86, 0.88 + ((workToRestRatio - 0.5) * 0.05));
+            }
+        } else {
+            densityFactor = 0.97;
+        }
+    }
+
+    // 4. Physiological %HRmax Aerobic Velocity Scaling (Tier 3)
+    let hrInput = (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgHeartRate) || w.actualHeartRate || w.rawHr;
+    let velocityFraction = 0.95; // Default fallback to threshold velocity
+    let mathLabel = "";
+
+    if (hrInput && hrInput > 60) {
+        const pctMaxHr = hrInput / maxHr;
+        debugObj.hrUsed = hrInput;
+        debugObj.maxHr = maxHr;
+
+        if (pctMaxHr >= 0.96) {
+            // Zone 5+ (VO2max / Sprint Repeats)
+            velocityFraction = Math.min(1.04, 1.02 + ((pctMaxHr - 0.96) * 0.5));
+            mathLabel = `Zone 5+ (${Math.round(hrInput)} BPM)`;
+        } else if (pctMaxHr >= 0.90) {
+            // Zone 5 (5K Race Effort / Hard Intervals)
+            velocityFraction = 0.98 + (((pctMaxHr - 0.90) / 0.06) * 0.04);
+            mathLabel = `Zone 5 (${Math.round(hrInput)} BPM)`;
+        } else if (pctMaxHr >= 0.84) {
+            // Zone 4 (Threshold / Tempo)
+            velocityFraction = 0.94 + (((pctMaxHr - 0.84) / 0.06) * 0.04);
+            mathLabel = `Zone 4 / Tempo (${Math.round(hrInput)} BPM)`;
+        } else if (pctMaxHr >= 0.76) {
+            // Zone 3 (Steady Aerobic / Moderate)
+            velocityFraction = 0.89 + (((pctMaxHr - 0.76) / 0.08) * 0.05);
+            mathLabel = `Zone 3 / Steady (${Math.round(hrInput)} BPM)`;
+        } else if (pctMaxHr >= 0.65) {
+            // Zone 2 (Easy Aerobic / Conversational)
+            velocityFraction = 0.84 + (((pctMaxHr - 0.65) / 0.11) * 0.05);
+            mathLabel = `Zone 2 / Easy (${Math.round(hrInput)} BPM)`;
+        } else {
+            // Zone 1 (Recovery / Flush)
+            velocityFraction = Math.max(0.78, 0.80 + ((pctMaxHr - 0.55) * 0.4));
+            mathLabel = `Zone 1 / Recovery (${Math.round(hrInput)} BPM)`;
+        }
+    } else if (w.effortZone) {
+        // Effort Zone (1-5) Direct Mapping
+        const zoneNum = Number(w.effortZone);
+        const zoneVelocityMap = { 1: 0.81, 2: 0.86, 3: 0.90, 4: 0.95, 5: 1.00 };
+        velocityFraction = zoneVelocityMap[zoneNum] || 0.92;
+        mathLabel = `Effort Zone ${zoneNum}`;
+    } else if (w.rpeScore) {
+        // Legacy RPE (1-10) Mapping
+        const rpeNum = Number(w.rpeScore);
+        if (rpeNum <= 2) velocityFraction = 0.81;
+        else if (rpeNum <= 4) velocityFraction = 0.86;
+        else if (rpeNum <= 6) velocityFraction = 0.90;
+        else if (rpeNum <= 8) velocityFraction = 0.95;
+        else velocityFraction = 1.00;
+        mathLabel = `RPE ${rpeNum}/10`;
+    } else {
+        // Workout Category / Type Offset Fallback
+        const type = (w.type || '').toLowerCase();
+        const zone = (w.targetPaceZone || '').toLowerCase();
+
+        if (type.includes('easy') || zone.includes('easy') || type.includes('recovery')) {
+            velocityFraction = 0.85;
+            mathLabel = 'Easy / Aerobic Offset';
+        } else if (type.includes('long') || zone.includes('long')) {
+            velocityFraction = 0.88;
+            mathLabel = 'Long Run Offset';
+        } else if (type.includes('tempo') || zone.includes('tempo')) {
+            velocityFraction = 0.95;
+            mathLabel = 'Tempo Offset';
+        } else if (type.includes('fast') || type.includes('speed') || type.includes('interval') || w.isBenchmark) {
+            velocityFraction = 1.00;
+            mathLabel = 'Direct Speed / Benchmark';
+        } else {
+            velocityFraction = 0.92;
+            mathLabel = 'Standard Run Offset';
+        }
+    }
+
+    if (isIntervalSession && repCount > 1) {
+        mathLabel += ` [${repCount}x Intervals]`;
+    }
+    debugObj.mathType = mathLabel;
+
+    // 5. Convert Logged Pace to Base 5K Pace Equivalent
+    let base5KPaceSec = loggedSec;
+
+    if (isIntervalSession && repCount > 1) {
+        // In an interval session with recovery breaks:
+        // Rest intervals assist the runner in holding faster rep times than continuous running.
+        // - Tempo / Threshold intervals (Zone 4, e.g. 3x5 min @ 7:23 with rest): continuous 5K pace is anchored right around rep pace (~7:18 - 7:23 /mi)
+        // - Speed / VO2max repeats (Zone 5+, e.g. 8x400m @ 6:15 with rest): continuous 5K is slower than short sprint rep pace (~6:26 - 6:35 /mi)
+        // - Aerobic / Easy intervals (Zone 2-3): continuous 5K is moderately faster
+        if (velocityFraction >= 1.01) {
+            // Speed / Anaerobic Repeats with generous rest
+            base5KPaceSec = loggedSec * (1.03 + (densityFactor < 0.92 ? 0.02 : 0));
+        } else if (velocityFraction >= 0.93) {
+            // Tempo / Threshold Intervals (e.g. 3x5 min @ 7:23 with 2m rest)
+            base5KPaceSec = loggedSec * (0.99 + ((1.0 - densityFactor) * 0.3));
+        } else {
+            // Aerobic / Moderate Cruise Intervals (Zone 2-3)
+            base5KPaceSec = loggedSec * Math.min(0.96, velocityFraction * 1.06);
+        }
+    } else {
+        // Continuous steady-state run (No rest intervals)
+        // Scales directly via the physiological %HRmax aerobic velocity curve
+        base5KPaceSec = loggedSec * velocityFraction;
+    }
+
+    // 6. Non-Linear Distance Scaling via Peter Riegel's Power Law (Tier 4)
+    // Pace_target = Pace_5K * (D_target / 3.1068)^(b - 1)
+    let fatigueExponent = 1.06; // Standard 5K-10K scaling
+    let targetDistMiles = 3.1068; // 5K default
+
+    if (targetDistance === '10K') {
+        targetDistMiles = 6.2137;
+        fatigueExponent = 1.06;
+    } else if (targetDistance === 'Half Marathon') {
+        targetDistMiles = 13.1094;
+        fatigueExponent = 1.07;
+    } else if (targetDistance === 'Marathon') {
+        targetDistMiles = 26.2188;
+        fatigueExponent = 1.08;
+    } else if (targetDistance === 'Ultra') {
+        targetDistMiles = 31.0686;
+        fatigueExponent = 1.09;
+    } else {
+        targetDistMiles = 3.1068;
+        fatigueExponent = 1.06;
+    }
+
+    // If workout was a short sprint effort (<0.75 mi), cap extrapolation to 10K max
+    if (isVeryShortEffort && targetDistMiles > 6.2137) {
+        targetDistMiles = 6.2137;
+    }
+
+    const distanceScalingFactor = Math.pow(targetDistMiles / 3.1068, fatigueExponent - 1.0);
+    const finalProjectedPaceSec = Math.round(base5KPaceSec * distanceScalingFactor);
+
+    return Math.max(240, Math.min(900, finalProjectedPaceSec)); // Clamp between 4:00/mi and 15:00/mi
+}
 
 function updatePaceChart(data, completedRuns, isFullJourney = false) {
     if (!data) return;
@@ -439,8 +537,8 @@ function calculateTargetPaces() {
             const easyMax = decimalPace + (95 / 60);
             const longMin = decimalPace + (40 / 60);
             const longMax = decimalPace + (70 / 60);
-            const tempoMin = decimalPace - (70 / 60);
-            const tempoMax = decimalPace - (45 / 60);
+            const tempoMin = decimalPace + (15 / 60);
+            const tempoMax = decimalPace + (30 / 60);
 
             const easyEl = document.getElementById('pace-easy');
             if (easyEl) easyEl.innerText = `${formatPace(easyMin)} - ${formatPace(easyMax)} /mi`;

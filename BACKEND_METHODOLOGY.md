@@ -39,26 +39,45 @@ Unlike calendar-based grid apps, our database tracks a user's progress through a
 
 ## 4. Analytical Math Models (Frontend)
 
-### Dynamic Race Pace Projection (The "Turkey Trot" Formula)
-We calculate a projected race pace for the user off of *any* logged running activity by mathematically extrapolating their recorded average Heart Rate against their theoretical maximums.
-*   **The Formula:** `projected_Pace_Sec = logged_Sec * ((logged_HR - 60) / (race_HR - 60))`
-*   **Assumptions:** Base resting HR is assumed to be `60` BPM. `Max HR` is calculated as `220 - Age`. 
-*   **Dynamic Race HR Thresholds:** The `race_HR` in the formula scales dynamically based on the user's `targetDistance` in their profile, because longer races require a lower sustainable HR:
-    *   **5K**: 92% of Max HR
-    *   **10K**: 90% of Max HR
-    *   **Half Marathon**: 85% of Max HR
-    *   **Marathon**: 80% of Max HR
-    *   **Ultra**: 75% of Max HR
-*   **Dynamic RPE Scaling (Dual-Track):** If the user does not log a smartwatch Heart Rate, the system creates a mathematical HR equivalent using a percentage of their specific Max HR. The database maintains two distinct tracks to preserve historical integrity:
-    *   **New System (`effortZone`):** Uses a 1-5 scale (Zone 1 = 60%, Zone 2 = 70%, Zone 3 = 80%, Zone 4 = 88%, Zone 5 = 95%).
-    *   **Legacy System (`rpeScore`):** Preserves historical runs logged on a 1-10 scale by mapping them to the same HR percentages (e.g. 1-2 = 60%, 3-4 = 70%, 9-10 = 95%). This prevents older "Easy" runs (e.g. a 4/10) from being misread as a new "Zone 4 (Threshold)" run.
-*   **Ratio Clamping:** To prevent extreme mathematical anomalies (e.g. an absurdly low logged HR generating a world-record 5K pace), the `((logged_HR - 60) / (race_HR - 60))` multiplier is safely clamped between `0.65` and `1.15`.
-*   **Pace Offsets:** If a user does not have HR data or an RPE score, we mathematically adjust the logged pace based on the activity type before extrapolating: `Easy` runs receive a `-80s` offset (making the projected pace 80s faster). `Long` runs receive a `-90s` offset. `Tempo` runs receive a `-25s` offset.
-*   **Activity Filtering & Smoothing:** To eliminate anomalies like hikes or bike rides, only running-based activities (`run`, `interval`, `tempo`, `easy`, `benchmark`, etc.) are processed for pace conversions. The system gathers the last **5 valid runs**, discards the absolute slowest outlier (to account for a random trail run or injury), and averages the remaining 4 to generate the top-level **Pace Est.** metric.
+### Dynamic Race Pace Projection (The 4-Tier Physiological Model)
+We calculate a projected race pace for the user off of logged running activities by evaluating volume, interval work-to-rest density, %HRmax aerobic velocity scaling, and non-linear distance fatigue models (Daniels VDOT / Peter Riegel's Power Law).
+
+#### 1. Tier 1: Minimum Viable Volume & Duration Guardrail
+To prevent ultra-short anaerobic bursts (e.g. a single 400m repeat) from distorting multi-mile race projections:
+*   Workouts with total active running distance `< 0.75 miles` and total duration `< 6 mins` are capped to a maximum of 10K extrapolation and cannot skew Half Marathon / Marathon projections.
+
+#### 2. Tier 2: Interval Work-to-Rest Ratio Density ($D_{\text{density}}$)
+When interval details are present ($N$ repetitions with inter-rep recovery):
+*   **$(N - 1)$ Rest Modeling:** For $N$ reps, recovery only occurs between reps ($N - 1$ rest intervals). Total rest $T_{\text{rest}} = (N - 1) \times \text{restSeconds}$.
+*   **Work-to-Rest Ratio ($R = T_{\text{work}} / T_{\text{rest}}$):**
+    *   **High Density ($R \ge 2.5$) — Cruise / Threshold Intervals:** (e.g., $3 \times 5\text{ mins}$ with $60-90\text{s}$ rest). Incomplete recovery keeps blood lactate and cardiovascular strain elevated throughout the session. $D_{\text{density}} = 0.97 - 0.99$ (closely mirrors continuous threshold running).
+    *   **Moderate Density ($1.5 \le R < 2.5$) — VO2max Intervals:** $D_{\text{density}} = 0.93 - 0.96$.
+    *   **Low Density ($R < 1.5$) — Speed Repeats with Full Rest:** $D_{\text{density}} = 0.86 - 0.92$ (applies a recovery-assisted discount before continuous race extrapolation).
+*   **Continuous / Unstructured Tempo Runs:** If a tempo workout is logged continuously or without interval splits, $D_{\text{density}} = 1.0$ and Tier 3 handles the physiological effort seamlessly.
+
+#### 3. Tier 3: %HRmax Aerobic Velocity Scaling ($f_v$)
+Running velocity ($v = 1/\text{Pace}$) scales non-linearly with $\% \text{HR}_{\max}$ (where $\text{Max HR} = 220 - \text{Age}$):
+*   **Zone 5+ ($>96\% \text{Max HR}$):** $f_v = 1.02 - 1.04$
+*   **Zone 5 ($90 - 96\% \text{Max HR}$):** $f_v = 0.98 - 1.02$ (5K Race Effort / Hard Intervals)
+*   **Zone 4 ($84 - 90\% \text{Max HR}$):** $f_v = 0.94 - 0.98$ (Threshold / Tempo effort is $\sim 5\%$ slower than 5K pace, eliminating artificial 13% pace drops)
+*   **Zone 3 ($76 - 84\% \text{Max HR}$):** $f_v = 0.89 - 0.94$ (Steady Aerobic)
+*   **Zone 2 ($65 - 76\% \text{Max HR}$):** $f_v = 0.84 - 0.89$ (Easy Aerobic)
+*   **Zone 1 ($<65\% \text{Max HR}$):** $f_v = 0.78 - 0.84$ (Recovery / Flush)
+*   **Dual-Track RPE & Fallback Offsets:** When HR is not logged, `effortZone` (1-5), legacy `rpeScore` (1-10), or workout types (`tempo` $\rightarrow 0.95$, `easy` $\rightarrow 0.85$, `long` $\rightarrow 0.88$, `fast` $\rightarrow 1.00$) supply the calibrated velocity fraction.
+
+*   **Interval vs Continuous Integration:**
+    *   *Interval Sessions with Rest:* Rest intervals assist rep velocity. For Tempo intervals ($3 \times 5\text{m}$ @ $7:23$ with rest), continuous 5K race pace is anchored right around rep pace ($\sim 7:18 - 7:23\text{ /mi}$). For short VO2max track repeats ($8 \times 400\text{m}$ @ $6:15$ with rest), continuous 5K pace accounts for the rest assistance ($\sim 6:26 - 6:35\text{ /mi}$).
+    *   *Continuous Runs (No Rest):* Scales directly via the continuous $\% \text{HR}_{\max}$ aerobic velocity curve.
+
+#### 4. Tier 4: Non-Linear Distance Scaling (Peter Riegel's Power Law)
+To scale projected pace accurately between 5K and the runner's specific profile `targetDistance`:
+$$\text{Pace}_{\text{target}} = \text{Pace}_{\text{5K}} \times \left(\frac{D_{\text{target}}}{3.1068}\right)^{b - 1}$$
+*   **Fatigue Exponents ($b$):** $b = 1.06$ for 5K–10K, $b = 1.07$ for Half Marathon, $b = 1.08$ for Marathon, $b = 1.09$ for Ultra.
+*   **Outlier Filtering & Smoothing:** The system takes the last **5 valid runs**, discards the slowest outlier, and averages the remaining 4 to display the top-level **Pace Est.** metric.
 *   **Dual-View Time Horizon (5-Week Focus vs. Full Journey):**
-    *   **5-Week Performance Window (Dashboard Default):** Slices the macrocycle timeline to the 5 most recent/active weeks. This prevents bar/point congestion on mobile screens and focuses cognitive bandwidth on immediate performance.
-    *   **Full Journey Modal (`full-pace-journey-chart`):** Renders the entire macrocycle (12–16 weeks) from journey start to target race date, illustrating long-term linear pace targets and volume progression.
-    *   **Chart Aggregation Logic:** Weekly volume bars aggregate total miles across all logged workouts. Weekly pace trend points only aggregate valid running workouts converted via the dynamic Turkey Trot formula, ensuring non-running cross-training sessions do not distort weekly running pace trends.
+    *   **5-Week Performance Window (Dashboard Default):** Slices the macrocycle timeline to the 5 most recent/active weeks.
+    *   **Full Journey Modal (`full-pace-journey-chart`):** Renders the entire macrocycle (12–16 weeks) from journey start to target race date.
+    *   **Chart Aggregation Logic:** Weekly volume bars aggregate total miles across all logged workouts. Weekly pace trend points only aggregate valid running workouts converted via the 4-tier formula.
 
 ### Weight Trend Engine & Biometrics Trajectory Model
 To support safe weight progression and defeat cognitive overload, weight tracking is decoupled into an active phase window and a full journey exponential decay model.
