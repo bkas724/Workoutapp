@@ -338,13 +338,13 @@
 
         <!-- Home Tab AI Health & Recovery Insights Card -->
         <section id="home-health-insights-card"
-            class="tab-content tab-home block mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden">
-            <div id="home-ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            class="tab-content tab-home block mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-xl relative overflow-hidden">
+            <div id="home-ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Movement Tip -->
-                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex flex-col justify-between pb-3.5 border-b border-slate-800/80 md:border-b-0 md:border-r md:border-slate-800/80 md:pb-0 md:pr-4">
                     <div>
                         <h4
-                            class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                             <i class="fa-solid fa-person-running"></i> Movement Insights
                         </h4>
                         <p id="home-insight-movement" class="text-xs text-slate-300 leading-relaxed"></p>
@@ -352,10 +352,10 @@
                 </div>
 
                 <!-- Hydration & Recovery -->
-                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex flex-col justify-between pb-3.5 border-b border-slate-800/80 md:border-b-0 md:pb-0 md:pl-2">
                     <div>
                         <h4
-                            class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                             <i class="fa-solid fa-droplet"></i> Hydration and Recovery Insights
                         </h4>
                         <p id="home-insight-hydration" class="text-xs text-slate-300 leading-relaxed"></p>
@@ -364,37 +364,36 @@
 
                 <!-- Tiered Nutrition Guides -->
                 <div id="home-insight-nut-card"
-                    class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    class="flex flex-col justify-between pt-3.5 md:pt-0">
                     <div>
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                             <h4
                                 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
                                 <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
                             </h4>
                             <div class="flex items-center gap-2">
-                                <div class="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800/80">
+                                <div class="flex gap-1 bg-slate-950/60 p-0.5 rounded-lg border border-slate-800/60">
                                     <button onclick="window.switchNutritionTab('rest')" id="home-tab-nut-rest"
-                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
                                     <button onclick="window.switchNutritionTab('light')" id="home-tab-nut-light"
-                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
                                     <button onclick="window.switchNutritionTab('hard')" id="home-tab-nut-hard"
-                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
                                 </div>
                                 <button onclick="window.refreshNutritionOnly(this)"
                                     title="Refresh Nutrition Recommendations"
-                                    class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-emerald-500/30 cursor-pointer">
+                                    class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-lg bg-slate-950/60 border border-slate-800/60 hover:border-emerald-500/30 cursor-pointer">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
                             </div>
                         </div>
-                        <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
+                        <div class="w-full text-xs text-slate-300 min-h-[50px]">
                             <div id="home-insight-nut-rest" class="block"></div>
                             <div id="home-insight-nut-light" class="hidden"></div>
                             <div id="home-insight-nut-hard" class="hidden"></div>
                         </div>
                     </div>
-                    <p class="text-[9px] text-slate-500 text-center mt-2.5">*AI-estimated portion guides. Not medical
-                        advice.</p>
+                    <p class="text-[9px] text-slate-500 text-left mt-2">*AI-estimated portion guides. Not medical advice.</p>
                 </div>
             </div>
 
@@ -599,13 +598,13 @@
 
         <!-- AI Health & Recovery Insights Card (Dedicated Card directly below Weight Chart) -->
         <section id="ai-health-insights-card"
-            class="tab-content tab-analytics hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 shadow-xl relative overflow-hidden">
-            <div id="ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            class="tab-content tab-analytics hidden mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-xl relative overflow-hidden">
+            <div id="ai-health-insights-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Movement Tip -->
-                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex flex-col justify-between pb-3.5 border-b border-slate-800/80 md:border-b-0 md:border-r md:border-slate-800/80 md:pb-0 md:pr-4">
                     <div>
                         <h4
-                            class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            class="text-xs font-extrabold text-indigo-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                             <i class="fa-solid fa-person-running"></i> Movement Insights
                         </h4>
                         <p id="insight-movement" class="text-xs text-slate-300 leading-relaxed"></p>
@@ -613,10 +612,10 @@
                 </div>
 
                 <!-- Hydration & Recovery -->
-                <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex flex-col justify-between pb-3.5 border-b border-slate-800/80 md:border-b-0 md:pb-0 md:pl-2">
                     <div>
                         <h4
-                            class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                             <i class="fa-solid fa-droplet"></i> Hydration and Recovery Insights
                         </h4>
                         <p id="insight-hydration" class="text-xs text-slate-300 leading-relaxed"></p>
@@ -625,37 +624,36 @@
 
                 <!-- Tiered Nutrition Guides -->
                 <div id="insight-nut-card"
-                    class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+                    class="flex flex-col justify-between pt-3.5 md:pt-0">
                     <div>
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                             <h4
                                 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
                                 <i class="fa-solid fa-utensils"></i> Baseline Nutrition Guides
                             </h4>
                             <div class="flex items-center gap-2">
-                                <div class="flex gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800/80">
+                                <div class="flex gap-1 bg-slate-950/60 p-0.5 rounded-lg border border-slate-800/60">
                                     <button onclick="window.switchNutritionTab('rest')" id="tab-nut-rest"
-                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-slate-800 text-white transition-all cursor-pointer">Rest</button>
                                     <button onclick="window.switchNutritionTab('light')" id="tab-nut-light"
-                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Light</button>
                                     <button onclick="window.switchNutritionTab('hard')" id="tab-nut-hard"
-                                        class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
+                                        class="px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer">Hard</button>
                                 </div>
                                 <button onclick="window.refreshNutritionOnly(this)"
                                     title="Refresh Nutrition Recommendations"
-                                    class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:border-emerald-500/30 cursor-pointer">
+                                    class="text-slate-400 hover:text-emerald-400 transition-all text-xs p-1.5 rounded-lg bg-slate-950/60 border border-slate-800/60 hover:border-emerald-500/30 cursor-pointer">
                                     <i class="fa-solid fa-rotate"></i>
                                 </button>
                             </div>
                         </div>
-                        <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-300 min-h-[70px]">
+                        <div class="w-full text-xs text-slate-300 min-h-[50px]">
                             <div id="insight-nut-rest" class="block"></div>
                             <div id="insight-nut-light" class="hidden"></div>
                             <div id="insight-nut-hard" class="hidden"></div>
                         </div>
                     </div>
-                    <p class="text-[9px] text-slate-500 text-center mt-2.5">*AI-estimated portion guides. Not medical
-                        advice.</p>
+                    <p class="text-[9px] text-slate-500 text-left mt-2">*AI-estimated portion guides. Not medical advice.</p>
                 </div>
             </div>
 

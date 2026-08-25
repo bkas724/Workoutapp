@@ -104,44 +104,44 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                                 const desc = tierData.description || '';
                                 const meals = tierData.meals || {};
                                 return `
-                                    <div class="space-y-3 text-xs">
-                                        <!-- Calorie Target & Description on Same Line -->
-                                        <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                                            <span class="font-bold text-emerald-300 text-xs bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30 shrink-0">
-                                                <span class="font-bold text-emerald-400">Calorie Target:</span> ${target}
+                                    <div class="space-y-2.5 text-xs">
+                                        <!-- Calorie Target & Description -->
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 font-bold text-xs font-mono shrink-0">
+                                                <i class="fa-solid fa-fire-flame-curved text-[11px] text-emerald-400"></i> ${target}
                                             </span>
                                             ${desc ? `<span class="text-slate-300 text-xs leading-relaxed font-normal">${desc}</span>` : ''}
                                         </div>
 
-                                        <!-- Meal Cards Column Grid -->
+                                        <!-- Meal Cards Grid without nested boxes -->
                                         ${meals && (meals.breakfast || meals.lunch || meals.dinner || meals.snack) ? `
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                                             ${meals.breakfast ? `
-                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                            <div class="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-between border-l-2 sm:border-l-0 sm:border-t-2 border-amber-400/80">
                                                 <div>
-                                                    <span class="font-bold text-amber-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-amber-500/20">Breakfast</span>
-                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.breakfast}</p>
+                                                    <span class="font-bold text-amber-400 text-[11px] uppercase tracking-wider block mb-1">Breakfast</span>
+                                                    <p class="text-slate-200 text-xs font-normal leading-relaxed">${meals.breakfast}</p>
                                                 </div>
                                             </div>` : ''}
                                             ${meals.lunch ? `
-                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                            <div class="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-between border-l-2 sm:border-l-0 sm:border-t-2 border-orange-400/80">
                                                 <div>
-                                                    <span class="font-bold text-orange-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-orange-500/20">Lunch</span>
-                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.lunch}</p>
+                                                    <span class="font-bold text-orange-400 text-[11px] uppercase tracking-wider block mb-1">Lunch</span>
+                                                    <p class="text-slate-200 text-xs font-normal leading-relaxed">${meals.lunch}</p>
                                                 </div>
                                             </div>` : ''}
                                             ${meals.dinner ? `
-                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                            <div class="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-between border-l-2 sm:border-l-0 sm:border-t-2 border-sky-400/80">
                                                 <div>
-                                                    <span class="font-bold text-sky-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-sky-500/20">Dinner</span>
-                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.dinner}</p>
+                                                    <span class="font-bold text-sky-400 text-[11px] uppercase tracking-wider block mb-1">Dinner</span>
+                                                    <p class="text-slate-200 text-xs font-normal leading-relaxed">${meals.dinner}</p>
                                                 </div>
                                             </div>` : ''}
                                             ${meals.snack ? `
-                                            <div class="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-xl flex flex-col justify-between h-full shadow-sm hover:border-slate-700/80 transition-all">
+                                            <div class="bg-slate-950/40 p-2.5 sm:p-3 rounded-xl flex flex-col justify-between border-l-2 sm:border-l-0 sm:border-t-2 border-fuchsia-400/80">
                                                 <div>
-                                                    <span class="font-bold text-fuchsia-400 text-xs uppercase tracking-wider block mb-2 pb-1.5 border-b border-fuchsia-500/20">Snack</span>
-                                                    <p class="text-slate-300 text-xs font-normal leading-relaxed">${meals.snack}</p>
+                                                    <span class="font-bold text-fuchsia-400 text-[11px] uppercase tracking-wider block mb-1">Snack</span>
+                                                    <p class="text-slate-200 text-xs font-normal leading-relaxed">${meals.snack}</p>
                                                 </div>
                                             </div>` : ''}
                                         </div>` : ''}
@@ -164,11 +164,11 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                             const nutCard = document.getElementById(cardId);
                             if (container && nutCard) {
                                 if (isComplexNutrition) {
-                                    container.className = "grid grid-cols-1 md:grid-cols-2 gap-5";
-                                    nutCard.className = "bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between col-span-1 md:col-span-2";
+                                    container.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+                                    nutCard.className = "flex flex-col justify-between col-span-1 md:col-span-2 pt-3.5 md:pt-4 md:border-t md:border-slate-800/80";
                                 } else {
-                                    container.className = "grid grid-cols-1 md:grid-cols-3 gap-5";
-                                    nutCard.className = "bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between col-span-1";
+                                    container.className = "grid grid-cols-1 md:grid-cols-3 gap-4";
+                                    nutCard.className = "flex flex-col justify-between col-span-1 pt-3.5 md:pt-0 md:border-l md:border-slate-800/80 md:pl-4";
                                 }
                             }
                         };
