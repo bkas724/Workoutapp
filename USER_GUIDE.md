@@ -104,7 +104,7 @@ The application navigation is organized into clean visual views (tabs):
 * **Pace & Volume Performance Card**:
   * **5-Week Focus Window**: Main dashboard chart defaults to a clean 5-week view of weekly mileage bars and estimated race pace trend lines.
   * **Full Journey Modal**: Click the `<i class="fa-solid fa-expand"></i> Full Journey` button to expand a full-screen macrocycle view spanning Week 1 to Race Day.
-  * **Interactive Pace Attribution**: Tap the **Pace Est.** pill to open the *Pace Calculation Breakdown* modal, displaying the exact HR/velocity inputs, interval work-to-rest density, workout names, and outlier-dropped math behind your current estimated race pace.
+  * **Interactive Pace Attribution**: Tap the **Pace Est.** pill to open the *Pace Calculation Breakdown* modal, displaying the exact HR/velocity inputs, interval work-to-rest density, workout names, and the **Best 2 of 5 Capability Index** (40% rule) isolating key benchmark sessions while preserving guilt-free aerobic recovery logs.
   * **Key Shorthand Metrics**: Displays *Starting Baseline*, *Target Pace*, *Total Miles*, and *Pace Est.*
 * **Dynamic Pace Blueprint Card**: Displays your active VDOT score and calculated target training zones:
   * **Easy / Recovery Pace** (e.g., 9:15 - 9:45 min/mi)

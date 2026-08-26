@@ -171,9 +171,11 @@ window.openPaceBreakdownModal = function() {
             const mathText = item.mathType || "Fallback";
 
             // Visual state for discarded vs active
-            const borderClass = isDiscarded ? "border-slate-800/50 bg-slate-900/30 opacity-50 grayscale" : "border-indigo-500/30 bg-slate-900";
-            const strikeClass = isDiscarded ? "line-through text-slate-500" : "text-amber-400";
-            const badgeHTML = isDiscarded ? `<span class="absolute -top-2 -right-2 bg-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded-md border border-slate-700 text-slate-400 uppercase tracking-wider">Outlier</span>` : '';
+            const borderClass = isDiscarded ? "border-slate-800/50 bg-slate-900/30 opacity-50 grayscale" : "border-indigo-500/40 bg-slate-900 shadow-md shadow-indigo-500/5";
+            const strikeClass = isDiscarded ? "line-through text-slate-500" : "text-amber-400 font-black";
+            const badgeHTML = isDiscarded 
+                ? `<span class="absolute -top-2 -right-2 bg-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded-md border border-slate-700 text-slate-400 uppercase tracking-wider">Aerobic / Base</span>` 
+                : `<span class="absolute -top-2 -right-2 bg-amber-500/20 text-[8px] font-black px-1.5 py-0.5 rounded-md border border-amber-500/30 text-amber-400 uppercase tracking-wider flex items-center gap-1"><i class="fa-solid fa-bolt text-[7px]"></i> Capability Benchmark</span>`;
 
             const el = document.createElement('div');
             el.className = `relative p-3 rounded-xl border flex flex-col gap-1.5 transition-all ${borderClass}`;

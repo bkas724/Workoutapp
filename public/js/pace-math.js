@@ -22,31 +22,31 @@ function calculateEst5KRacePace(completedRuns, baseline5kStr) {
 
             // Take up to the last 5 valid running activities
             const lastFive = runsWithPace.slice(0, 5);
-            let projectedSecs = [];
 
             lastFive.forEach(w => {
                 let debugObj = { workout: w };
                 const est5KSec = convertRunToEst5KPaceSec(w, debugObj);
                 if (est5KSec !== null) {
                     debugObj.estSec = est5KSec;
+                    debugObj.discarded = false;
                     window.lastPaceBreakdown.push(debugObj);
-                    projectedSecs.push(est5KSec);
                 }
             });
 
-            if (projectedSecs.length === 0) return baseline5kStr || "8:10";
+            if (window.lastPaceBreakdown.length === 0) return baseline5kStr || "8:10";
 
-            // If we have 3 or more runs, discard the absolute slowest projected outlier
-            if (projectedSecs.length >= 3) {
-                projectedSecs.sort((a, b) => a - b); // Ascending order (fastest to slowest)
-                const discardedSec = projectedSecs.pop(); // Remove the last item (slowest pace)
-                // Mark it in the debug breakdown
-                const outlier = window.lastPaceBreakdown.find(d => d.estSec === discardedSec && !d.discarded);
-                if (outlier) outlier.discarded = true;
-            }
+            // Best 2 of up to 5 Capability Index (40% rule):
+            const targetCount = Math.min(2, window.lastPaceBreakdown.length);
+            const sorted = [...window.lastPaceBreakdown].sort((a, b) => a.estSec - b.estSec);
+            
+            // Mark items beyond targetCount as discarded / base aerobic
+            sorted.forEach((item, idx) => {
+                item.discarded = idx >= targetCount;
+            });
 
-            const totalEstSec = projectedSecs.reduce((sum, sec) => sum + sec, 0);
-            const avg5KSec = Math.round(totalEstSec / projectedSecs.length);
+            const activeRuns = window.lastPaceBreakdown.filter(d => !d.discarded);
+            const totalEstSec = activeRuns.reduce((sum, d) => sum + d.estSec, 0);
+            const avg5KSec = Math.round(totalEstSec / activeRuns.length);
             const mins = Math.floor(avg5KSec / 60);
             const secs = avg5KSec % 60;
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -298,54 +298,95 @@ function updatePaceChart(data, completedRuns, isFullJourney = false) {
         allProjected.push(sec / 60);
     }
 
-    // 3. Calculate Weekly Volume & Weekly Est. Pace for EVERY Week
+    // 3. Calculate Weekly Volume & Rolling Fitness Pace for EVERY Week
     const allWeeklyVolume = Array(numWeeks).fill(0);
     const allWeeklyEstPace = Array(numWeeks).fill(null);
 
-    // Baseline bubble at Week 1 if initialized
-    if (allWeeklyEstPace.length > 0) {
-        allWeeklyEstPace[0] = startSec / 60;
-    }
-
     const runs = completedRuns || (typeof activePhaseWorkouts !== 'undefined' ? activePhaseWorkouts : []);
+    const excludedTypes = ['bike', 'walk', 'swim', 'row', 'strength', 'yoga', 'mobility', 'hike'];
 
-    for (let wIdx = 0; wIdx < numWeeks; wIdx++) {
-        const weekWin = allWindows[wIdx];
-        let weekVolume = 0;
-        let weekPaceSecs = [];
+    // Collect all valid running workouts with timestamp & pace
+    const validRunsWithTimestamp = [];
 
-        runs.forEach(w => {
-            let wMs = 0;
-            if (w.dateExecuted) {
-                wMs = new Date(w.dateExecuted).getTime();
-            } else if (w.sequenceOrder) {
-                const wkOffset = Math.floor((w.sequenceOrder - 1) / 3);
-                wMs = startMs + (wkOffset * 7 * 24 * 60 * 60 * 1000);
-            }
+    runs.forEach(w => {
+        let wMs = 0;
+        if (w.dateExecuted) {
+            wMs = new Date(w.dateExecuted).getTime();
+        } else if (w.sequenceOrder) {
+            const wkOffset = Math.floor((w.sequenceOrder - 1) / 3);
+            wMs = startMs + (wkOffset * 7 * 24 * 60 * 60 * 1000);
+        }
 
+        // Aggregate volume across all activities in their respective week
+        for (let wIdx = 0; wIdx < numWeeks; wIdx++) {
+            const weekWin = allWindows[wIdx];
             if (wMs >= weekWin.start && wMs < weekWin.end) {
                 const miles = extractWorkoutMileage(w);
-                if (miles > 0) weekVolume += miles;
-
-                const type = (w.type || '').toLowerCase();
-                const excludedTypes = ['bike', 'walk', 'swim', 'row', 'strength', 'yoga', 'mobility', 'hike'];
-                const isExcluded = excludedTypes.some(ex => type.includes(ex));
-                const hasPace = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
-
-                if (hasPace && !isExcluded) {
-                    const estSec = convertRunToEst5KPaceSec(w);
-                    if (estSec !== null) {
-                        weekPaceSecs.push(estSec);
-                    }
-                }
+                if (miles > 0) allWeeklyVolume[wIdx] += miles;
+                break;
             }
-        });
+        }
 
-        allWeeklyVolume[wIdx] = parseFloat(weekVolume.toFixed(1));
+        const type = (w.type || '').toLowerCase();
+        const isExcluded = excludedTypes.some(ex => type.includes(ex));
+        const hasPace = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
 
-        if (weekPaceSecs.length > 0) {
-            const avgSec = weekPaceSecs.reduce((a, b) => a + b, 0) / weekPaceSecs.length;
-            allWeeklyEstPace[wIdx] = avgSec / 60;
+        if (hasPace && !isExcluded) {
+            validRunsWithTimestamp.push({ workout: w, timestamp: wMs });
+        }
+    });
+
+    // Format all weekly volumes
+    for (let wIdx = 0; wIdx < numWeeks; wIdx++) {
+        allWeeklyVolume[wIdx] = parseFloat(allWeeklyVolume[wIdx].toFixed(1));
+    }
+
+    // Determine the latest active week index
+    let latestActiveWeekIdx = 0;
+    const nowMs = Date.now();
+    for (let i = 0; i < numWeeks; i++) {
+        const hasVolume = allWeeklyVolume[i] > 0;
+        const hasRunsInWeek = validRunsWithTimestamp.some(r => r.timestamp >= allWindows[i].start && r.timestamp < allWindows[i].end);
+        const isPastOrCurrent = nowMs >= allWindows[i].start;
+        if (hasVolume || hasRunsInWeek || (isPastOrCurrent && i > 0)) {
+            latestActiveWeekIdx = i;
+        }
+    }
+
+    // Compute rolling 5-run estimated race pace at each week up to latestActiveWeekIdx
+    for (let wIdx = 0; wIdx <= latestActiveWeekIdx; wIdx++) {
+        const weekWin = allWindows[wIdx];
+
+        // Gather all eligible runs completed on or before the end of this week
+        const runsUpToWeek = validRunsWithTimestamp
+            .filter(r => r.timestamp < weekWin.end)
+            .sort((a, b) => b.timestamp - a.timestamp);
+
+        if (runsUpToWeek.length === 0) {
+            // If no runs have occurred yet, fallback to baseline starting pace
+            allWeeklyEstPace[wIdx] = (wIdx === 0) ? (startSec / 60) : (allWeeklyEstPace[wIdx - 1] || (startSec / 60));
+        } else {
+            // Take up to the 5 most recent runs up to this week
+            const recentRuns = runsUpToWeek.slice(0, 5);
+            let projectedSecs = [];
+
+            recentRuns.forEach(r => {
+                const estSec = convertRunToEst5KPaceSec(r.workout);
+                if (estSec !== null) {
+                    projectedSecs.push(estSec);
+                }
+            });
+
+            if (projectedSecs.length === 0) {
+                allWeeklyEstPace[wIdx] = allWeeklyEstPace[wIdx - 1] || (startSec / 60);
+            } else {
+                // Best 2 of up to 5 Capability Index (40% rule)
+                projectedSecs.sort((a, b) => a - b);
+                const targetCount = Math.min(2, projectedSecs.length);
+                const bestSecs = projectedSecs.slice(0, targetCount);
+                const avgSec = bestSecs.reduce((sum, s) => sum + s, 0) / bestSecs.length;
+                allWeeklyEstPace[wIdx] = avgSec / 60;
+            }
         }
     }
 
@@ -358,15 +399,6 @@ function updatePaceChart(data, completedRuns, isFullJourney = false) {
         projectedData = allProjected;
         weeklyVolumeData = allWeeklyVolume;
     } else {
-        // Find latest active week index (by logged volume/pace or current calendar date)
-        let latestActiveWeekIdx = 0;
-        const nowMs = Date.now();
-        for (let i = 0; i < numWeeks; i++) {
-            if (allWeeklyVolume[i] > 0 || (allWeeklyEstPace[i] !== null && i > 0) || (nowMs >= allWindows[i].start)) {
-                latestActiveWeekIdx = i;
-            }
-        }
-
         let sliceEnd = Math.max(5, latestActiveWeekIdx + 1);
         sliceEnd = Math.min(numWeeks, sliceEnd);
         let sliceStart = Math.max(0, sliceEnd - 5);

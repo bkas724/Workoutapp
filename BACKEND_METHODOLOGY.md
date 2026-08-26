@@ -73,11 +73,10 @@ Running velocity ($v = 1/\text{Pace}$) scales non-linearly with $\% \text{HR}_{\
 To scale projected pace accurately between 5K and the runner's specific profile `targetDistance`:
 $$\text{Pace}_{\text{target}} = \text{Pace}_{\text{5K}} \times \left(\frac{D_{\text{target}}}{3.1068}\right)^{b - 1}$$
 *   **Fatigue Exponents ($b$):** $b = 1.06$ for 5K–10K, $b = 1.07$ for Half Marathon, $b = 1.08$ for Marathon, $b = 1.09$ for Ultra.
-*   **Outlier Filtering & Smoothing:** The system takes the last **5 valid runs**, discards the slowest outlier, and averages the remaining 4 to display the top-level **Pace Est.** metric.
+*   **Capability Index & Outlier Filtering (Best 2 of 5 / 40% Rule):** Mirroring the USGA Handicap philosophy (demonstrated capability vs raw arithmetic average), the system isolates the **fastest 2 projected race paces out of the last 5 valid running activities** ($\min(2, N)$ out of $N$ runs) to compute the top-level **Pace Est.** metric. Remaining slower/recovery runs are tagged as *Aerobic Base / Recovery* in the Pace Breakdown modal, ensuring runners are never penalized for doing slow zone 2 recovery sessions.
 *   **Dual-View Time Horizon (5-Week Focus vs. Full Journey):**
     *   **5-Week Performance Window (Dashboard Default):** Slices the macrocycle timeline to the 5 most recent/active weeks.
-    *   **Full Journey Modal (`full-pace-journey-chart`):** Renders the entire macrocycle (12–16 weeks) from journey start to target race date.
-    *   **Chart Aggregation Logic:** Weekly volume bars aggregate total miles across all logged workouts. Weekly pace trend points only aggregate valid running workouts converted via the 4-tier formula.
+    *   **Chart Aggregation Logic:** Weekly volume bars aggregate total miles across all logged workouts. The **Est. Pace** trend line uses the **Rolling Best-2-of-5 Capability Index** evaluated at each active week rather than an isolated weekly average. This ensures recovery/deload weeks do not look like regressions and guarantees that the latest point on the chart precisely matches the top **Pace Est.** card.
 
 ### Weight Trend Engine & Biometrics Trajectory Model
 To support safe weight progression and defeat cognitive overload, weight tracking is decoupled into an active phase window and a full journey exponential decay model.
