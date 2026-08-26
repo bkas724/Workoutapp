@@ -179,7 +179,7 @@ function sanitizeStrengthWorkoutTitle(title) {
     return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : "Full Body";
 }
 
-function sanitizeStrengthGuides(guides) {
+function sanitizeStrengthGuides(guides, profile) {
     if (!Array.isArray(guides)) return [];
     return guides.map(g => ({
         ...g,
@@ -220,40 +220,78 @@ exports.generateWorkoutBlock = onCall({
     cors: true,
     timeoutSeconds: 90
 }, async (request) => {
-    const { profile, phaseIndex, history, simpleMode } = request.data;
+    const { profile, phaseIndex, history, simpleMode, trainingMetrics } = request.data;
     
     const ai = getGenAI(geminiApiKey.value());
     
+    // Format Training Load & Consistency Signals
+    let metricsContext = "";
+    if (trainingMetrics) {
+        const sections = [];
+        if (trainingMetrics.weightTrend && trainingMetrics.weightTrend.currentWeight) {
+            const wt = trainingMetrics.weightTrend;
+            const deltaStr = wt.deltaLbs !== undefined && wt.deltaLbs !== null ? ` (Change: ${wt.deltaLbs > 0 ? '+' : ''}${wt.deltaLbs} lbs over ${wt.daysElapsed || 14} days)` : '';
+            sections.push(`- Biometric Status: Weight = ${wt.currentWeight} lbs${deltaStr}`);
+        }
+        if (trainingMetrics.weeklyVolume && Array.isArray(trainingMetrics.weeklyVolume) && trainingMetrics.weeklyVolume.length > 0) {
+            const volLines = trainingMetrics.weeklyVolume.map(v => `${v.label || 'Block'}: ${v.totalMiles || 0} mi (${v.totalMinutes || 0} mins across ${v.runCount || 0} runs, ${v.strengthCount || 0} strength)`).join(' | ');
+            const deltaText = trainingMetrics.volumeDeltaPct !== undefined && trainingMetrics.volumeDeltaPct !== null ? ` | Progression Rate: ${trainingMetrics.volumeDeltaPct > 0 ? '+' : ''}${trainingMetrics.volumeDeltaPct}%` : '';
+            sections.push(`- Recent Volume Load (Last 2 Blocks): ${volLines}${deltaText}`);
+        }
+        if (trainingMetrics.recentJITConsistency) {
+            const j = trainingMetrics.recentJITConsistency;
+            const daysText = j.daysElapsedForLastBlock ? ` | Completed previous ${j.workoutCount || 7} workouts across ${j.daysElapsedForLastBlock} calendar days` : '';
+            const spanText = (j.totalWorkoutsEvaluated && j.totalSpanDays) ? ` (Total history span: ${j.totalWorkoutsEvaluated} workouts across ${j.totalSpanDays} calendar days)` : '';
+            sections.push(`- JIT Consistency & Cadence: ${j.score || 100}% consistency (${j.rating || 'On-schedule'})${daysText}${spanText}`);
+        }
+        if (sections.length > 0) {
+            metricsContext = `\nTraining Load & Consistency Signals (Recent Completed Blocks):\n` + sections.join('\n') + '\n';
+        }
+    }
+
+    // Format Ground-Truth Workout History (Chronological, last 2 completed blocks / up to 14 activities)
     let historyContext = "No recent workout history logged yet.";
     if (history && Array.isArray(history) && history.length > 0) {
         historyContext = history.map(h => {
+            const dateStr = h.dateExecuted ? new Date(h.dateExecuted).toISOString().split('T')[0] : 'Recent';
             const typeLabel = (h.type || h.actualActivityType || 'run').toUpperCase();
             const catLabel = h.workoutCategory === 'intervals' ? 'INTERVALS' : (h.workoutCategory ? h.workoutCategory.toUpperCase() : 'RUN');
-            let structure = "";
-            if (h.intervalRepCount && h.intervalWorkValue) {
-                structure = `${h.intervalRepCount} x ${h.intervalWorkValue}${h.intervalWorkUnit || 'm'} (Rest: ${h.intervalRestSeconds || 60}s)`;
-            } else if (h.distanceDuration) {
-                structure = h.distanceDuration;
-            } else if (h.actualLoggedDistance) {
-                structure = `${h.actualLoggedDistance} mi`;
+            
+            let outputDetails = [];
+            if (h.actualLoggedDistance) {
+                outputDetails.push(`${h.actualLoggedDistance} mi`);
             } else if (h.targetDistance) {
-                structure = `${h.targetDistance} mi`;
-            } else if (h.actualLoggedDuration) {
-                structure = `${h.actualLoggedDuration} mins`;
-            } else if (h.targetDuration) {
-                structure = `${h.targetDuration} mins`;
-            } else {
-                structure = "30 mins";
+                outputDetails.push(`${h.targetDistance} mi`);
             }
 
-            const targetPace = h.intervalTargetPace || h.targetPaceZone || 'N/A';
+            if (h.actualLoggedDuration) {
+                outputDetails.push(`${h.actualLoggedDuration} mins`);
+            } else if (h.targetDuration) {
+                outputDetails.push(`${h.targetDuration} mins`);
+            }
+
+            if (h.intervalRepCount && h.intervalWorkValue) {
+                outputDetails.unshift(`${h.intervalRepCount} x ${h.intervalWorkValue}${h.intervalWorkUnit || 'm'}`);
+            }
+
+            const outputStr = outputDetails.length > 0 ? ` (${outputDetails.join(', ')})` : '';
+            const actualPace = h.actualLoggedPace ? `Actual Pace=${h.actualLoggedPace}/mi` : '';
             const splits = (h.repSplits && Array.isArray(h.repSplits) && h.repSplits.length > 0) ? ` | Splits=[${h.repSplits.join(', ')}]` : '';
-            const effort = h.effortZone ? `Zone ${h.effortZone}` : (h.rpeScore ? `RPE ${h.rpeScore}/10` : 'N/A');
-            const actualPace = h.actualLoggedPace ? `Actual Pace=${h.actualLoggedPace}` : 'Actual Pace=N/A';
-            const dist = h.actualLoggedDistance ? ` | Total Dist=${h.actualLoggedDistance} mi` : '';
+            
+            let hrZone = '';
+            if (h.avgHeartRate || h.actualHeartRate) {
+                const bpm = Math.round(h.avgHeartRate || h.actualHeartRate);
+                const zone = h.effortZone ? ` (Zone ${h.effortZone})` : '';
+                hrZone = ` | Avg HR=${bpm} BPM${zone}`;
+            } else if (h.effortZone) {
+                hrZone = ` | Zone ${h.effortZone}`;
+            }
+
+            const effort = h.rpeScore ? ` | Effort=RPE ${h.rpeScore}/5` : '';
             const notes = h.userWorkoutNotes ? ` | Notes: "${h.userWorkoutNotes}"` : '';
 
-            return `- [${typeLabel} / ${catLabel}] "${h.workoutTitle}" (${structure}): Target Pace=${targetPace}, ${actualPace}${splits}${dist}, Effort=${effort}${notes}`;
+            const performance = [actualPace, splits, hrZone, effort, notes].filter(Boolean).join('');
+            return `- [${dateStr} | ${typeLabel} / ${catLabel}] "${h.workoutTitle}"${outputStr}: ${performance || 'Completed as prescribed'}`;
         }).join("\n");
     }
 
@@ -295,8 +333,8 @@ User Profile:
 - Prescriptive Meals Enabled: ${prescriptiveMealsEnabled ? 'Yes' : 'No'}
 ${prescriptiveMealsEnabled ? `- Dietary Preferences/Allergies: ${dietaryNotes}` : ''}
 ${profile?.primaryGoal === 'race' ? `- Target Goal Race Pace: ${profile?.activeAdjustedGoal || 'N/A'} min/mi\n` : ''}- Current Estimated Fitness Pace: ${profile?.currentEstimated5k || profile?.baseline5k || 'N/A'} min/mi
-
-Recent Workout History:
+${metricsContext}
+Recent Workout History (Last 2 Completed Blocks / Up to 14 Activities):
 ${historyContext}
 
 ${profile?.macrocyclePlan ? `\nOverarching Macrocycle Plan:\n${JSON.stringify(profile.macrocyclePlan, null, 2)}\n(Use this to maintain narrative context for the current phase)` : ''}
@@ -311,7 +349,11 @@ SEQUENCE ORDER RULES: For days 1 through 7, every day must have at least one act
 2. Attach a 'jitPreparationTip' to EVERY workout object (including rest days). This tip should instruct the user on what to do *the day before* or *the hours leading up to* this specific workout to prepare/fuel/recover.
 
 ${nutInstructionBlock}
-4. Evaluate their recent history and determine if they missed days/took extra rest. Use this context to scale intensity or volume for the new block.
+4. SPORTS SCIENCE LOAD PROGRESSION & JIT CONSISTENCY DIRECTIVES:
+   - Evaluate their recent 2-week history, actual weekly volume (miles/minutes), and JIT consistency.
+   - If JIT consistency is high (>=90%) and logged RPE/effort was low/moderate, you may safely progress weekly running volume by 5-10% and scale interval work toward their target fitness.
+   - If JIT consistency shows extended gaps (took >8-9 days for 7 workouts) or logged RPE was high (4-5), prioritize consolidation, hold volume steady, or insert extra active recovery/walking.
+   - Never increase weekly running distance by more than 10-15% compared to their previous block.
 5. CRITICAL STRENGTH WORKOUT FORMULAS & ANATOMICAL NAMING:
    - For strength workouts, set 'workoutTitle' strictly to the anatomical or functional body focus (e.g. 'Full Body', 'Core & Lower Body', 'Posterior Chain & Glutes', 'Upper Body Push/Pull', 'Hips & Ankle Stability'). NEVER include words like 'Strength', 'Workout', 'Circuit', 'Routine', or letter identifiers like 'Guide A' in 'workoutTitle'.
    - Set 'isCircuit' to true or false directly on the workout object.
@@ -459,7 +501,7 @@ Return ONLY a valid JSON object matching this exact structure:
             deduplicatedWorkouts.push(w);
         });
         
-        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || []);
+        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || [], profile);
 
         workouts = deduplicatedWorkouts.map((w, index) => {
             let defaultRpe = 2;
@@ -671,7 +713,7 @@ Return ONLY a valid JSON object exactly in this format without any markdown wrap
             }
         }
         
-        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || []);
+        const cleanGuides = sanitizeStrengthGuides(parsedData.strengthGuides || [], profile);
         return { strengthGuides: cleanGuides };
     } catch (error) {
         console.error("Error calling Gemini API:", error);

@@ -155,10 +155,22 @@ When a user logs a workout or interval session without GPX hardware data, the ap
   $$\text{Calculated Pace} = \frac{\text{Average Rep Time (seconds)}}{\text{Rep Distance (miles)}}$$
   *Example*: For $8 \times 400\text{m}$, total distance is $8 \times 0.24855 = 1.99\text{ miles}$. At $1:30$ per $400\text{m}$, the calculated pace is $6:02\text{ /mi}$. By persisting `actualLoggedDistance`, weekly volume bar charts and macrocycle mileage summaries accurately account for all interval and tempo sessions without manual distance conversions.
 
-### D. AI Coach Context Serialization
-When the AI Coach evaluates previous workout history, interval sessions are serialized with full structural fidelity:
-`- [TEMPO / INTERVALS] "Tempo Intervals" (3 x 5mins (Rest: 120s)): Target Pace=7:08, Actual Pace=7:15 | Splits=[5:00, 5:05, 5:02] | Total Dist=2.10 mi, Effort=Zone 4 | Notes: "Strong pacing throughout"`
-This allows the coach to distinguish between flat continuous runs and high-intensity interval intervals, scaling future blocks accurately.
+### D. Elite AI Coach Context Serialization & 2-Week Data Contract
+When the AI Coach evaluates previous workout history, the payload is restricted to **the most recent ~14 completed workouts (~2 weeks)** and serialized using pure **ground-truth execution outputs** (eliminating prescribed target pace redundancy):
+- **Interval Session Log Format:**
+  `- [2026-08-22 | RUN / INTERVALS] "Tempo Repeats" (5 x 1000m): Actual Pace=7:10/mi | Splits=[4:25, 4:28, 4:30, 4:32, 4:35] | Total Dist=4.2 mi | Avg HR=168 BPM (Zone 4) | Effort=RPE 4/5 | Notes: "Strong pacing"`
+- **Aerobic / Continuous Run Format:**
+  `- [2026-08-20 | RUN / EASY] "Aerobic Base Run" (3.1 mi, 27 mins): Actual Pace=8:42/mi | Avg HR=142 BPM (Zone 2) | Effort=RPE 2/5 | Notes: "Smooth"`
+- **Strength / Rest Formats:**
+  `- [2026-08-21 | STRENGTH / CIRCUIT] "Core & Lower Body" (3 Rounds, 30 mins): Effort=RPE 3/5 | Notes: "Controlled"`
+  `- [2026-08-23 | REST] "Recovery Day": Effort=RPE 1/5`
+
+### E. Aggregate Macro Training Signals (Last 2 Weeks)
+Alongside the micro workout log, the client passes lightweight aggregate signals (`trainingMetrics`) to give the coach high-level sports science context without bloating prompt tokens:
+1. **Weekly Volume & Time on Feet**: e.g., `Block 1: 14.2 mi (125 mins, 4 runs, 2 strength) | Block 2: 15.8 mi (140 mins, 4 runs, 2 strength) | Progression Rate: +11.2%`.
+2. **JIT Consistency & Cadence**: e.g., `100% consistency (High on-schedule) | Completed previous 7 workouts across 8 calendar days`.
+3. **Biometric Weight Trend**: e.g., `Weight = 180.0 lbs (Change: -1.2 lbs over 14 days)`.
+4. **Stripped Bloat**: Lifetime `bmiHistory`, `paceHistory`, GPS trackpoint coordinate arrays, and UI DOM states are excluded from callable payloads.
 
 ## 7. Strength Workout Schemas, Anatomical Naming & Guide Lifecycle Contract
 
@@ -168,11 +180,12 @@ To prevent visual clutter and redundant text on workout cards:
 *   **Elimination of Filler Words:** The words `"Strength"`, `"Workout"`, `"Circuit"`, `"Routine"`, and isolated letter identifiers (e.g., `"Guide A"`) are forbidden in `workoutTitle`.
 *   **Backend Sanitization:** If Gemini outputs a title containing legacy filler words, the backend normalizer `sanitizeStrengthWorkoutTitle` strips them automatically before writing to Firestore.
 
-### B. Rigid Schema-Driven Linking
+### B. Rigid Schema-Driven Linking & Sanitizer Contract
 Strength workouts are linked to strength guides strictly via structured properties, eliminating fuzzy regex parsing:
 *   `strengthGuideReference`: Matches the exact `id` of a guide in `users/{userId}.currentStrengthGuides` (`"A"`, `"B"`, or `"C"`).
 *   `isCircuit`: Boolean property (`true` for circuit routines, `false` for linear sets/reps).
 *   `circuitRounds`: Integer count of rounds (e.g., `3`) for circuit workouts.
+*   **Sanitization Scope Contract:** `sanitizeStrengthGuides(guides, profile)` receives the user profile to calculate deterministic recovery periods (`restSeconds`, `circuitRestSeconds`) based on the runner's fitness level (Beginner: 25s/45s, Intermediate: 15s/30s, Advanced: 10s/25s), preventing runtime reference errors.
 *   **Frontend Presentation:**
     *   **Circuit Workouts:** The card title displays the clean anatomical focus (`Full Body`), and the subtitle renders `• Circuit • 3 Rounds`.
     *   **Linear Workouts:** The card title displays the focus (`Posterior Chain`), and the subtitle renders `• Strength Guide A`.
@@ -181,4 +194,5 @@ Strength workouts are linked to strength guides strictly via structured properti
 *   **Generation & Storage:** Tailored strength guides are generated alongside workouts during onboarding, phase advancement, or plan modifications and persisted to `users/{userId}.currentStrengthGuides` in Firestore.
 *   **Weekly / Phase Adaptation:** When advancing to a new training block, fresh strength guides overwrite the old routines on the user profile, ensuring exercises evolve with phase demands.
 *   **Client Synchronization:** The client loads `currentStrengthGuides` into memory upon authentication, powering the Strength Tab (`tab-strength`), Up-Next card subtitle rendering, and the interactive workout logging checklist.
+
 
