@@ -156,6 +156,14 @@ If you ran a custom pace, want to record precise interval split times, adjust RP
 4. (Optional) Add conversational notes (e.g., *"Felt strong on the final hill"*).
 5. Click **Complete Session** to save your log and advance the sequential queue.
 
+### Adjusting & Editing Previous Run Details & 5-Week Review
+If a metric was logged incorrectly, a value was missed, or you want to audit and backfill past data:
+* **5-Week Activity Review Modal**: Click the `<i class="fa-solid fa-list-check text-emerald-400"></i> Review 5-Wk Logs` button on the Pace & Volume card (or the footer of the Pace Breakdown modal). This opens a scrollable, chronological audit list of all workouts logged in the 5-week window, complete with data health badges (`⚠️ Missing Dist`, `⚠️ Missing Time`, `⚠️ Missing Pace`, `✓ Complete`) and individual `[ ✎ Edit ]` buttons.
+* **From the Active Phase Workout Card**: Completed cards on the main dashboard feature an `<i class="fa-solid fa-pen-to-square"></i> Edit Log` button that opens the **Adjust Workout Details** modal.
+* **From the Pace Breakdown Modal**: Tap the **Pace Est.** pill to open the calculation breakdown, then click `<i class="fa-solid fa-pen-to-square"></i> Edit` on any contributing run.
+* **Editable Fields**: Completion date, activity type, distance, duration (with live calculated pace), average heart rate (BPM), effort zone (1–5), notes, and interval rep splits.
+* **Uncomplete / Reset**: A 1-tap `Uncomplete` button allows you to revert an accidentally checked workout back to an uncompleted state.
+
 
 ### Workout List & 50/50 Workout Modal
 When tapping the Up-Next Card for any scheduled session containing movements or strength circuits, the app opens a streamlined, two-phase training environment:

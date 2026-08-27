@@ -43,8 +43,8 @@ async function buildEliteCoachPayload(userDocRef, activeWorkouts, userProfile) {
     const allCompletedList = Array.from(allCompletedMap.values());
     // Sort chronologically (oldest to newest)
     allCompletedList.sort((a, b) => {
-        const timeA = a.dateExecuted ? new Date(a.dateExecuted).getTime() : 0;
-        const timeB = b.dateExecuted ? new Date(b.dateExecuted).getTime() : 0;
+        const timeA = a.dateExecuted ? parseLocalDate(a.dateExecuted).getTime() : 0;
+        const timeB = b.dateExecuted ? parseLocalDate(b.dateExecuted).getTime() : 0;
         return timeA - timeB;
     });
 
@@ -113,14 +113,14 @@ async function buildEliteCoachPayload(userDocRef, activeWorkouts, userProfile) {
     if (recentCompleted.length > 0) {
         const lastBlock = recentCompleted.slice(-7);
         lastBlockWorkoutCount = lastBlock.length;
-        const firstDateLastBlock = lastBlock[0].dateExecuted ? new Date(lastBlock[0].dateExecuted) : null;
-        const lastDateLastBlock = lastBlock[lastBlock.length - 1].dateExecuted ? new Date(lastBlock[lastBlock.length - 1].dateExecuted) : null;
+        const firstDateLastBlock = lastBlock[0].dateExecuted ? parseLocalDate(lastBlock[0].dateExecuted) : null;
+        const lastDateLastBlock = lastBlock[lastBlock.length - 1].dateExecuted ? parseLocalDate(lastBlock[lastBlock.length - 1].dateExecuted) : null;
         if (firstDateLastBlock && lastDateLastBlock && !isNaN(firstDateLastBlock.getTime()) && !isNaN(lastDateLastBlock.getTime())) {
             daysElapsedForLastBlock = Math.max(1, Math.ceil(Math.abs(lastDateLastBlock - firstDateLastBlock) / (1000 * 60 * 60 * 24)) + 1);
         }
 
-        const overallFirstDate = recentCompleted[0].dateExecuted ? new Date(recentCompleted[0].dateExecuted) : null;
-        const overallLastDate = recentCompleted[recentCompleted.length - 1].dateExecuted ? new Date(recentCompleted[recentCompleted.length - 1].dateExecuted) : null;
+        const overallFirstDate = recentCompleted[0].dateExecuted ? parseLocalDate(recentCompleted[0].dateExecuted) : null;
+        const overallLastDate = recentCompleted[recentCompleted.length - 1].dateExecuted ? parseLocalDate(recentCompleted[recentCompleted.length - 1].dateExecuted) : null;
         if (overallFirstDate && overallLastDate && !isNaN(overallFirstDate.getTime()) && !isNaN(overallLastDate.getTime())) {
             totalSpanDays = Math.max(1, Math.ceil(Math.abs(overallLastDate - overallFirstDate) / (1000 * 60 * 60 * 24)) + 1);
         }
@@ -465,7 +465,7 @@ async function proceedToNextPhase() {
                     .filter(w => w.completed && w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgCadence)
                     .sort((a, b) => {
                         if (a.dateExecuted && b.dateExecuted) {
-                            return new Date(b.dateExecuted) - new Date(a.dateExecuted);
+                            return parseLocalDate(b.dateExecuted) - parseLocalDate(a.dateExecuted);
                         }
                         return b.sequenceOrder - a.sequenceOrder;
                     });

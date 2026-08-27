@@ -1,3 +1,24 @@
+// -----------------------------------------------------------------------------
+// TIMEZONE-SAFE LOCAL DATE PARSING
+// Avoids the JS new Date("YYYY-MM-DD") UTC midnight off-by-one bug
+// -----------------------------------------------------------------------------
+function parseLocalDate(dateInput) {
+    if (!dateInput) return new Date();
+    if (dateInput instanceof Date) return dateInput;
+    if (typeof dateInput === 'string') {
+        const trimmed = dateInput.trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            const [y, m, d] = trimmed.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+        if (trimmed.includes('T')) {
+            return new Date(trimmed);
+        }
+    }
+    return new Date(dateInput);
+}
+window.parseLocalDate = parseLocalDate;
+
 function submitSpeedWorkout(stepId, subId, isBenchmark) {
     const minInput = document.getElementById('logged-min');
     const secInput = document.getElementById('logged-sec');

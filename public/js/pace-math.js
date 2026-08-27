@@ -13,8 +13,8 @@ function calculateEst5KRacePace(completedRuns, baseline5kStr) {
                 const hasPace = w.actualLoggedPace || (w.uploadedWorkoutFile && w.uploadedWorkoutFile.avgPace);
                 return hasPace && !isExcluded;
             }).sort((a, b) => {
-                const dateA = a.dateExecuted ? new Date(a.dateExecuted).getTime() : (a.sequenceOrder || 0);
-                const dateB = b.dateExecuted ? new Date(b.dateExecuted).getTime() : (b.sequenceOrder || 0);
+                const dateA = a.dateExecuted ? parseLocalDate(a.dateExecuted).getTime() : (a.sequenceOrder || 0);
+                const dateB = b.dateExecuted ? parseLocalDate(b.dateExecuted).getTime() : (b.sequenceOrder || 0);
                 return dateB - dateA;
             });
 
@@ -311,7 +311,7 @@ function updatePaceChart(data, completedRuns, isFullJourney = false) {
     runs.forEach(w => {
         let wMs = 0;
         if (w.dateExecuted) {
-            wMs = new Date(w.dateExecuted).getTime();
+            wMs = parseLocalDate(w.dateExecuted).getTime();
         } else if (w.sequenceOrder) {
             const wkOffset = Math.floor((w.sequenceOrder - 1) / 3);
             wMs = startMs + (wkOffset * 7 * 24 * 60 * 60 * 1000);

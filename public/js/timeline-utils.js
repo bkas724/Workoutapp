@@ -7,10 +7,10 @@ function getCheckpointLabel(index) {
         }
 
 function generateTimelineDates(startDateStr, endDateStr) {
-            const start = startDateStr ? new Date(startDateStr) : new Date();
+            const start = startDateStr ? parseLocalDate(startDateStr) : new Date();
             let end;
             if (endDateStr) {
-                end = new Date(endDateStr);
+                end = parseLocalDate(endDateStr);
             } else {
                 end = new Date(start.getTime() + 12 * 7 * 24 * 60 * 60 * 1000); // 12 weeks later fallback
             }
@@ -46,10 +46,10 @@ async function getOrFetchHistoryWorkouts(userId) {
         }
 
 function generateWeeklyTimeline(startDateStr, endDateStr, defaultWeeks = 12) {
-            const start = startDateStr ? new Date(startDateStr) : new Date();
+            const start = startDateStr ? parseLocalDate(startDateStr) : new Date();
             let numWeeks = defaultWeeks;
             if (endDateStr && startDateStr) {
-                const diffMs = new Date(endDateStr).getTime() - new Date(startDateStr).getTime();
+                const diffMs = parseLocalDate(endDateStr).getTime() - parseLocalDate(startDateStr).getTime();
                 const calcWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
                 if (calcWeeks > 0) numWeeks = calcWeeks;
             }

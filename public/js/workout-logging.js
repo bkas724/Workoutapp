@@ -901,3 +901,341 @@ function getAccurateStrengthExerciseCount(step) {
             return 4;
         }
 
+// -----------------------------------------------------------------------------
+// PREVIOUS RUN / WORKOUT DETAILS EDITOR
+// -----------------------------------------------------------------------------
+let currentEditingWorkout = null;
+
+async function openEditWorkoutModal(workoutId) {
+    const modal = document.getElementById('edit-workout-modal');
+    if (!modal) return;
+
+    let workout = null;
+    let isHistory = false;
+
+    // Search in active phase first
+    if (typeof activePhaseWorkouts !== 'undefined' && Array.isArray(activePhaseWorkouts)) {
+        workout = activePhaseWorkouts.find(w => w.id === workoutId);
+    }
+
+    // Search in cached history if not found
+    if (!workout && typeof cachedHistoryWorkouts !== 'undefined' && Array.isArray(cachedHistoryWorkouts)) {
+        workout = cachedHistoryWorkouts.find(w => w.id === workoutId);
+        if (workout) isHistory = true;
+    }
+
+    // Fetch from history subcollection if not in cache
+    if (!workout && typeof userId !== 'undefined' && userId) {
+        try {
+            const docSnap = await db.collection("users").doc(userId).collection("history").doc(workoutId).get();
+            if (docSnap.exists) {
+                workout = docSnap.data();
+                isHistory = true;
+            }
+        } catch (e) {
+            console.warn("Error fetching workout from history:", e);
+        }
+    }
+
+    if (!workout) {
+        alert("Workout not found.");
+        return;
+    }
+
+    currentEditingWorkout = { ...workout, isHistory };
+
+    // Fill Modal Inputs
+    document.getElementById('edit-workout-id').value = workoutId;
+    document.getElementById('edit-workout-subtitle').innerText = workout.workoutTitle || "Workout Details";
+
+    // Date
+    const dateInput = document.getElementById('edit-workout-date');
+    if (dateInput) {
+        const d = workout.dateExecuted || (workout.createdAt ? new Date(workout.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+        dateInput.value = d;
+    }
+
+    // Activity Type
+    const typeSelect = document.getElementById('edit-workout-type');
+    if (typeSelect) {
+        const rawType = (workout.actualActivityType || workout.type || 'run').toLowerCase();
+        let matchedVal = 'run';
+        for (let opt of typeSelect.options) {
+            if (rawType.includes(opt.value) || opt.value.includes(rawType)) {
+                matchedVal = opt.value;
+                break;
+            }
+        }
+        typeSelect.value = matchedVal;
+    }
+
+    // Distance
+    const distInput = document.getElementById('edit-workout-distance');
+    if (distInput) {
+        distInput.value = (workout.actualLoggedDistance !== undefined && workout.actualLoggedDistance !== null && workout.actualLoggedDistance !== '') ? workout.actualLoggedDistance : (workout.targetDistance || '');
+    }
+
+    // Duration (Mins & Secs)
+    const durMinsInput = document.getElementById('edit-workout-dur-mins');
+    const durSecsInput = document.getElementById('edit-workout-dur-secs');
+    let totalSecs = 0;
+
+    if (workout.actualLoggedDuration) {
+        const durFloat = parseFloat(workout.actualLoggedDuration);
+        totalSecs = Math.round(durFloat * 60);
+    } else if (workout.actualLoggedPace && workout.actualLoggedDistance) {
+        const paceSec = typeof paceStringToSeconds === 'function' ? paceStringToSeconds(workout.actualLoggedPace) : 480;
+        totalSecs = Math.round(parseFloat(workout.actualLoggedDistance) * paceSec);
+    } else if (workout.targetDuration) {
+        totalSecs = Math.round(parseFloat(workout.targetDuration) * 60);
+    }
+
+    if (durMinsInput) durMinsInput.value = totalSecs > 0 ? Math.floor(totalSecs / 60) : '';
+    if (durSecsInput) durSecsInput.value = totalSecs > 0 ? (totalSecs % 60) : '';
+
+    // HR
+    const hrInput = document.getElementById('edit-workout-hr');
+    if (hrInput) {
+        hrInput.value = workout.actualHeartRate || (workout.uploadedWorkoutFile && workout.uploadedWorkoutFile.avgHeartRate) || '';
+    }
+
+    // Effort Zone
+    const effortSelect = document.getElementById('edit-workout-effort');
+    if (effortSelect) {
+        effortSelect.value = workout.effortZone || (workout.rpeScore ? (workout.rpeScore > 5 ? Math.round(workout.rpeScore / 2) : workout.rpeScore) : 3);
+    }
+
+    // Notes
+    const notesInput = document.getElementById('edit-workout-notes');
+    if (notesInput) {
+        notesInput.value = workout.userWorkoutNotes || workout.userNotes || workout.notes || workout.workoutNotes || '';
+    }
+
+    // Rep Splits
+    const splitsContainer = document.getElementById('edit-workout-splits-container');
+    const splitsGrid = document.getElementById('edit-workout-splits-grid');
+    if (splitsContainer && splitsGrid) {
+        if (workout.repSplits && Array.isArray(workout.repSplits) && workout.repSplits.length > 0) {
+            splitsContainer.classList.remove('hidden');
+            splitsGrid.innerHTML = workout.repSplits.map((split, idx) => `
+                <div class="flex items-center gap-1 bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                    <span class="text-[9px] font-bold text-slate-500">R${idx + 1}:</span>
+                    <input type="text" value="${split}" class="edit-rep-split-val w-full bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-[10px] text-center rounded px-1 py-0.5 focus:outline-none focus:border-indigo-500">
+                </div>
+            `).join('');
+        } else {
+            splitsContainer.classList.add('hidden');
+            splitsGrid.innerHTML = '';
+        }
+    }
+
+    updateEditModalPacePreview();
+
+    // Show Modal
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        const contentBox = modal.querySelector('div');
+        if (contentBox) contentBox.classList.remove('scale-95');
+    }, 10);
+}
+
+function closeEditWorkoutModal() {
+    const modal = document.getElementById('edit-workout-modal');
+    if (!modal) return;
+    modal.classList.add('opacity-0');
+    const contentBox = modal.querySelector('div');
+    if (contentBox) contentBox.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        currentEditingWorkout = null;
+    }, 250);
+}
+
+function updateEditModalPacePreview() {
+    const distInput = document.getElementById('edit-workout-distance');
+    const durMinsInput = document.getElementById('edit-workout-dur-mins');
+    const durSecsInput = document.getElementById('edit-workout-dur-secs');
+    const paceDisplay = document.getElementById('edit-workout-pace-display');
+
+    if (!distInput || !paceDisplay) return;
+
+    const dist = parseFloat(distInput.value) || 0;
+    const mins = parseFloat(durMinsInput?.value) || 0;
+    const secs = parseFloat(durSecsInput?.value) || 0;
+    const totalSec = (mins * 60) + secs;
+
+    if (dist > 0 && totalSec > 0) {
+        const paceSecPerMi = Math.round(totalSec / dist);
+        const pMin = Math.floor(paceSecPerMi / 60);
+        const pSec = paceSecPerMi % 60;
+        paceDisplay.innerText = `${pMin}:${pSec < 10 ? '0' : ''}${pSec} /mi`;
+        paceDisplay.className = "font-mono font-black text-xs text-emerald-400";
+    } else {
+        paceDisplay.innerText = "--:-- /mi";
+        paceDisplay.className = "font-mono font-black text-xs text-slate-500";
+    }
+}
+
+async function saveWorkoutEdits() {
+    if (!currentEditingWorkout || !userId) return;
+
+    const saveBtn = document.getElementById('edit-workout-save-btn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Saving...';
+    }
+
+    const workoutId = currentEditingWorkout.id;
+    const isHistory = currentEditingWorkout.isHistory;
+
+    const dateVal = document.getElementById('edit-workout-date')?.value || new Date().toISOString().split('T')[0];
+    const typeVal = document.getElementById('edit-workout-type')?.value || 'run';
+    const distVal = parseFloat(document.getElementById('edit-workout-distance')?.value) || null;
+    const minsVal = parseFloat(document.getElementById('edit-workout-dur-mins')?.value) || 0;
+    const secsVal = parseFloat(document.getElementById('edit-workout-dur-secs')?.value) || 0;
+    const totalDurationMins = (minsVal > 0 || secsVal > 0) ? (minsVal + (secsVal / 60)) : null;
+
+    let paceStr = null;
+    if (distVal && distVal > 0 && totalDurationMins && totalDurationMins > 0) {
+        const totalSec = (minsVal * 60) + secsVal;
+        const paceSecPerMi = Math.round(totalSec / distVal);
+        const pMin = Math.floor(paceSecPerMi / 60);
+        const pSec = paceSecPerMi % 60;
+        paceStr = `${pMin}:${pSec < 10 ? '0' : ''}${pSec}`;
+    }
+
+    const hrRaw = document.getElementById('edit-workout-hr')?.value;
+    const hrVal = (hrRaw && !isNaN(parseInt(hrRaw))) ? parseInt(hrRaw) : null;
+    const effortVal = parseInt(document.getElementById('edit-workout-effort')?.value) || 3;
+    const notesVal = document.getElementById('edit-workout-notes')?.value.trim() || null;
+
+    // Collect updated rep splits if visible
+    const splitInputs = document.querySelectorAll('.edit-rep-split-val');
+    const updatedSplits = [];
+    if (splitInputs.length > 0) {
+        splitInputs.forEach(input => {
+            if (input.value.trim()) updatedSplits.push(input.value.trim());
+        });
+    }
+
+    const updatePayload = {
+        completed: true,
+        dateExecuted: dateVal,
+        actualActivityType: typeVal,
+        actualLoggedDistance: distVal,
+        actualLoggedDuration: totalDurationMins ? parseFloat(totalDurationMins.toFixed(2)) : null,
+        actualLoggedPace: paceStr,
+        actualHeartRate: hrVal,
+        effortZone: effortVal,
+        userWorkoutNotes: notesVal
+    };
+    if (updatedSplits.length > 0) {
+        updatePayload.repSplits = updatedSplits;
+    }
+
+    try {
+        const docRef = isHistory
+            ? db.collection("users").doc(userId).collection("history").doc(workoutId)
+            : db.collection("users").doc(userId).collection("active_phase").doc(workoutId);
+
+        await docRef.update(updatePayload);
+
+        // Update in-memory object
+        if (!isHistory && typeof activePhaseWorkouts !== 'undefined') {
+            const idx = activePhaseWorkouts.findIndex(w => w.id === workoutId);
+            if (idx !== -1) {
+                activePhaseWorkouts[idx] = { ...activePhaseWorkouts[idx], ...updatePayload };
+            }
+        }
+        if (typeof cachedHistoryWorkouts !== 'undefined') {
+            const hIdx = cachedHistoryWorkouts.findIndex(w => w.id === workoutId);
+            if (hIdx !== -1) {
+                cachedHistoryWorkouts[hIdx] = { ...cachedHistoryWorkouts[hIdx], ...updatePayload };
+            }
+        }
+
+        closeEditWorkoutModal();
+
+        // Refresh UI
+        if (typeof buildActivePhaseHTML === 'function') buildActivePhaseHTML();
+        if (typeof renderNextActivityCard === 'function') renderNextActivityCard();
+        if (typeof updatePaceAndVolumeHub === 'function' && typeof userProfileData !== 'undefined') {
+            await updatePaceAndVolumeHub(userProfileData);
+        }
+        if (typeof updateJITConsistencyBadge === 'function') {
+            updateJITConsistencyBadge();
+        }
+
+        // If Pace breakdown modal is currently open, refresh it
+        const paceModal = document.getElementById('pace-breakdown-modal');
+        if (paceModal && !paceModal.classList.contains('hidden') && typeof openPaceBreakdownModal === 'function') {
+            openPaceBreakdownModal();
+        }
+
+        // If 5-Week Activity Review modal is currently open, refresh it
+        const historyModal = document.getElementById('activity-history-modal');
+        if (historyModal && !historyModal.classList.contains('hidden') && typeof window.renderActivityHistoryList === 'function') {
+            window.renderActivityHistoryList();
+        }
+
+        console.log("Workout edits saved successfully.");
+    } catch (err) {
+        console.error("Error updating workout: ", err);
+        alert("Failed to save workout edits: " + err.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i> Save Changes';
+        }
+    }
+}
+
+async function revertWorkoutCompletion() {
+    if (!currentEditingWorkout || !userId) return;
+    if (!confirm("Are you sure you want to mark this workout as incomplete?")) return;
+
+    const workoutId = currentEditingWorkout.id;
+    const isHistory = currentEditingWorkout.isHistory;
+
+    try {
+        const docRef = isHistory
+            ? db.collection("users").doc(userId).collection("history").doc(workoutId)
+            : db.collection("users").doc(userId).collection("active_phase").doc(workoutId);
+
+        await docRef.update({ completed: false });
+
+        if (!isHistory && typeof activePhaseWorkouts !== 'undefined') {
+            const idx = activePhaseWorkouts.findIndex(w => w.id === workoutId);
+            if (idx !== -1) {
+                activePhaseWorkouts[idx].completed = false;
+            }
+        }
+        if (typeof cachedHistoryWorkouts !== 'undefined') {
+            const hIdx = cachedHistoryWorkouts.findIndex(w => w.id === workoutId);
+            if (hIdx !== -1) {
+                cachedHistoryWorkouts[hIdx].completed = false;
+            }
+        }
+
+        closeEditWorkoutModal();
+
+        if (typeof buildActivePhaseHTML === 'function') buildActivePhaseHTML();
+        if (typeof renderNextActivityCard === 'function') renderNextActivityCard();
+        if (typeof updatePaceAndVolumeHub === 'function' && typeof userProfileData !== 'undefined') {
+            await updatePaceAndVolumeHub(userProfileData);
+        }
+        if (typeof updateJITConsistencyBadge === 'function') {
+            updateJITConsistencyBadge();
+        }
+
+        const historyModal = document.getElementById('activity-history-modal');
+        if (historyModal && !historyModal.classList.contains('hidden') && typeof window.renderActivityHistoryList === 'function') {
+            window.renderActivityHistoryList();
+        }
+    } catch (err) {
+        console.error("Error reverting workout completion:", err);
+        alert("Failed to mark incomplete: " + err.message);
+    }
+}
+

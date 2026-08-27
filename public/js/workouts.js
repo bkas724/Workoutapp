@@ -157,7 +157,11 @@ function buildActivePhaseHTML() {
                                     <button onclick="openSwapModifyModal('${step.id}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 border border-indigo-500/30 text-indigo-300 hover:text-white text-[10px] font-bold transition-all cursor-pointer select-none shrink-0" title="Modify or Swap Workout">
                                         <i class="fa-solid fa-sliders text-[9px]"></i> Modify
                                     </button>
-                                    ` : ''}
+                                    ` : `
+                                    <button onclick="openEditWorkoutModal('${step.id}')" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-800/80 hover:bg-indigo-500/20 active:scale-95 border border-slate-700/60 hover:border-indigo-500/40 text-slate-400 hover:text-indigo-300 text-[10px] font-bold transition-all cursor-pointer select-none shrink-0" title="Adjust Workout Details">
+                                        <i class="fa-solid fa-pen-to-square text-[9px]"></i> Edit Log
+                                    </button>
+                                    `}
                                 </div>
 
                                 <!-- Row 2: Metric Badges (Grey when incomplete, Green when complete) -->

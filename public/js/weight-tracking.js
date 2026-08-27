@@ -53,7 +53,7 @@ window.updateDashboardBMI = function (data, isFullJourney = false) {
                     const scoreEl = document.getElementById('consistency-score');
                     if (scoreEl) scoreEl.innerText = `${Math.round((completed / total) * 100)}%`;
 
-                    const completedDates = activePhaseWorkouts.filter(w => w.completed && w.dateExecuted).map(w => new Date(w.dateExecuted).getTime());
+                    const completedDates = activePhaseWorkouts.filter(w => w.completed && w.dateExecuted).map(w => parseLocalDate(w.dateExecuted).getTime());
                     const daysEl = document.getElementById('consistency-days-phase');
                     if (daysEl) {
                         if (completedDates.length > 0) {
