@@ -25,6 +25,11 @@
 ---
 
 ### 3. Training Journey & Macrocycle Engine (`tab-journey`)
+- [ ] **Intermediate Tune-Up Races & Milestone Checkpoints**:
+  - *Intake & Settings*: Enable athletes to configure 1–3 intermediate milestone races (Distance, Fixed Date, Target Time/Pace, Priority: B-Race/Hard Effort vs C-Race/Training Run) during onboarding and profile settings.
+  - *AI Macrocycle & Microcycle Periodization (`functions/index.js`)*: Automatically periodize macrocycle phases around intermediate race dates with 3–5 day automated mini-tapers (reduced volume, sharp turnover) and post-race active recovery blocks.
+  - *70/30 EMA & Riegel Recalibration (`pace-math.js`)*: Auto-flag completed tune-up races as physiological checkpoints and apply 70/30 EMA pace updates with Peter Riegel non-linear distance scaling ($b = 1.07 \rightarrow 1.08$) to project primary race capability.
+  - *UI Visualization*: Surface intermediate race flag pins on the `tab-journey` proportional progression track and dedicated prediction/recalibration cards in `tab-analytics`.
 - [ ] **Phase History Archive & Review**: Enable clicking past completed phase pills in the proportional track (`✓ 1`, `✓ 2`) to view a read-only historical summary of executed workouts, average paces, and coach feedback from that phase.
 - [ ] **Target Horizon Recalculation on Goal Date Change**: If the user edits their target race date in Profile Settings, offer an option to proportionally extend or compress remaining macrocycle phases.
 
