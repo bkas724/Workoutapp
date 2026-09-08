@@ -343,12 +343,25 @@ function formatTargetDisplay(act, options = {}) {
     const setsStr = (includeSets && act.sets && act.sets > 1 && !isCircuit) ? `${act.sets}×` : '';
     const setsPrefix = (includeSets && act.sets && act.sets > 1 && !isCircuit) ? `${act.sets} sets × ` : '';
 
-    const targetType = (act.targetType || '').toLowerCase();
-    const targetUnit = (act.targetUnit || '').toLowerCase();
+    const targetType = (act.targetType || '').toLowerCase().trim();
+    const targetUnit = (act.targetUnit || '').toLowerCase().trim();
     const val = (typeof act.targetValue === 'number' && act.targetValue > 0) ? act.targetValue : null;
 
-    // 1. TIMED HOLD / DURATION IN SECONDS
-    if (targetType === 'seconds' || targetUnit.includes('sec')) {
+    // 1. EXPLICIT REPS
+    if (targetType === 'reps') {
+        const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
+        const repVal = val !== null ? val : (parseInt(act.repsDistanceTime) || 10);
+        return `${short ? setsStr : setsPrefix}${repVal} reps${sideStr}`;
+    }
+
+    // 2. EXPLICIT FAILURE
+    if (targetType === 'failure') {
+        const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
+        return `${short ? setsStr : setsPrefix}to failure${sideStr}`;
+    }
+
+    // 3. TIMED HOLD / DURATION IN SECONDS
+    if (targetType === 'seconds' || (!targetType && targetUnit.includes('sec'))) {
         const secVal = val !== null ? val : parseInt(act.repsDistanceTime) || 30;
         const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
         if (secVal >= 60 && secVal % 60 !== 0) {
@@ -360,8 +373,16 @@ function formatTargetDisplay(act, options = {}) {
         return `${short ? setsStr : setsPrefix}${secVal}s hold${sideStr}`;
     }
 
-    // 2. TIME-BASED INTERVAL / RUN (e.g. 5 mins, 5.25 mins -> 5:15)
-    if (targetType === 'time' || targetUnit.includes('min') || (val !== null && (act.name || '').toLowerCase().includes('interval') && targetType !== 'reps' && targetType !== 'distance')) {
+    // 4. DISTANCE-BASED INTERVAL / RUN
+    if (targetType === 'distance' || (!targetType && ['m', 'km', 'mi', 'k'].includes(targetUnit)) || (!targetType && act.repsDistanceTime && /(\d+)\s*(?:m|km|mi)/i.test(act.repsDistanceTime))) {
+        const unit = targetUnit || (val && val > 50 ? 'm' : 'mi');
+        const distStr = val !== null ? `${val}${unit}` : (act.repsDistanceTime || '');
+        const paceStr = act.targetPace ? ` @ ~${typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(act.targetPace) : act.targetPace}` : '';
+        return `${short ? setsStr : setsPrefix}${distStr}${paceStr}`;
+    }
+
+    // 5. TIME-BASED INTERVAL / RUN
+    if (targetType === 'time' || (!targetType && targetUnit.includes('min')) || (!targetType && val !== null && (act.name || '').toLowerCase().includes('interval'))) {
         let timeStr = '';
         if (val !== null) {
             if (val > 60 && !targetUnit.includes('min')) {
@@ -386,35 +407,18 @@ function formatTargetDisplay(act, options = {}) {
         return `${short ? setsStr : setsPrefix}${timeStr}${paceStr}`;
     }
 
-    // 3. DISTANCE-BASED INTERVAL / RUN (e.g. 400m, 1.5 mi)
-    if (targetType === 'distance' || ['m', 'km', 'mi', 'k'].includes(targetUnit) || (act.repsDistanceTime && /(\d+)\s*(?:m|km|mi)/i.test(act.repsDistanceTime))) {
-        const unit = targetUnit || (val && val > 50 ? 'm' : 'mi');
-        const distStr = val !== null ? `${val}${unit}` : (act.repsDistanceTime || '');
-        const paceStr = act.targetPace ? ` @ ~${typeof parsePaceToMidpoint === 'function' ? parsePaceToMidpoint(act.targetPace) : act.targetPace}` : '';
-        return `${short ? setsStr : setsPrefix}${distStr}${paceStr}`;
-    }
-
-    // 4. FAILURE
-    if (targetType === 'failure') {
-        const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
-        return `${short ? setsStr : setsPrefix}to failure${sideStr}`;
-    }
-
-    // 5. STANDARD REPS
-    if (targetType === 'reps' || (val !== null && !targetType && Number.isInteger(val))) {
+    // 6. INFERRED INTEGER FALLBACK -> REPS
+    if (val !== null && Number.isInteger(val)) {
         const sideStr = act.isPerSide ? (short ? '/side' : ' / side') : '';
         return `${short ? setsStr : setsPrefix}${val} reps${sideStr}`;
     }
 
-    // 6. Decimal number detection fallback
+    // 7. INFERRED DECIMAL NUMBER FALLBACK -> MINUTES
     if (val !== null) {
-        if (val % 1 !== 0) {
-            const totalSec = Math.round(val * 60);
-            const m = Math.floor(totalSec / 60);
-            const s = totalSec % 60;
-            return `${short ? setsStr : setsPrefix}${m}:${s < 10 ? '0' + s : s} min`;
-        }
-        return `${short ? setsStr : setsPrefix}${val} reps`;
+        const totalSec = Math.round(val * 60);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        return `${short ? setsStr : setsPrefix}${m}:${s < 10 ? '0' + s : s} min`;
     }
 
     // 7. Fallback to repsDistanceTime

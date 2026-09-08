@@ -844,13 +844,18 @@ function renderNextActivityCard() {
                                 extractedReps = ex.targetValue.toString();
                             }
 
+                            const exTargetType = ex.targetType || 'reps';
+                            const exTargetUnit = ex.targetUnit || (exTargetType === 'seconds' ? 'seconds' : (exTargetType === 'time' ? 'mins' : (exTargetType === 'distance' ? 'mi' : 'reps')));
+
                             displayActivities.push({
-                                ...act,
+                                ...act, // Inherits base styling/flags
                                 name: ex.name,
                                 type: 'work',
                                 exerciseKey: ex.exerciseKey,
-                                targetType: ex.targetType || 'reps',
+                                targetType: exTargetType,
                                 targetValue: ex.targetValue || null,
+                                targetUnit: exTargetUnit,
+                                targetPace: null, // Ensure pace from container doesn't bleed
                                 minimumViableTarget: ex.minimumViableTarget,
                                 isPerSide: !!ex.isPerSide,
                                 restSeconds: ex.restSeconds || null,
