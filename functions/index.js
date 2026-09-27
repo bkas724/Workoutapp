@@ -218,7 +218,7 @@ function sanitizeStrengthGuides(guides, profile) {
 exports.generateWorkoutBlock = onCall({
     secrets: [geminiApiKey],
     cors: true,
-    timeoutSeconds: 90
+    timeoutSeconds: 120
 }, async (request) => {
     const { profile, phaseIndex, history, simpleMode, trainingMetrics } = request.data;
     

@@ -307,7 +307,7 @@ async function submitEmergencyAdaptation() {
                 const { cleanProfile, cleanHistory, trainingMetrics } = await buildEliteCoachPayload(userDocRef, activePhaseWorkouts, userProfileData);
 
                 // 3. Call the AI API BEFORE wiping active_phase
-                const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock', { timeout: 120000 });
                 const aiResult = await generateWorkoutBlock({
                     phaseIndex: currentPhaseIndex,
                     profile: cleanProfile,
@@ -496,7 +496,7 @@ async function proceedToNextPhase() {
                 // Call Firebase Cloud Function to generate AI workouts BEFORE wiping
                 let nextWorkouts = [];
                 try {
-                    const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                    const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock', { timeout: 120000 });
                     const aiResult = await generateWorkoutBlock({
                         phaseIndex: nextPhaseIndex,
                         profile: cleanProfile,
@@ -683,7 +683,7 @@ async function retryAIBlockGeneration() {
                 // Build streamlined history, training metrics, and slim profile
                 const { cleanProfile, cleanHistory, trainingMetrics } = await buildEliteCoachPayload(userDocRef, activePhaseWorkouts, userProfileData);
 
-                const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock');
+                const generateWorkoutBlock = firebase.functions().httpsCallable('generateWorkoutBlock', { timeout: 120000 });
                 const aiResult = await generateWorkoutBlock({
                     phaseIndex: currentPhaseIndex,
                     profile: cleanProfile,
