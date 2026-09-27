@@ -34,7 +34,7 @@ function buildActivePhaseHTML() {
                         </div>
                         <h3 class="text-white font-bold text-lg">Phase Complete</h3>
                         <p class="text-slate-400 text-sm max-w-sm">You have no active workouts. Generate your next phase to continue your journey.</p>
-                        <button onclick="proceedToNextPhase()" class="mt-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                        <button onclick="document.getElementById('checkout-gateway-modal').classList.remove('hidden')" class="mt-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)]">
                             <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate Next Phase
                         </button>
                     </div>
@@ -281,7 +281,7 @@ function renderNextActivityCard() {
                                 <p class="text-xs text-slate-300 mt-1">Great job finishing your 7-day training block. Ask Coach for your next block.</p>
                             </div>
                         </div>
-                        <button id="gen-next-phase-btn-home" onclick="proceedToNextPhase()" class="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md whitespace-nowrap flex items-center gap-2 cursor-pointer">
+                        <button id="gen-next-phase-btn-home" onclick="document.getElementById('checkout-gateway-modal').classList.remove('hidden')" class="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md whitespace-nowrap flex items-center gap-2 cursor-pointer">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Next Phase
                         </button>
                     </div>`;
@@ -1088,7 +1088,7 @@ function renderNextActivityCard() {
                                 <p class="text-xs text-slate-300 mt-0.5">Great job completing today's workout. Your next 7-day block will begin <strong class="text-amber-400">Tomorrow</strong>.</p>
                             </div>
                         </div>
-                        <button id="gen-next-phase-btn-home" onclick="proceedToNextPhase()" class="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                        <button id="gen-next-phase-btn-home" onclick="document.getElementById('checkout-gateway-modal').classList.remove('hidden')" class="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer whitespace-nowrap">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Next Phase
                         </button>
                     </div>

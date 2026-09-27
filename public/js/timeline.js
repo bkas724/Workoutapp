@@ -1,11 +1,7 @@
 function checkPhaseCompletion() {
             if (activePhaseWorkouts.length === 0) return;
-            const allDone = activePhaseWorkouts.every(w => w.completed);
-            if (allDone) {
-                document.getElementById('checkout-gateway-modal').classList.remove('hidden');
-            } else {
-                document.getElementById('checkout-gateway-modal').classList.add('hidden');
-            }
+            // The gateway modal should NOT pop up automatically.
+            // The user will see the completed activity and can click the manual "Generate Next Phase" button if they want.
         }
 
 function updateOverallProgressMeter() {

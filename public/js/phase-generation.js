@@ -534,9 +534,18 @@ async function proceedToNextPhase() {
                     await userDocRef.update(profileUpdates);
 
                 } catch (error) {
-                    console.error("Failed to generate AI workouts, falling back to defaults.", error);
-                    alert("AI Generation Error: " + error.message + "\n\nFalling back to default workouts instead.");
-                    nextWorkouts = getPhase1DefaultWorkouts();
+                    console.error("Failed to generate AI workouts.", error);
+                    const useFallback = confirm("AI Generation Error: " + error.message + "\n\nWould you like to fall back to a default offline template based on your fitness level? (Click Cancel to try AI regeneration again)");
+                    if (useFallback) {
+                        nextWorkouts = getDefaultWorkouts(userProfileData.fitnessLevel);
+                        nextWorkouts = nextWorkouts.map(w => ({
+                            ...w,
+                            id: userDocRef.collection("active_phase").doc().id,
+                            phaseNumber: nextPhaseIndex
+                        }));
+                    } else {
+                        throw new Error("AI Generation Error: " + error.message);
+                    }
                 }
 
                 // Only if AI succeeds do we wipe active_phase
@@ -577,8 +586,33 @@ async function proceedToNextPhase() {
             } catch (err) {
                 console.error("Gateway transition failure: ", err);
                 hideAutopilotLoader();
-                alert("Checkout Failed: " + err.message);
+                alert("Checkout Failed: " + err.message + "\n\nPlease try to generate your next phase again.");
                 window.isGeneratingBlock = false;
+
+                const homeGenBtn = document.getElementById('gen-next-phase-btn-home');
+                const checklistGenBtn = document.getElementById('gen-next-phase-btn-checklist');
+                const gatewayBtn = document.getElementById('gateway-submit-btn');
+                const regenBtn = document.getElementById('regenerate-block-btn');
+
+                if (homeGenBtn) {
+                    homeGenBtn.disabled = false;
+                    homeGenBtn.className = "shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer whitespace-nowrap";
+                    homeGenBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Next Phase`;
+                }
+                if (checklistGenBtn) {
+                    checklistGenBtn.disabled = false;
+                    checklistGenBtn.className = "shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer whitespace-nowrap";
+                    checklistGenBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Next Phase`;
+                }
+                if (gatewayBtn) {
+                    gatewayBtn.disabled = false;
+                    gatewayBtn.innerHTML = `Unlock Next Subphase Autopilot`;
+                    gatewayBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+                if (regenBtn) {
+                    regenBtn.disabled = false;
+                    regenBtn.innerHTML = `<i class="fa-solid fa-rotate-right mr-1"></i> Regenerate Active Block`;
+                }
             }
         }
 
@@ -716,43 +750,47 @@ async function retryAIBlockGeneration() {
             }
         }
 
-function getPhase1DefaultWorkouts() {
-            return [
-                { id: "act-1", phaseNumber: 1, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Highly relaxed base building. Keep your breathing perfectly controlled.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability and front heel lunge force from your strength library.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "A" },
-                { id: "act-3", phaseNumber: 1, sequenceOrder: 3, workoutTitle: "Easy Base Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Smooth and steady. Focus on keeping contact time on ground minimal.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-4", phaseNumber: 1, sequenceOrder: 4, workoutTitle: "Speed Session: 8 x 400m", type: "fast", distanceDuration: "30 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "8x400m intervals on Track (90s rest). Strive for a steady cadence of ~170 spm.", targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
-                { id: "act-5", phaseNumber: 1, sequenceOrder: 5, workoutTitle: "Active Recovery Rest Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Recommended rest to allow muscle fibers to adapt and rebuild.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
-                { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Stride elasticity and Achilles tendon rigidity. Use bands/calf raises.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "C" },
-                { id: "act-7", phaseNumber: 1, sequenceOrder: 7, workoutTitle: "Threshold Tempo Run", type: "fast", distanceDuration: "2 Miles", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "2 Miles at threshold tempo. Comfortably hard effort.", targetPaceZone: "tempo", actualLoggedPace: null, rpeScore: null }
-            ];
-        }
+function getDefaultWorkouts(fitnessLevel) {
+    let level = (fitnessLevel || "").toLowerCase();
+    
+    // Higher end athlete in a training cycle
+    if (level.includes("advanced") || level.includes("elite") || level.includes("competitive") || level.includes("pro") || level.includes("ambitious")) {
+        return [
+            { id: "act-1", phaseNumber: 1, sequenceOrder: 1, workoutTitle: "Aerobic Base Run", type: "easy", distanceDuration: "6 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Steady aerobic state. Focus on maintaining a quick turnover.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+            { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Strength: Power Output", type: "strength", distanceDuration: "45 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Heavy posterior chain loading and plyometric elasticity.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "A" },
+            { id: "act-3", phaseNumber: 1, sequenceOrder: 3, workoutTitle: "Speed: Threshold Intervals", type: "fast", distanceDuration: "50 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "6 x 1000m at Threshold Pace with 90s jog recovery.", targetPaceZone: "tempo", actualLoggedPace: null, rpeScore: null },
+            { id: "act-4", phaseNumber: 1, sequenceOrder: 4, workoutTitle: "Active Recovery", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Light mobility and dynamic stretching to aid fiber repair.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+            { id: "act-5", phaseNumber: 1, sequenceOrder: 5, workoutTitle: "Easy Base + Strides", type: "easy", distanceDuration: "5 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Easy miles followed by 6x100m strides to flush legs.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+            { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Strength: Core & Stability", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Anti-rotational core stability and hip mechanics.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "C" },
+            { id: "act-7", phaseNumber: 1, sequenceOrder: 7, workoutTitle: "Long Run Simulation", type: "easy", distanceDuration: "12 Miles", isSpeedWorkout: false, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "Sustained long run. Practice race-day nutrition.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null }
+        ];
+    }
+    // Average athlete
+    else if (level.includes("intermediate") || level.includes("average") || level.includes("progressive")) {
+        return [
+            { id: "act-1", phaseNumber: 1, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "3 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Highly relaxed base building. Keep your breathing perfectly controlled.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+            { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability and front heel lunge force from your strength library.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "A" },
+            { id: "act-3", phaseNumber: 1, sequenceOrder: 3, workoutTitle: "Easy Base Run", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Smooth and steady. Focus on keeping contact time on ground minimal.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+            { id: "act-4", phaseNumber: 1, sequenceOrder: 4, workoutTitle: "Speed Session: 8 x 400m", type: "fast", distanceDuration: "35 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "8x400m intervals on Track (90s rest). Strive for a steady cadence.", targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
+            { id: "act-5", phaseNumber: 1, sequenceOrder: 5, workoutTitle: "Active Recovery Rest Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Recommended rest to allow muscle fibers to adapt and rebuild.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+            { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Stride elasticity and Achilles tendon rigidity. Use bands/calf raises.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "C" },
+            { id: "act-7", phaseNumber: 1, sequenceOrder: 7, workoutTitle: "Long Run", type: "easy", distanceDuration: "6 Miles", isSpeedWorkout: false, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "Comfortable long run. Focus on time on feet.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null }
+        ];
+    }
+    // Get healthy / lower end athlete / beginner
+    else {
+        return [
+            { id: "act-1", phaseNumber: 1, sequenceOrder: 1, workoutTitle: "Walk/Jog Intervals", type: "easy", distanceDuration: "20 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "2 min walk, 1 min jog. Keep it very easy and strictly conversational.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+            { id: "act-2", phaseNumber: 1, sequenceOrder: 2, workoutTitle: "Mobility & Core", type: "strength", distanceDuration: "20 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Basic bodyweight squats, glute bridges, and plank holds.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "A" },
+            { id: "act-3", phaseNumber: 1, sequenceOrder: 3, workoutTitle: "Rest Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Full rest. Focus on hydration and getting 8 hours of sleep.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+            { id: "act-4", phaseNumber: 1, sequenceOrder: 4, workoutTitle: "Walk/Jog Intervals", type: "easy", distanceDuration: "25 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "3 min walk, 2 min jog. Gradually build your aerobic capacity.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
+            { id: "act-5", phaseNumber: 1, sequenceOrder: 5, workoutTitle: "Rest Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Full rest. Gentle stretching if feeling tight.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
+            { id: "act-6", phaseNumber: 1, sequenceOrder: 6, workoutTitle: "Light Strength & Balance", type: "strength", distanceDuration: "20 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Single leg balances, calf raises, and core stabilization.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "C" },
+            { id: "act-7", phaseNumber: 1, sequenceOrder: 7, workoutTitle: "Continuous Easy Run/Walk", type: "easy", distanceDuration: "1.5 Miles", isSpeedWorkout: false, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "Try to jog as much as possible, taking walk breaks only when needed.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null }
+        ];
+    }
+}
 
-function getPhase2DefaultWorkouts(avgCadence) {
-            const cadHint = avgCadence ? `Focus on sustaining your speed cadence of ${avgCadence} spm.` : "Focus on flat footstrike and high cadence.";
-            return [
-                { id: "act-1", phaseNumber: 2, sequenceOrder: 1, workoutTitle: "Easy Run + Strides", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Relaxed easy run. Add 4 x 100m light strides at the end.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-2", phaseNumber: 2, sequenceOrder: 2, workoutTitle: "Strength Workout B", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Posterior engine and hamstring loading. RDLs and clamshells.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "B" },
-                { id: "act-3", phaseNumber: 2, sequenceOrder: 3, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete rest. Stay hydrated and stretch.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
-                { id: "act-4", phaseNumber: 2, sequenceOrder: 4, workoutTitle: "Intervals: 5 x 1000m", type: "fast", distanceDuration: "40 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 repetitions at goal 5K speed with 2.5 min walking rests. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
-                { id: "act-5", phaseNumber: 2, sequenceOrder: 5, workoutTitle: "Strength Workout A", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Hip stability, single-leg reverse lunges, and plank sets.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "A" },
-                { id: "act-6", phaseNumber: 2, sequenceOrder: 6, workoutTitle: "Long Aerobic Base Run", type: "easy", distanceDuration: "6 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Build cardiovascular volume. Keep the pace conversational.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null },
-                { id: "act-7", phaseNumber: 2, sequenceOrder: 7, workoutTitle: "Speed Capacity Check", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `5 x 1000m intervals on Track. Focus on flat footstrike and high cadence. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null }
-            ];
-        }
-
-function getPhase3DefaultWorkouts(avgCadence) {
-            const cadHint = avgCadence ? `Focus on maintaining your stride rate of ${avgCadence} spm under fatigue.` : "Focus on flat footstrike and high cadence.";
-            return [
-                { id: "act-1", phaseNumber: 3, sequenceOrder: 1, workoutTitle: "Easy Recovery Run", type: "easy", distanceDuration: "4 Miles", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Slow restorative recovery jog. Keep effort very low.", targetPaceZone: "easy", actualLoggedPace: null, rpeScore: null },
-                { id: "act-2", phaseNumber: 3, sequenceOrder: 2, workoutTitle: "Strength Workout C", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Heel tendon stiffness, calf raises, and mobility stretches.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "C" },
-                { id: "act-3", phaseNumber: 3, sequenceOrder: 3, workoutTitle: "Speed Test: 3 x 1.5 Miles", type: "fast", distanceDuration: "45 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1.5 Miles at goal pace with 3 min walking recovery. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
-                { id: "act-4", phaseNumber: 3, sequenceOrder: 4, workoutTitle: "Rest / Active Recovery Day", type: "rest", distanceDuration: "As Needed", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Complete restorative rest. Rehydrate and foam roll.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null },
-                { id: "act-5", phaseNumber: 3, sequenceOrder: 5, workoutTitle: "Goal Benchmark: 3 x 1 Mile", type: "fast", distanceDuration: "35 mins", isSpeedWorkout: true, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: `3 x 1 Mile at goal 5K pace with 3min rest. Sub-20 test day. ${cadHint}`, targetPaceZone: "goal", actualLoggedPace: null, rpeScore: null },
-                { id: "act-6", phaseNumber: 3, sequenceOrder: 6, workoutTitle: "Strength Workout B", type: "strength", distanceDuration: "30 mins", isSpeedWorkout: false, isBenchmark: false, completed: false, dateExecuted: null, targetInstructions: "Deadlifts, single leg balances, and torso rotation resistance.", targetPaceZone: null, actualLoggedPace: null, rpeScore: null, strengthGuideReference: "B" },
-                { id: "act-7", phaseNumber: 3, sequenceOrder: 7, workoutTitle: "Long Run Simulation", type: "easy", distanceDuration: "7 Miles", isSpeedWorkout: false, isBenchmark: true, completed: false, dateExecuted: null, targetInstructions: "Treat this as a race rehearsal. Dial in your nutrition.", targetPaceZone: "long", actualLoggedPace: null, rpeScore: null }
-            ];
-        }
 
 function calculateTargetPhase(userProfileData, completedHistoryCount = 0) {
     if (!userProfileData) return 1;
